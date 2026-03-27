@@ -39,4 +39,7 @@ export type AnalyticsEvent =
   | "login_attempt"
   | "login_success"
   | "login_failure"
-  | "session_timeout";
+  | "session_timeout"
+  | "manual_onboarding_started"
+  | "manual_onboarding_completed"
+  | "manual_onboarding_abandoned";
