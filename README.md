@@ -1,10 +1,49 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Wodooh Frontend
 
-## Getting Started
+Frontend application for Wodooh - a university course management system.
 
-First, run the development server:
+## Tech Stack
+
+- **Framework**: [Next.js 16](https://nextjs.org/) with App Router
+- **UI Library**: React 19
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS 4
+- **Components**: [shadcn/ui](https://ui.shadcn.com/)
+- **Icons**: Huge Icons
+- **Deployment**: Vercel
+
+## Prerequisites
+
+- Node.js 18+
+- npm, yarn, pnpm, or bun
+
+## Setup
+
+### Installation
 
 ```bash
+# Install dependencies
+npm install
+# or
+yarn install
+# or
+pnpm install
+# or
+bun install
+```
+
+### Environment Variables
+
+Create a `.env.local` file in the root directory:
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:5000
+```
+
+### Development
+
+```bash
+# Start development server
 npm run dev
 # or
 yarn dev
@@ -14,23 +53,119 @@ pnpm dev
 bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Build for Production
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+# Create production build
+npm run build
+
+# Start production server
+npm start
+```
+
+## Project Structure
+
+```
+wodooh-frontend/
+├── app/                      # Next.js App Router
+│   ├── favicon.ico
+│   ├── globals.css          # Global styles
+│   ├── layout.tsx           # Root layout
+│   └── page.tsx             # Home page
+├── components/              # Reusable components
+├── lib/                     # Utility functions
+├── public/                  # Static assets
+├── components.json          # shadcn/ui configuration
+├── next.config.ts          # Next.js configuration
+├── tailwind.config.ts      # Tailwind CSS configuration
+├── tsconfig.json           # TypeScript configuration
+└── vercel.json            # Vercel deployment config
+```
+
+## Features
+
+### Built With
+
+- **App Router**: Latest Next.js routing with React Server Components
+- **TypeScript**: Full type safety across the application
+- **Tailwind CSS 4**: Latest version with built-in CSS variable support
+- **shadcn/ui**: Beautiful, accessible component library
+- **Huge Icons**: Modern icon library for React
+
+### Available Scripts
+
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start development server with hot reload |
+| `npm run build` | Create optimized production build |
+| `npm start` | Start production server |
+| `npm run lint` | Run ESLint to check code quality |
+
+## API Integration
+
+This frontend connects to the [Wodooh Backend API](../wodooh-backend/README.md).
+
+**Base URL**: Configured via `NEXT_PUBLIC_API_URL` environment variable.
+
+### Authentication Flow
+
+The app uses JWT tokens for authentication:
+
+```typescript
+// Login example
+const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ email, password })
+});
+const { token } = await response.json();
+
+// Use token for authenticated requests
+const authResponse = await fetch('/admin/users', {
+  headers: {
+    'Authorization': `Bearer ${token}`
+  }
+});
+```
+
+## Deployment
+
+### Vercel
+
+The easiest way to deploy is using [Vercel](https://vercel.com):
+
+1. Push your code to GitHub
+2. Import your project on Vercel
+3. Add environment variables
+4. Deploy!
+
+The project includes `vercel.json` for configuration.
+
+### Other Platforms
+
+The app can be deployed to any platform that supports Next.js:
+- Netlify
+- Railway
+- Render
+- AWS Amplify
+- DigitalOcean App Platform
 
 ## Learn More
 
-To learn more about Next.js, take a look at the following resources:
+To learn more about the technologies used:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- [Next.js Documentation](https://nextjs.org/docs) - Learn about Next.js features and API
+- [React Documentation](https://react.dev) - Learn about React
+- [TypeScript Documentation](https://www.typescriptlang.org/docs/) - Learn about TypeScript
+- [Tailwind CSS Documentation](https://tailwindcss.com/docs) - Learn about Tailwind CSS
+- [shadcn/ui Documentation](https://ui.shadcn.com/) - Learn about shadcn/ui components
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Contributing
 
-## Deploy on Vercel
+Contributions are welcome! Please feel free to submit a Pull Request.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## License
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+ISC
