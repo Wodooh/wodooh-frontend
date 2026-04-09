@@ -311,6 +311,13 @@ export default function LoginPage() {
             <span className="login-footer-muted">
               Your credentials are validated securely via your university&apos;s SSO system.
             </span>
+            <br />
+            <span className="login-footer-muted">
+              New student?{" "}
+              <a href="/onboarding" className="login-footer-link">
+                Register manually
+              </a>
+            </span>
           </p>
         </div>
       </main>
