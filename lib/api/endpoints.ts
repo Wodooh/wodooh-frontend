@@ -1,0 +1,70 @@
+/**
+ * Centralized API endpoint definitions for Wodooh Backend
+ * Base URL is handled by apiClient
+ */
+
+/**
+ * API Endpoints - Currently Implemented
+ * These are paths only - apiClient will add the base URL
+ */
+export const API_ENDPOINTS = {
+  // Health Check
+  HEALTH: '/health',
+
+  // Authentication
+  SIGNUP: '/auth/signup',
+  LOGIN: '/auth/login',
+
+  // Admin - User Management
+  USERS: '/admin/users',
+  USER_ROLE: (userId: string) => `/admin/users/${userId}/role`,
+
+  // --- Planned Backend Features (not yet implemented) ---
+  // These are stubs for future backend development
+
+  // Authentication - Future
+  REFRESH_TOKEN: '/auth/refresh',
+  LOGOUT: '/auth/logout',
+  VERIFY_EMAIL: '/auth/verify-email',
+  FORGOT_PASSWORD: '/auth/forgot-password',
+  RESET_PASSWORD: '/auth/reset-password',
+  CHANGE_PASSWORD: '/auth/change-password',
+
+  // User Profile - Future
+  PROFILE: '/profile',
+  UPDATE_PROFILE: '/profile',
+  DELETE_ACCOUNT: '/profile',
+
+  // Dashboard - Future
+  DASHBOARD: '/dashboard',
+  STATS: '/dashboard/stats',
+
+  // Courses - Future
+  COURSES: '/courses',
+  COURSE_DETAIL: (courseId: string) => `/courses/${courseId}`,
+  CREATE_COURSE: '/courses',
+  UPDATE_COURSE: (courseId: string) => `/courses/${courseId}`,
+  DELETE_COURSE: (courseId: string) => `/courses/${courseId}`,
+
+  // Lessons - Future
+  LESSONS: (courseId: string) => `/courses/${courseId}/lessons`,
+  LESSON_DETAIL: (courseId: string, lessonId: string) =>
+    `/courses/${courseId}/lessons/${lessonId}`,
+  CREATE_LESSON: (courseId: string) => `/courses/${courseId}/lessons`,
+  UPDATE_LESSON: (courseId: string, lessonId: string) =>
+    `/courses/${courseId}/lessons/${lessonId}`,
+  DELETE_LESSON: (courseId: string, lessonId: string) =>
+    `/courses/${courseId}/lessons/${lessonId}`,
+
+  // Enrollments - Future
+  ENROLLMENTS: '/enrollments',
+  COURSE_ENROLLMENTS: (courseId: string) => `/courses/${courseId}/enrollments`,
+  ENROLL_COURSE: (courseId: string) => `/courses/${courseId}/enroll`,
+
+  // Progress - Future
+  LESSON_PROGRESS: (courseId: string, lessonId: string) =>
+    `/courses/${courseId}/lessons/${lessonId}/progress`,
+  COURSE_PROGRESS: (courseId: string) => `/courses/${courseId}/progress`,
+} as const;
+
+export default API_ENDPOINTS;

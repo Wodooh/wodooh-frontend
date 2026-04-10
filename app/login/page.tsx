@@ -2,12 +2,11 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/contexts/AuthContext";
-import type { AuthErrorCode } from "@/types/auth";
-import { UserRole } from "@/types/auth";
+import { useAuth } from "@/lib/auth/auth-provider";
+import type { LoginCredentials, UserRole } from "@/lib/types/auth.types";
 
 // ─── Error icon mapping ──────────────────────────────────────
-const ERROR_ICONS: Record<AuthErrorCode, string> = {
+const ERROR_ICONS: Record<string, string> = {
   INVALID_CREDENTIALS: "🔒",
   SSO_UNAVAILABLE: "🔧",
   RATE_LIMITED: "⏳",
@@ -18,14 +17,14 @@ const ERROR_ICONS: Record<AuthErrorCode, string> = {
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { login, user, isAuthenticated, loading: authLoading } = useAuth();
 
   const [credential, setCredential] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<{
-    code: AuthErrorCode;
+    code: string;
     message: string;
   } | null>(null);
   const [credentialTouched, setCredentialTouched] = useState(false);
@@ -43,6 +42,10 @@ export default function LoginPage() {
   const isValidCredentialFormat = (val: string): boolean => {
     if (!val.trim()) return false;
     if (val.includes("@")) {
+      // University email validation - only accepts .edu.sa domain
+      // return /^[^\s@]+@[^.\s@]+\.(edu\.sa)$/i.test(val);
+
+      // Temporary: Accept any email format (university validation commented out)
       return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
     }
     return /^[a-zA-Z0-9._-]{2,}$/.test(val);
@@ -75,33 +78,33 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      const response = await login(credential.trim().toLowerCase(), password);
+      const credentials: LoginCredentials = {
+        email: credential.trim().toLowerCase(),
+        password,
+      };
+      await login(credentials);
 
-      if (response.success) {
-        // AC-5: Route to role-specific dashboard
-        const role = response.user.role;
-        switch (role) {
-          case UserRole.INSTRUCTOR:
+      // After successful login, use the user from auth context to determine redirect
+      if (user) {
+        switch (user.role) {
+          case "instructor":
             router.replace("/dashboard/instructor");
             break;
-          case UserRole.CHAIRMAN:
+          case "chairman":
             router.replace("/dashboard/chairman");
             break;
-          case UserRole.STUDENT:
+          case "student":
           default:
             router.replace("/dashboard");
             break;
         }
       } else {
-        setError({
-          code: response.error.code,
-          message: response.error.message,
-        });
+        router.replace("/dashboard");
       }
-    } catch {
+    } catch (err: any) {
       setError({
-        code: "UNKNOWN_ERROR",
-        message: "An unexpected error occurred. Please try again.",
+        code: err?.code || "UNKNOWN_ERROR",
+        message: err?.message || "An unexpected error occurred. Please try again.",
       });
     } finally {
       setIsSubmitting(false);

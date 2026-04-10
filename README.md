@@ -34,10 +34,15 @@ bun install
 
 ### Environment Variables
 
-Create a `.env.local` file in the root directory:
+This project uses a shared `.env` file from the parent directory (`../.env`). The frontend's `.env` is a symbolic link to the parent directory's `.env` file.
+
+**No action needed** - just ensure the parent directory's `.env` file contains:
 
 ```env
-NEXT_PUBLIC_API_URL=http://localhost:5000
+# Backend API URL (change this for your backend)
+NEXT_PUBLIC_API_URL=https://wodooh-backend.vercel.app
+NEXT_PUBLIC_TOKEN_EXPIRATION_MS=3600000
+NEXT_PUBLIC_TOKEN_REFRESH_THRESHOLD_MS=300000
 ```
 
 ### Development
@@ -105,30 +110,97 @@ wodooh-frontend/
 
 ## API Integration
 
-This frontend connects to the [Wodooh Backend API](../wodooh-backend/README.md).
+This frontend connects to the Wodooh Backend API.
 
-**Base URL**: Configured via `NEXT_PUBLIC_API_URL` environment variable.
+**Backend URL**: `https://wodooh-backend.vercel.app` (production) or `http://localhost:5001` (local)
 
-### Authentication Flow
-
-The app uses JWT tokens for authentication:
-
-```typescript
-// Login example
-const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ email, password })
-});
-const { token } = await response.json();
-
-// Use token for authenticated requests
-const authResponse = await fetch('/admin/users', {
-  headers: {
-    'Authorization': `Bearer ${token}`
-  }
-});
+**Response Format**:
+```json
+{
+  "status": "success",
+  "message": "Descriptive message",
+  "data": { ... }
+}
 ```
+
+### Quick Setup
+
+1. Make sure the parent directory's `.env` has your backend URL
+2. Add `AuthProvider` to your `app/layout.tsx`:
+
+```tsx
+import { AuthProvider } from '@/lib/auth/auth-provider';
+
+export default function RootLayout({ children }) {
+  return (
+    <html>
+      <body>
+        <AuthProvider>
+          {children}
+        </AuthProvider>
+      </body>
+    </html>
+  );
+}
+```
+
+3. Use the auth hooks in your components:
+
+```tsx
+import { useAuth } from '@/lib/hooks/use-auth';
+
+function LoginPage() {
+  const { login, loading, error } = useAuth();
+  // ... login form
+}
+```
+
+### Backend Details
+
+- **Local Port**: 5001
+- **JWT Token Expiration**: 1 hour
+- **Roles**: `admin`, `instructor`, `student`, `chairman`
+- **Default Admin**: `admin@wodooh.com` / `Password123`
+- **CORS**: Enabled for `localhost:3000` and `wodooh.vercel.app`
+
+### Available Endpoints
+
+| Method | Endpoint | Hook |
+|--------|----------|------|
+| GET | `/health` | `useHealth()` |
+| POST | `/auth/signup` | `useAuth().signup()` |
+| POST | `/auth/login` | `useAuth().login()` |
+| GET | `/admin/users` | `useUsers()` |
+| PATCH | `/admin/users/:userId/role` | `useUpdateRole()` |
+
+### Common Examples
+
+#### Protected Route
+```tsx
+import { ProtectedRoute } from '@/lib/auth/auth-provider';
+
+function AdminPage() {
+  return (
+    <ProtectedRoute allowedRoles="admin">
+      <h1>Admin Only</h1>
+    </ProtectedRoute>
+  );
+}
+```
+
+#### Fetch Users (Admin)
+```tsx
+import { useUsers } from '@/lib/hooks/use-users';
+
+function UserList() {
+  const { users, loading } = useUsers({ page: 1, limit: 10 });
+
+  if (loading) return <p>Loading...</p>;
+  return <ul>{users.map(u => <li key={u._id}>{u.name}</li>)}</ul>;
+}
+```
+
+**More details**: See [docs/API_INTEGRATION.md](docs/API_INTEGRATION.md)
 
 ## Deployment
 
