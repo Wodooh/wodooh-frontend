@@ -2,29 +2,29 @@
 
 import React, { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/contexts/AuthContext";
-import { UserRole } from "@/types/auth";
+import { useAuth } from "@/lib/auth/auth-provider";
+import type { UserRole } from "@/lib/types/auth.types";
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { user, isAuthenticated, isLoading, logout } = useAuth();
+  const { user, isAuthenticated, loading, logout } = useAuth();
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
+    if (!loading && !isAuthenticated) {
       router.replace("/login");
       return;
     }
     // Redirect role-specific users to their dashboards
     if (user) {
-      if (user.role === UserRole.INSTRUCTOR) {
+      if (user.role === "instructor") {
         router.replace("/dashboard/instructor");
-      } else if (user.role === UserRole.CHAIRMAN) {
+      } else if (user.role === "chairman") {
         router.replace("/dashboard/chairman");
       }
     }
-  }, [isLoading, isAuthenticated, user, router]);
+  }, [loading, isAuthenticated, user, router]);
 
-  if (isLoading) {
+  if (loading) {
     return (
       <div className="dashboard-page">
         <div className="dashboard-loader">

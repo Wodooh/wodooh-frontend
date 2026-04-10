@@ -112,7 +112,16 @@ wodooh-frontend/
 
 This frontend connects to the Wodooh Backend API.
 
-**Backend URL**: `https://wodooh-backend.vercel.app`
+**Backend URL**: `https://wodooh-backend.vercel.app` (production) or `http://localhost:5001` (local)
+
+**Response Format**:
+```json
+{
+  "status": "success",
+  "message": "Descriptive message",
+  "data": { ... }
+}
+```
 
 ### Quick Setup
 
@@ -148,9 +157,11 @@ function LoginPage() {
 
 ### Backend Details
 
+- **Local Port**: 5001
 - **JWT Token Expiration**: 1 hour
 - **Roles**: `admin`, `instructor`, `student`, `chairman`
 - **Default Admin**: `admin@wodooh.com` / `Password123`
+- **CORS**: Enabled for `localhost:3000` and `wodooh.vercel.app`
 
 ### Available Endpoints
 
