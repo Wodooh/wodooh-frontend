@@ -1611,6 +1611,177 @@ body {
     padding: 20px 0;
   }
 }
+
+/* ─── Instructor Onboarding — Faculty ID warning ─────────── */
+.instructor-id-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  color: #D97706;
+  line-height: 1.5;
+}
+
+.instructor-id-warning svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* ─── Instructor Onboarding — Success screen badges ──────── */
+.instructor-admin-notified {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 14px;
+  background: var(--info-bg);
+  border: 1px solid var(--info-border);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  color: var(--info-text);
+  line-height: 1.5;
+  margin-bottom: 12px;
+  text-align: left;
+}
+
+.instructor-admin-notified svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.instructor-flag-badge {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  color: #D97706;
+  line-height: 1.5;
+  margin-bottom: 10px;
+  text-align: left;
+}
+
+.instructor-flag-badge svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* ─── Instructor Dashboard — Pending banner ──────────────── */
+.instructor-pending-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 20px 24px;
+  background: rgba(245, 158, 11, 0.06);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  border-radius: var(--radius-lg);
+  margin-bottom: 28px;
+  backdrop-filter: blur(8px);
+  animation: cardAppear 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.instructor-pending-banner-icon {
+  flex-shrink: 0;
+  color: #D97706;
+  margin-top: 2px;
+}
+
+.instructor-pending-banner-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.instructor-pending-banner-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #D97706;
+  margin-bottom: 6px;
+}
+
+.instructor-pending-banner-text {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 0 0 14px;
+}
+
+.instructor-pending-features {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.instructor-pending-feature-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: 500;
+  color: #92400E;
+}
+
+/* ─── Instructor Dashboard — Pending pill (header) ───────── */
+.instructor-pending-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: 600;
+  color: #D97706;
+}
+
+/* ─── Instructor Dashboard — Locked stat card ────────────── */
+.instructor-locked-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.instructor-locked-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: rgba(var(--surface-elevated), 0.6);
+  backdrop-filter: blur(2px);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  z-index: 2;
+}
+
+@media (max-width: 768px) {
+  .instructor-pending-banner {
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
+  }
+
+  .instructor-pending-features {
+    gap: 6px;
+  }
+}
+
 :root {
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);

@@ -70,3 +70,51 @@ export type OnboardingAnalyticsEvent =
   | "manual_onboarding_started"
   | "manual_onboarding_completed"
   | "manual_onboarding_abandoned";
+
+// ══════════════════════════════════════════════════════════════
+// ─── Instructor Onboarding Types ──────────────────────────────
+// ══════════════════════════════════════════════════════════════
+
+// ─── Form Data ────────────────────────────────────────────────
+export interface InstructorOnboardingFormData {
+  fullName: string;
+  facultyId: string;
+  collegeId: string;
+  departmentId: string;
+  courseSelections: CourseSelection[];
+}
+
+// ─── Error Codes ──────────────────────────────────────────────
+export type InstructorOnboardingErrorCode =
+  | "INVALID_FACULTY_ID"
+  | "COURSE_ALREADY_ASSIGNED"
+  | "MISSING_DEPARTMENT"
+  | "VALIDATION_ERROR"
+  | "UNKNOWN_ERROR";
+
+// ─── Response (discriminated union) ───────────────────────────
+export interface InstructorOnboardingError {
+  code: InstructorOnboardingErrorCode;
+  message: string;
+  field?: string;
+}
+
+export interface InstructorOnboardingSuccessData {
+  facultyId: string;
+  fullName: string;
+  status: "Pending Admin Approval";
+  /** Faculty IDs that don't match known formats — admin will verify */
+  flaggedFacultyId?: boolean;
+  /** Course IDs already assigned to another instructor — flagged for admin */
+  flaggedCourses?: string[];
+}
+
+export type InstructorOnboardingResponse =
+  | { success: true; data: InstructorOnboardingSuccessData }
+  | { success: false; error: InstructorOnboardingError };
+
+// ─── Analytics Events ─────────────────────────────────────────
+export type InstructorOnboardingAnalyticsEvent =
+  | "instructor_onboarding_started"
+  | "instructor_onboarding_submitted"
+  | "instructor_onboarding_approved";
