@@ -310,7 +310,9 @@ export default function InstructorOnboardingPage() {
                   />
                   <path d="M7 5.833v2.334M7 10h.008" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
                 </svg>
-                Faculty ID <strong>{submitSuccess.facultyId}</strong> will be verified by admin — your application is still accepted.
+                <span>
+                  Faculty ID <strong>{submitSuccess.facultyId}</strong> will be verified by admin — your application is still accepted.
+                </span>
               </div>
             )}
 
@@ -326,8 +328,10 @@ export default function InstructorOnboardingPage() {
                   />
                   <path d="M7 5.833v2.334M7 10h.008" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
                 </svg>
-                {submitSuccess.flaggedCourses.length === 1 ? "1 course is" : `${submitSuccess.flaggedCourses.length} courses are`} already assigned to another instructor and{" "}
-                <strong>flagged for admin review</strong>.
+                <span>
+                  {submitSuccess.flaggedCourses.length === 1 ? "1 course is" : `${submitSuccess.flaggedCourses.length} courses are`} already assigned to another instructor and{" "}
+                  <strong>flagged for admin review</strong>.
+                </span>
               </div>
             )}
 
