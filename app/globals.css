@@ -160,6 +160,39 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/* ─── WODOH Design System Tokens ─────────────────────────── */
+:root {
+  --wd-primary: #1A1A1A;
+  --wd-surface-low: #F9FAFB;
+  --wd-surface-mid: #F3F4F6;
+  --wd-border-subtle: #D1D5DB;
+  --wd-muted-text: #6B7280;
+  --wd-body-text: #374151;
+  --wd-white: #FFFFFF;
+  --wd-radius-small: 6px;
+  --wd-radius-large: 12px;
+  --wd-shadow-card: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+@theme inline {
+  --color-wd-primary: var(--wd-primary);
+  --color-wd-surface-low: var(--wd-surface-low);
+  --color-wd-surface-mid: var(--wd-surface-mid);
+  --color-wd-border-subtle: var(--wd-border-subtle);
+  --color-wd-muted-text: var(--wd-muted-text);
+  --color-wd-body-text: var(--wd-body-text);
+  --color-wd-white: var(--wd-white);
+  --radius-wd-small: var(--wd-radius-small);
+  --radius-wd-large: var(--wd-radius-large);
+  --font-arabic: var(--font-arabic);
+}
+
+/* Material Symbols Outlined base styles */
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 20;
+  vertical-align: middle;
+}
+
 /* ─── Base styles ────────────────────────────────────────── */
 *,
 *::before,

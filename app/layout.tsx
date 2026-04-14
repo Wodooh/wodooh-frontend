@@ -1,29 +1,20 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Inter } from "next/font/google";
+import { IBM_Plex_Sans } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { AuthProvider } from "@/lib/auth/auth-provider";
 
-const inter = Inter({
+const ibmPlexSans = IBM_Plex_Sans({
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
   variable: "--font-sans",
   display: "swap",
 });
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
 export const metadata: Metadata = {
-  title: "WODOOH — University Learning Platform",
+  title: "WODOH — Institutional Clarity",
   description:
-    "Access your university courses, assignments, and grades through WODOOH. Log in with your institutional credentials.",
+    "Access your university courses, assignments, and grades through WODOH. Log in with your institutional credentials.",
 };
 
 export default function RootLayout({
@@ -33,10 +24,18 @@ export default function RootLayout({
 }>) {
   return (
     <AuthProvider>
-      <html lang="en" className={cn("font-sans", inter.variable)}>
-        <body
-          className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-        >
+      <html lang="en" className={cn("light font-sans", ibmPlexSans.variable)}>
+        <head>
+          <link
+            rel="stylesheet"
+            href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;600;700&display=swap"
+          />
+          <link
+            rel="stylesheet"
+            href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20,300,0,0&display=swap"
+          />
+        </head>
+        <body className="antialiased bg-wd-surface-low text-wd-body-text">
           {children}
         </body>
       </html>
