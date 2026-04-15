@@ -321,6 +321,13 @@ export default function LoginPage() {
                 Register manually
               </a>
             </span>
+            <br />
+            <span className="login-footer-muted">
+              New instructor?{" "}
+              <a href="/onboarding/instructor" className="login-footer-link" id="instructor-onboarding-link">
+                Set up your account
+              </a>
+            </span>
           </p>
         </div>
       </main>
