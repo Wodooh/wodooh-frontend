@@ -19,6 +19,12 @@ const buttonVariants = cva(
         destructive:
           "bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40",
         link: "text-primary underline-offset-4 hover:underline",
+        "wodoh-primary":
+          "bg-wd-primary text-white uppercase tracking-widest font-semibold hover:bg-wd-primary/90 transition-all duration-200 shadow-sm",
+        "wodoh-secondary":
+          "bg-wd-surface-low text-wd-body-text border border-wd-border-subtle uppercase tracking-widest font-semibold hover:bg-wd-surface-mid transition-all duration-200",
+        "wodoh-ghost":
+          "text-wd-muted-text uppercase tracking-widest font-semibold hover:text-wd-body-text hover:bg-wd-surface-low transition-all duration-200",
       },
       size: {
         default:
@@ -30,6 +36,8 @@ const buttonVariants = cva(
         "icon-xs": "size-5 rounded-sm [&_svg:not([class*='size-'])]:size-2.5",
         "icon-sm": "size-6 [&_svg:not([class*='size-'])]:size-3",
         "icon-lg": "size-8 [&_svg:not([class*='size-'])]:size-4",
+        wodoh:
+          "h-12 gap-2 px-6 text-sm rounded-wd-small [&_svg:not([class*='size-'])]:size-4",
       },
     },
     defaultVariants: {

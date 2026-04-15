@@ -3,17 +3,15 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth/auth-provider";
-import type { LoginCredentials, UserRole } from "@/lib/types/auth.types";
+import type { LoginCredentials } from "@/lib/types/auth.types";
 
-// ─── Error icon mapping ──────────────────────────────────────
-const ERROR_ICONS: Record<string, string> = {
-  INVALID_CREDENTIALS: "🔒",
-  SSO_UNAVAILABLE: "🔧",
-  RATE_LIMITED: "⏳",
-  NO_ROLE: "👤",
-  NON_UNIVERSITY_EMAIL: "🎓",
-  UNKNOWN_ERROR: "⚠️",
-};
+import { PageShell } from "@/components/ui/page-shell";
+import { BrandMark } from "@/components/ui/brand-mark";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { TrustCue } from "@/components/ui/trust-cue";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -21,7 +19,6 @@ export default function LoginPage() {
 
   const [credential, setCredential] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<{
     code: string;
@@ -38,14 +35,9 @@ export default function LoginPage() {
   }, [isAuthenticated, authLoading, router]);
 
   // ── Client-side validation ─────────────────────────────────
-  // Accept: university email (contains @) OR username (no @, 2+ chars)
   const isValidCredentialFormat = (val: string): boolean => {
     if (!val.trim()) return false;
     if (val.includes("@")) {
-      // University email validation - only accepts .edu.sa domain
-      // return /^[^\s@]+@[^.\s@]+\.(edu\.sa)$/i.test(val);
-
-      // Temporary: Accept any email format (university validation commented out)
       return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
     }
     return /^[a-zA-Z0-9._-]{2,}$/.test(val);
@@ -62,9 +54,7 @@ export default function LoginPage() {
     passwordTouched && !password ? "Password is required." : null;
 
   const isFormValid =
-    isValidCredentialFormat(credential) &&
-    password &&
-    !isSubmitting;
+    isValidCredentialFormat(credential) && password && !isSubmitting;
 
   // ── Handle form submission ─────────────────────────────────
   const handleSubmit = async (e: React.FormEvent) => {
@@ -84,7 +74,6 @@ export default function LoginPage() {
       };
       await login(credentials);
 
-      // After successful login, use the user from auth context to determine redirect
       if (user) {
         switch (user.role) {
           case "instructor":
@@ -101,236 +90,137 @@ export default function LoginPage() {
       } else {
         router.replace("/dashboard");
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const error = err as { code?: string; message?: string };
       setError({
-        code: err?.code || "UNKNOWN_ERROR",
-        message: err?.message || "An unexpected error occurred. Please try again.",
+        code: error?.code || "UNKNOWN_ERROR",
+        message:
+          error?.message || "An unexpected error occurred. Please try again.",
       });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Show nothing while checking auth state
+  // Loading state
   if (authLoading) {
     return (
-      <div className="login-page">
-        <div className="login-loader">
-          <div className="spinner" />
-        </div>
-      </div>
+      <PageShell footer={false}>
+        <div className="animate-spin rounded-full h-8 w-8 border-2 border-wd-primary border-t-transparent" />
+      </PageShell>
     );
   }
 
-  // If already authenticated, show nothing (redirect is happening)
+  // Already authenticated — redirect happening
   if (isAuthenticated) {
     return null;
   }
 
   return (
-    <div className="login-page">
-      {/* Animated background elements */}
-      <div className="login-bg-orb login-bg-orb-1" />
-      <div className="login-bg-orb login-bg-orb-2" />
-      <div className="login-bg-orb login-bg-orb-3" />
+    <PageShell>
+      <div className="w-full max-w-md space-y-12">
+        {/* Branding */}
+        <BrandMark size="lg" tagline />
 
-      <main className="login-container">
-        {/* Glass card */}
-        <div className="login-card">
-          {/* Logo / Brand */}
-          <div className="login-brand">
-            <div className="login-logo-img mb-6">
-              <img
-                src="/logo.png"
-                alt="WODOOH Logo"
-                className="h-20 w-auto object-contain"
-              />
-            </div>
-            <h1 className="login-title">WODOOH</h1>
-            <p className="login-subtitle">
-              Sign in with your university credentials
-            </p>
-          </div>
-
-          {/* Error message */}
-          {error && (
-            <div
-              className={`login-error login-error-${error.code.toLowerCase()}`}
-              role="alert"
-              id="login-error-message"
-            >
-              <span className="login-error-icon">
-                {ERROR_ICONS[error.code]}
-              </span>
-              <p className="login-error-text">{error.message}</p>
-            </div>
-          )}
-
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="login-form" noValidate>
-            {/* Email or Username field */}
-            <div className="login-field">
-              <label htmlFor="login-credential" className="login-label">
-                University Email or Username
-              </label>
-              <div className={`login-input-wrapper ${credentialError ? "login-input-error" : ""}`}>
-                <svg
-                  className="login-input-icon"
-                  width="20"
-                  height="20"
-                  viewBox="0 0 20 20"
-                  fill="none"
-                >
-                  <path
-                    d="M2.5 6.667L9.025 11.05c.3.2.45.3.614.339a1 1 0 00.722 0c.164-.04.314-.14.614-.34L17.5 6.668M5.667 16.667h8.666c1.4 0 2.1 0 2.635-.273a2.5 2.5 0 001.093-1.093c.272-.535.272-1.235.272-2.635V7.334c0-1.4 0-2.1-.272-2.635a2.5 2.5 0 00-1.093-1.093c-.535-.273-1.235-.273-2.635-.273H5.667c-1.4 0-2.1 0-2.635.273a2.5 2.5 0 00-1.093 1.093c-.272.535-.272 1.235-.272 2.635v5.332c0 1.4 0 2.1.272 2.635a2.5 2.5 0 001.093 1.093c.535.273 1.235.273 2.635.273z"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
+        {/* Login Card */}
+        <Card>
+          <CardContent className="space-y-8">
+            {/* Form */}
+            <form onSubmit={handleSubmit} className="space-y-6" noValidate>
+              <div className="space-y-4">
+                {/* Email / University ID */}
+                <div className="space-y-2">
+                  <Label htmlFor="identifier">Email or University ID</Label>
+                  <Input
+                    id="identifier"
+                    type="text"
+                    placeholder="e.g. name@university.edu"
+                    value={credential}
+                    onChange={(e) => setCredential(e.target.value)}
+                    onBlur={() => setCredentialTouched(true)}
+                    disabled={isSubmitting}
+                    autoComplete="username"
+                    autoFocus
+                    aria-describedby={
+                      credentialError ? "credential-error" : undefined
+                    }
+                    aria-invalid={!!credentialError}
                   />
-                </svg>
-                <input
-                  id="login-credential"
-                  type="text"
-                  placeholder="your.name@university.edu.sa"
-                  value={credential}
-                  onChange={(e) => setCredential(e.target.value)}
-                  onBlur={() => setCredentialTouched(true)}
-                  disabled={isSubmitting}
-                  autoComplete="username"
-                  autoFocus
-                  aria-describedby={credentialError ? "credential-error" : undefined}
-                  aria-invalid={!!credentialError}
-                />
-              </div>
-              {credentialError && (
-                <p id="credential-error" className="login-field-error">
-                  {credentialError}
-                </p>
-              )}
-            </div>
-
-            {/* Password field */}
-            <div className="login-field">
-              <label htmlFor="login-password" className="login-label">
-                Password
-              </label>
-              <div
-                className={`login-input-wrapper ${passwordError ? "login-input-error" : ""}`}
-              >
-                <svg
-                  className="login-input-icon"
-                  width="20"
-                  height="20"
-                  viewBox="0 0 20 20"
-                  fill="none"
-                >
-                  <path
-                    d="M14.167 8.333V6.667a4.167 4.167 0 00-8.334 0v1.666M10 12.083v1.667M6.833 16.667h6.334c1.4 0 2.1 0 2.635-.273a2.5 2.5 0 001.093-1.093c.272-.535.272-1.235.272-2.635v-1.332c0-1.4 0-2.1-.272-2.635a2.5 2.5 0 00-1.093-1.093c-.535-.273-1.235-.273-2.635-.273H6.833c-1.4 0-2.1 0-2.635.273a2.5 2.5 0 00-1.093 1.093c-.272.535-.272 1.235-.272 2.635v1.332c0 1.4 0 2.1.272 2.635a2.5 2.5 0 001.093 1.093c.535.273 1.235.273 2.635.273z"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-                <input
-                  id="login-password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Enter your password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  onBlur={() => setPasswordTouched(true)}
-                  disabled={isSubmitting}
-                  autoComplete="current-password"
-                  aria-describedby={passwordError ? "password-error" : undefined}
-                  aria-invalid={!!passwordError}
-                />
-                <button
-                  type="button"
-                  className="login-toggle-password"
-                  onClick={() => setShowPassword(!showPassword)}
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                  tabIndex={-1}
-                >
-                  {showPassword ? (
-                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                      <path
-                        d="M2.5 2.5l15 15M8.235 8.293A2.5 2.5 0 0011.707 11.765M4.7 5.048C3.282 6.133 2.167 7.663 1.667 10c1.048 4.872 5 7.5 8.333 7.5 1.73 0 3.388-.67 4.786-1.72M9.583 2.542c.139-.014.278-.025.417-.042A8.27 8.27 0 0110 2.5c3.333 0 7.285 2.628 8.333 7.5a10.58 10.58 0 01-1.2 3.06"
-                        stroke="currentColor"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  ) : (
-                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                      <path
-                        d="M1.667 10c1.048-4.872 5-7.5 8.333-7.5s7.285 2.628 8.333 7.5c-1.048 4.872-5 7.5-8.333 7.5s-7.285-2.628-8.333-7.5z"
-                        stroke="currentColor"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                      <circle
-                        cx="10"
-                        cy="10"
-                        r="2.5"
-                        stroke="currentColor"
-                        strokeWidth="1.5"
-                      />
-                    </svg>
+                  {credentialError && (
+                    <p
+                      id="credential-error"
+                      className="text-xs text-red-600 mt-1"
+                    >
+                      {credentialError}
+                    </p>
                   )}
-                </button>
+                </div>
+
+                {/* Password */}
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <Label htmlFor="password">Password</Label>
+                    <a
+                      className="text-[11px] text-wd-muted-text hover:text-wd-primary underline underline-offset-4 transition-colors"
+                      href="#"
+                    >
+                      Forgot password?
+                    </a>
+                  </div>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    onBlur={() => setPasswordTouched(true)}
+                    disabled={isSubmitting}
+                    autoComplete="current-password"
+                    aria-describedby={
+                      passwordError ? "password-error" : undefined
+                    }
+                    aria-invalid={!!passwordError}
+                  />
+                  {passwordError && (
+                    <p
+                      id="password-error"
+                      className="text-xs text-red-600 mt-1"
+                    >
+                      {passwordError}
+                    </p>
+                  )}
+                </div>
               </div>
-              {passwordError && (
-                <p id="password-error" className="login-field-error">
-                  {passwordError}
-                </p>
-              )}
-            </div>
 
-            {/* Submit button */}
-            <button
-              id="login-submit"
-              type="submit"
-              className="login-button"
-              disabled={!isFormValid}
-            >
-              {isSubmitting ? (
-                <>
-                  <div className="spinner spinner-small" />
-                  <span>Signing In…</span>
-                </>
-              ) : (
-                <span>Log In</span>
+              {/* Error message */}
+              {error && (
+                <div
+                  className="rounded-wd-small bg-red-50 border border-red-200 p-3 text-sm text-red-700"
+                  role="alert"
+                >
+                  {error.message}
+                </div>
               )}
-            </button>
-          </form>
 
-          {/* Footer */}
-          <p className="login-footer">
-            Protected by institutional authentication.
-            <br />
-            <span className="login-footer-muted">
-              Your credentials are validated securely via your university&apos;s SSO system.
-            </span>
-            <br />
-            <span className="login-footer-muted">
-              New student?{" "}
-              <a href="/onboarding" className="login-footer-link">
-                Register manually
-              </a>
-            </span>
-            <br />
-            <span className="login-footer-muted">
-              New instructor?{" "}
-              <a href="/onboarding/instructor" className="login-footer-link" id="instructor-onboarding-link">
-                Set up your account
-              </a>
-            </span>
-          </p>
-        </div>
-      </main>
-    </div>
+              {/* Submit */}
+              <Button
+                variant="wodoh-primary"
+                size="wodoh"
+                type="submit"
+                className="w-full"
+                disabled={!isFormValid}
+              >
+                {isSubmitting ? "Signing In\u2026" : "Sign In"}
+              </Button>
+            </form>
+
+            {/* Trust cue */}
+            <TrustCue icon="lock" title="Privacy by Architecture">
+              Your identity is never stored or shared with external parties.
+              Session-based encryption is active.
+            </TrustCue>
+          </CardContent>
+        </Card>
+      </div>
+    </PageShell>
   );
 }
