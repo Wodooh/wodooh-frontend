@@ -4,6 +4,8 @@
 
 Wodooh Frontend - A university course management system built with Next.js 16, React 19, TypeScript, Tailwind CSS 4, and shadcn/ui.
 
+**Package manager: npm.** Do not use pnpm or yarn — lockfile and `node_modules` layout assume npm. `package.json` pins `"packageManager": "npm@..."`. The frontend's shadcn primitives were installed via the npm-backed CLI; running `pnpm install` or `yarn install` will produce a divergent tree.
+
 ## Tech Stack
 
 - **Framework**: Next.js 16 with App Router
@@ -16,10 +18,10 @@ Wodooh Frontend - A university course management system built with Next.js 16, R
 
 ## Backend Integration
 
-This frontend connects to Wodooh Backend API (Express.js + MongoDB + JWT).
+This frontend connects to Wodooh Backend API (Express.js + Firebase Admin SDK / Cloud Firestore + JWT).
 
 ### Backend Details
-- **Base URL**: `http://localhost:5000`
+- **Base URL**: `http://localhost:5001` (configurable via `NEXT_PUBLIC_API_URL`)
 - **JWT Token Expiration**: 1 hour
 - **Roles**: `admin`, `instructor`, `student`, `chairman`
 - **Data Storage**: All text data stored in lowercase (emails, names)
@@ -120,7 +122,7 @@ The following endpoint stubs exist in `lib/api/endpoints.ts` for future implemen
 
 1. **TypeScript compilation**: Run `npx tsc --noEmit` to check for type errors
 2. **Development server**: Run `npm run dev` and verify no build errors
-3. **API integration**: Test with backend running on `localhost:5000`
+3. **API integration**: Test with backend running on `localhost:5001`
 4. **Authentication**: Test login, logout, and protected routes
 
 ## Common Tasks
@@ -159,7 +161,7 @@ function Component() {
 ## Environment Variables
 
 ```env
-NEXT_PUBLIC_API_URL=http://localhost:5000
+NEXT_PUBLIC_API_URL=http://localhost:5001
 NEXT_PUBLIC_TOKEN_EXPIRATION_MS=3600000
 NEXT_PUBLIC_TOKEN_REFRESH_THRESHOLD_MS=300000
 ```
