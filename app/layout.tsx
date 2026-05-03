@@ -1,15 +1,8 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Sans } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { AuthProvider } from "@/lib/auth/auth-provider";
-
-const ibmPlexSans = IBM_Plex_Sans({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  variable: "--font-sans",
-  display: "swap",
-});
+import { RoleBodyClass } from "@/components/role-body-class";
 
 export const metadata: Metadata = {
   title: "WODOH — Institutional Clarity",
@@ -24,8 +17,17 @@ export default function RootLayout({
 }>) {
   return (
     <AuthProvider>
-      <html lang="en" className={cn("light font-sans", ibmPlexSans.variable)}>
+      <html lang="en" className={cn("light font-sans")}>
         <head>
+          <link
+            rel="preconnect"
+            href="https://fonts.gstatic.com"
+            crossOrigin=""
+          />
+          <link
+            rel="stylesheet"
+            href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;700;900&display=block"
+          />
           <link
             rel="stylesheet"
             href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;600;700&display=swap"
@@ -35,7 +37,8 @@ export default function RootLayout({
             href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20,300,0,0&display=swap"
           />
         </head>
-        <body className="antialiased bg-wd-surface-low text-wd-body-text">
+        <body className="antialiased bauhaus-dot-grid text-[#121212]">
+          <RoleBodyClass />
           {children}
         </body>
       </html>
