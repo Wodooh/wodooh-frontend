@@ -1,39 +1,27 @@
-import { PaginatedResponse } from './api.types';
+import type { UserDoc, UserResponse } from './user-doc.types';
+
+export type { UserRole, UserDoc, UserResponse, AdminUserResponse } from './user-doc.types';
 
 /**
- * User model types matching Wodooh Backend API
- * Backend stores all text data in lowercase
+ * User model types matching Wodooh Backend API.
+ * Backend stores all text data in lowercase.
+ *
+ * UserSafe is now derived from the canonical UserDoc — adding/renaming a
+ * field on UserDoc surfaces here automatically. The phantom `password`
+ * field that previously lived on a `User` type was deleted; no readers
+ * existed anywhere in the frontend (verified by grep).
  */
-
-export type UserRole = 'admin' | 'instructor' | 'student' | 'chairman';
-
-export interface User {
-  _id: string;
-  email: string;
-  name: string;
-  password: string;
-  role: UserRole;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface UserSafe {
-  _id: string;
-  email: string;
-  name: string;
-  role: UserRole;
-  createdAt: string;
-  updatedAt: string;
-}
+export type UserSafe = UserResponse;
 
 /**
- * Query parameters for fetching users
+ * Query parameters for fetching users.
  */
 export interface UsersQueryParams {
   page?: number;
   limit?: number;
-  role?: UserRole;
+  role?: UserDoc['role'];
   query?: string;
+  includeDeleted?: boolean;
 }
 
 /**
@@ -54,7 +42,7 @@ export interface UsersResponse {
  * Request body for PATCH /admin/users/:userId/role
  */
 export interface UpdateRoleRequest {
-  role: UserRole;
+  role: UserDoc['role'];
 }
 
 /**
