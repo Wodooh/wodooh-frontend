@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { AuthState, LoginCredentials, SignupData, UserRole } from '../types/auth.types';
 import apiClient from '../api/client';
 import {
@@ -257,18 +258,24 @@ export const ProtectedRoute: React.FC<{
   allowedRoles?: UserRole | UserRole[];
 }> = ({ children, fallback, allowedRoles }) => {
   const { isAuthenticated, hasRole, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && !isAuthenticated) {
+      router.replace('/login');
+    }
+  }, [loading, isAuthenticated, router]);
 
   if (loading) {
-    return fallback || <div>Loading...</div>;
+    return fallback || null;
   }
 
   if (!isAuthenticated) {
-    // In a real app, you'd redirect to login page
-    return fallback || <div>Redirecting to login...</div>;
+    return null;
   }
 
   if (allowedRoles && !hasRole(allowedRoles)) {
-    return fallback || <div>Access denied</div>;
+    return fallback || null;
   }
 
   return <>{children}</>;
