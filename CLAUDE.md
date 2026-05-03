@@ -96,31 +96,46 @@ lib/
 | POST | `/auth/login` | `useAuth().login()` |
 | GET | `/admin/users` | `useUsers()` |
 | PATCH | `/admin/users/:userId/role` | `useUpdateRole()` |
+| GET | `/admin/departments` | `useDepartments()` |
+| POST | `/admin/departments` | `useDepartments().createDepartment()` |
+| PATCH | `/admin/departments/:id` | `useDepartments().updateDepartment()` |
+| DELETE | `/admin/departments/:id` | `useDepartments().deleteDepartment()` |
+| GET | `/admin/courses` | `useCourses()` |
+| POST | `/admin/courses` | `useCourses().createCourse()` |
+| PATCH | `/admin/courses/:id` | `useCourses().updateCourse()` |
+| DELETE | `/admin/courses/:id` | `useCourses().deleteCourse()` |
+| GET | `/admin/audit-log` | `lib/api/endpoints.ts:AUDIT_LOG` (no hook yet) |
+
+## Hook Patterns
+
+All data hooks follow the same pattern: `useEffect` with a `cancelled` flag + `tick` counter for refetch. Do not use `useCallback` wrapping the fetch — it causes stale closure issues under React strict mode.
+
+```typescript
+const [tick, setTick] = useState(0);
+useEffect(() => {
+  let cancelled = false;
+  setLoading(true);
+  apiClient.get(url)
+    .then(res => { if (cancelled) return; /* setState */ })
+    .catch(err => { if (cancelled) return; setError(err.message); })
+    .finally(() => { if (!cancelled) setLoading(false); });
+  return () => { cancelled = true; };
+}, [/* primitive deps */, tick]);
+const refetch = useCallback(() => setTick(t => t + 1), []);
+```
 
 ## When Adding New Features
 
 1. **Add types first** in appropriate `lib/types/*.ts` file
 2. **Add endpoint** to `lib/api/endpoints.ts`
-3. **Create hook** in `lib/hooks/` following existing patterns
-4. **Update documentation** in `docs/API_INTEGRATION.md`
-
-## Planned Backend Features (Stubs Created)
-
-The following endpoint stubs exist in `lib/api/endpoints.ts` for future implementation:
-
-- Refresh tokens
-- User profile management
-- Dashboard/stats endpoint
-- Email verification & password reset
-- Course management
-- Rate limiting
-- Password strength validation
+3. **Create hook** in `lib/hooks/` following the pattern above
+4. **Update this file's endpoint table**
 
 ## Testing Before Deployment
 
 1. **TypeScript compilation**: Run `npx tsc --noEmit` to check for type errors
 2. **Development server**: Run `npm run dev` and verify no build errors
-3. **API integration**: Test with backend running on `localhost:5000`
+3. **API integration**: Test with backend running on `localhost:5001`
 4. **Authentication**: Test login, logout, and protected routes
 
 ## Common Tasks

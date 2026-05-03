@@ -75,14 +75,9 @@ class ApiClient {
    * Create AbortController with timeout
    */
   private createAbortController(timeout?: number): AbortController | null {
-    if (timeout === 0 || timeout === undefined) {
-      return null;
-    }
-
+    if (timeout === 0) return null;
     const controller = new AbortController();
-    const timeoutMs = timeout || DEFAULT_TIMEOUT;
-
-    setTimeout(() => controller.abort(), timeoutMs);
+    setTimeout(() => controller.abort(), timeout ?? DEFAULT_TIMEOUT);
     return controller;
   }
 

@@ -19,6 +19,17 @@ export const API_ENDPOINTS = {
   USERS: '/admin/users',
   USER_ROLE: (userId: string) => `/admin/users/${userId}/role`,
 
+  // Admin - Departments
+  DEPARTMENTS: '/admin/departments',
+  DEPARTMENT: (id: string) => `/admin/departments/${id}`,
+
+  // Admin - Courses
+  ADMIN_COURSES: '/admin/courses',
+  ADMIN_COURSE: (id: string) => `/admin/courses/${id}`,
+
+  // Admin - Audit Log
+  AUDIT_LOG: '/admin/audit-log',
+
   // --- Planned Backend Features (not yet implemented) ---
   // These are stubs for future backend development
 
