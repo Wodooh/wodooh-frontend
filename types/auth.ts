@@ -1,3 +1,13 @@
+// DEAD CODE — stranded prototype types backing contexts/AuthContext.tsx and
+// services/authService.ts. The production user/role types live in
+// lib/types/user-doc.types.ts and lib/types/user.types.ts. Schedule for
+// removal. No tracking ticket yet — see the type-reconciliation pass that
+// introduced this comment.
+// Specific divergence from production:
+//   - This UserRole is an enum, not a string union.
+//   - It is missing `admin` and `student`. Importing it for any auth check
+//     in app/ will silently exclude both roles.
+
 // ─── User Roles ───────────────────────────────────────────────
 export enum UserRole {
   STUDENT = "student",
