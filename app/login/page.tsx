@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth/auth-provider";
 import type { LoginCredentials } from "@/lib/types/auth.types";
@@ -52,15 +52,13 @@ export default function LoginPage() {
     return /^[a-zA-Z0-9._-]{2,}$/.test(val);
   };
 
-  const credentialError =
-    credentialTouched && !credential.trim()
-      ? "Email or username is required."
-      : credentialTouched && !isValidCredentialFormat(credential)
-        ? "Please enter a valid university email or username."
-        : null;
+  return { theme, setTheme };
+}
 
-  const passwordError =
-    passwordTouched && !password ? "Password is required." : null;
+// ── Sign in form ────────────────────────────────────────
+function SignInForm({ onForgot }: { onForgot: () => void }) {
+  const router = useRouter();
+  const { login } = useAuth();
 
   const isFormValid = isValidCredentialFormat(credential) && password && !isSubmitting;
 
@@ -70,13 +68,22 @@ export default function LoginPage() {
     setPasswordTouched(true);
     if (!isFormValid) return;
 
-    setIsSubmitting(true);
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
     setError(null);
+    setFieldErrors({});
 
+    const fe: { email?: string; pw?: string } = {};
+    if (!email.trim()) fe.email = "Email is required.";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) fe.email = "Enter a valid email.";
+    if (!pw) fe.pw = "Password is required.";
+    if (Object.keys(fe).length) { setFieldErrors(fe); return; }
+
+    setLoading(true);
     try {
       const credentials: LoginCredentials = {
-        email: credential.trim().toLowerCase(),
-        password,
+        email: email.trim().toLowerCase(),
+        password: pw,
       };
       await login(credentials);
 
@@ -89,6 +96,7 @@ export default function LoginPage() {
       } else {
         router.replace("/dashboard");
       }
+      router.replace(dashboardPathForRole(role));
     } catch (err: unknown) {
       const e = err as { code?: string; message?: string };
       setError({
@@ -96,7 +104,7 @@ export default function LoginPage() {
         message: e?.message || "An unexpected error occurred. Please try again.",
       });
     } finally {
-      setIsSubmitting(false);
+      setLoading(false);
     }
   };
 
