@@ -1,3 +1,10 @@
+// DEAD CODE — stranded prototype, not wired into app/. The production auth
+// path uses lib/auth/auth-provider.tsx (imported by app/layout.tsx and every
+// dashboard). Schedule for removal. No tracking ticket yet — see the
+// type-reconciliation pass that introduced this comment.
+// Risk if left: autocomplete on `UserRole` from this file's `types/auth.ts`
+// returns an enum without `admin`/`student`, and the wrong import compiles
+// silently.
 "use client";
 
 import React, {

@@ -17,7 +17,13 @@ export const API_ENDPOINTS = {
 
   // Admin - User Management
   USERS: '/admin/users',
+  USER_BY_ID: (userId: string) => `/admin/users/${userId}`,
   USER_ROLE: (userId: string) => `/admin/users/${userId}/role`,
+  USER_PERMANENT: (userId: string) => `/admin/users/${userId}/permanent`,
+  USER_PASSWORD_RESET: (userId: string) => `/admin/users/${userId}/password-reset`,
+  USERS_BULK_DELETE: '/admin/users/bulk-delete',
+  USERS_BULK_ROLE_CHANGE: '/admin/users/bulk-role-change',
+  AUTH_ME: '/auth/me',
 
   // Admin - Departments
   DEPARTMENTS: '/admin/departments',

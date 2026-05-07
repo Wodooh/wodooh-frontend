@@ -43,7 +43,11 @@ export default function AdminDashboardPage() {
 
   // Recent activity = 5 most recently created users (best signal we have without an audit log)
   const recent = [...userList]
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .sort((a, b) => {
+      const aCreatedAt = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const bCreatedAt = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return bCreatedAt - aCreatedAt;
+    })
     .slice(0, 5);
 
   return (
@@ -108,7 +112,7 @@ export default function AdminDashboardPage() {
                         </div>
                       </td>
                       <td><RoleBadge role={u.role} /></td>
-                      <td className="nx-tbl-mono">{new Date(u.createdAt).toLocaleDateString()}</td>
+                      <td className="nx-tbl-mono">{u.createdAt ? new Date(u.createdAt).toLocaleDateString() : "—"}</td>
                     </tr>
                   ))}
                 </tbody>
