@@ -1,3 +1,10 @@
+// DEAD CODE — stranded prototype with MOCK_USERS and a parallel UserRole
+// enum that disagrees with lib/types/user.types.ts. Not imported by any app/
+// page (the production login flow goes through lib/auth/auth-provider.tsx).
+// Schedule for removal. No tracking ticket yet — see the type-reconciliation
+// pass that introduced this comment.
+// Risk if left: future-Claude or future-engineer autocompletes `UserRole`,
+// picks this file's enum, and a bug appears that compiles cleanly.
 import {
   type LoginResponse,
   type User,

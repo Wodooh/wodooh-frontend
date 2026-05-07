@@ -34,6 +34,36 @@ function getSectionLabel(sectionsMap: Record<string, Section[]>, courseId: strin
   return sec ? `${sec.sectionNumber} (${sec.instructorName})` : sectionId;
 }
 
+// ─── Style constants ──────────────────────────────────────────
+const ZERO = { borderRadius: 0 } as const;
+
+const PRIMARY_BTN =
+  "inline-flex items-center justify-center gap-2 bg-[#121212] text-[#F0F0F0] border border-transparent font-medium uppercase tracking-widest text-xs px-6 py-3 hover:bg-[#F0F0F0] hover:text-[#121212] hover:border-[#121212] transition-all duration-200 min-h-[44px] disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F0C020] focus-visible:ring-offset-2";
+
+const GHOST_BTN =
+  "inline-flex items-center justify-center gap-2 text-[#121212] text-xs uppercase tracking-widest px-4 py-2 hover:bg-[#E5E5E0] transition-colors duration-200 min-h-[44px] disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F0C020] focus-visible:ring-offset-2";
+
+const INPUT_CLS =
+  "border-b-4 border-[#121212] bg-transparent px-3 py-2 text-sm w-full focus-visible:bg-[#F0F0F0] focus-visible:outline-none transition-colors duration-200 min-h-[44px]";
+
+const SELECT_CLS =
+  "border-4 border-[#121212] bg-[#F0F0F0] px-3 py-2 text-sm w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F0C020] focus-visible:ring-offset-2 transition-colors duration-200 min-h-[44px] disabled:opacity-50 disabled:cursor-not-allowed appearance-none";
+
+const LABEL_CLS =
+  "text-xs uppercase tracking-widest text-neutral-600 block mb-1 font-semibold";
+
+// ─── CourseCodeChip ───────────────────────────────────────────
+function CourseCodeChip({ code }: { code: string }) {
+  return (
+    <span
+      style={ZERO}
+      className="border-4 border-[#121212] text-xs px-2 py-0.5 inline-block font-bold"
+    >
+      {code}
+    </span>
+  );
+}
+
 export default function InstructorOnboardingPage() {
   const router = useRouter();
   const hasTrackedStart = useRef(false);
@@ -243,605 +273,867 @@ export default function InstructorOnboardingPage() {
     colleges.find((c) => c.collegeID === id)?.collegeName ?? id;
   const getDepartmentName = (id: string) =>
     departments.find((d) => d.departmentID === id)?.deptName ?? id;
+  const getCourse = (id: string) => courses.find((c) => c.courseID === id);
+  const getSection = (courseId: string, sectionId: string) =>
+    sectionsMap[courseId]?.find((s) => s.sectionID === sectionId);
+
+  // ── Step category label helper ─────────────────────────────
+  const stepCategory = (n: number) => {
+    const total = String(STEPS.length).padStart(2, "0");
+    const num = String(n).padStart(2, "0");
+    const label = n === 1 ? "IDENTITY" : n === 2 ? "AFFILIATION" : "REVIEW";
+    return `STEP ${num} / ${total} · ${label}`;
+  };
 
   // ── Success screen ─────────────────────────────────────────
   if (submitSuccess) {
     return (
-      <div className="onboarding-page">
-        <div className="login-bg-orb login-bg-orb-1" />
-        <div className="login-bg-orb login-bg-orb-2" />
-        <div className="login-bg-orb login-bg-orb-3" />
-
-        <main className="onboarding-container">
-          <div className="onboarding-card onboarding-success-card">
-            {/* Animated checkmark */}
-            <div className="onboarding-success-icon">
-              <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
-                <circle cx="32" cy="32" r="30" stroke="currentColor" strokeWidth="3" />
-                <path
-                  d="M20 32l8 8 16-16"
-                  stroke="currentColor"
-                  strokeWidth="3"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="onboarding-check-path"
-                />
-              </svg>
-            </div>
-
-            <h1 className="onboarding-success-title">Application Submitted!</h1>
-            <p className="onboarding-success-text">
-              Thank you, <strong>{submitSuccess.fullName}</strong>. Your instructor profile
-              has been submitted and is now under review.
+      <main className="bauhaus-dot-grid min-h-screen px-4 bg-[#F0F0F0]">
+        <p className="text-xs text-neutral-400 max-w-2xl mx-auto pt-8 uppercase tracking-widest">
+          WODOOH · Faculty Registry · Spring 2026
+        </p>
+        <section
+          style={ZERO}
+          className="border-4 border-[#121212] bg-[#F0F0F0] shadow-[8px_8px_0px_0px_#121212] p-8 max-w-2xl mx-auto my-8"
+        >
+          {/* Card header */}
+          <header className="border-b-4 border-[#121212] pb-6 mb-6">
+            <p className="text-xs uppercase tracking-widest text-neutral-500">
+              WODOOH · Faculty Registry
             </p>
+            <h1 className="text-4xl font-black tracking-tight mt-1 text-[#121212] uppercase">
+              Application Submitted
+            </h1>
+            <p className="text-xs uppercase tracking-widest text-neutral-500 mt-2">
+              Vol. 2026 · Faculty Registry
+            </p>
+          </header>
 
-            {/* Pending Admin Approval badge */}
-            <div className="onboarding-status-badge" id="instructor-pending-badge">
-              <span className="onboarding-status-dot" />
-              Pending Admin Approval
-            </div>
-
-            {/* Admin notified message */}
-            <div className="instructor-admin-notified">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          {/* Thank-you banner */}
+          <div
+            style={ZERO}
+            className="border-4 border-[#F0C020] bg-[#FFFAE0] text-[#121212] p-6 mb-6 shadow-[4px_4px_0px_0px_#121212]"
+            role="status"
+          >
+            <div className="flex items-start gap-4">
+              <svg
+                width="32"
+                height="32"
+                viewBox="0 0 32 32"
+                fill="none"
+                aria-hidden="true"
+                className="shrink-0"
+              >
                 <path
-                  d="M8 1.333A6.667 6.667 0 1 0 8 14.667 6.667 6.667 0 0 0 8 1.333zm0 3.334v4m0 2.666h.007"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
+                  d="M6 16l6 6 14-14"
+                  stroke="#F0C020"
+                  strokeWidth="3"
+                  strokeLinecap="square"
+                  strokeLinejoin="miter"
                 />
               </svg>
-              <span>
-                The system administrator has been notified and will review your application.
-                You will receive confirmation at your university email.
+              <div className="flex-1">
+                <p className="font-black uppercase tracking-widest text-xs mb-2">
+                  Faculty Profile Recorded
+                </p>
+                <p className="text-base leading-relaxed">
+                  Thank you,{" "}
+                  <strong className="font-black">{submitSuccess.fullName}</strong>.
+                  Your faculty profile has been submitted for administrative review.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Faculty ID & Status table */}
+          <dl className="border-4 border-[#121212] divide-y-4 divide-[#121212] mb-6">
+            <div className="flex">
+              <dt className="font-black uppercase tracking-widest text-xs text-neutral-600 w-44 px-4 py-3 border-r-4 border-[#121212] bg-[#E8E8E8] shrink-0">
+                Faculty ID
+              </dt>
+              <dd className="text-sm px-4 py-3 flex-1 font-mono">
+                {submitSuccess.facultyId}
+              </dd>
+            </div>
+            <div className="flex">
+              <dt className="font-black uppercase tracking-widest text-xs text-neutral-600 w-44 px-4 py-3 border-r-4 border-[#121212] bg-[#E8E8E8] shrink-0">
+                Status
+              </dt>
+              <dd className="px-4 py-3 flex-1">
+                <span
+                  style={ZERO}
+                  role="status"
+                  className="instructor-pending-badge border-4 border-[#F0C020] bg-[#FFFAE0] text-[#121212] text-xs px-2 py-0.5 uppercase tracking-wide font-black"
+                >
+                  Pending Review
+                </span>
+              </dd>
+            </div>
+          </dl>
+
+          {/* Admin notification info box */}
+          <div
+            style={ZERO}
+            className="instructor-admin-notified border-4 border-[#1040C0] bg-[#EFF6FF] text-[#1040C0] p-4 flex gap-3 items-start mb-4"
+            role="status"
+          >
+            <span aria-hidden="true" className="text-xs shrink-0 font-black">[i]</span>
+            <span className="text-xs leading-relaxed">
+              The system administrator has been notified and will review your application.
+              You will receive confirmation at your university email.
+            </span>
+          </div>
+
+          {/* Flagged Faculty ID warning */}
+          {submitSuccess.flaggedFacultyId && (
+            <div
+              style={ZERO}
+              id="flag-faculty-id"
+              role="status"
+              className="instructor-flag-badge border-4 border-[#F0C020] bg-[#FFFAE0] text-[#121212] p-4 flex gap-3 items-start mb-4"
+            >
+              <span aria-hidden="true" className="text-xs shrink-0 font-black">[!]</span>
+              <span className="text-sm leading-relaxed">
+                Faculty ID{" "}
+                <strong className="font-mono font-black">{submitSuccess.facultyId}</strong>{" "}
+                will be verified by admin — your application is still accepted.
               </span>
             </div>
+          )}
 
-            {/* Flagged Faculty ID warning */}
-            {submitSuccess.flaggedFacultyId && (
-              <div className="instructor-flag-badge" id="flag-faculty-id">
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                  <path
-                    d="M7 1.167L1.167 12.833h11.666L7 1.167z"
-                    stroke="currentColor"
-                    strokeWidth="1.3"
-                    strokeLinejoin="round"
-                  />
-                  <path d="M7 5.833v2.334M7 10h.008" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
-                </svg>
-                <span>
-                  Faculty ID <strong>{submitSuccess.facultyId}</strong> will be verified by admin — your application is still accepted.
-                </span>
-              </div>
-            )}
+          {/* Flagged courses */}
+          {submitSuccess.flaggedCourses && submitSuccess.flaggedCourses.length > 0 && (
+            <div
+              style={ZERO}
+              id="flag-courses"
+              role="status"
+              className="instructor-flag-badge border-4 border-[#F0C020] bg-[#FFFAE0] text-[#121212] p-4 flex gap-3 items-start mb-4"
+            >
+              <span aria-hidden="true" className="text-xs shrink-0 font-black">[!]</span>
+              <span className="text-sm leading-relaxed">
+                {submitSuccess.flaggedCourses.length === 1
+                  ? "1 course is"
+                  : `${submitSuccess.flaggedCourses.length} courses are`}{" "}
+                already assigned to another instructor and{" "}
+                <strong className="font-black">flagged for admin review</strong>.
+              </span>
+            </div>
+          )}
 
-            {/* Flagged courses */}
-            {submitSuccess.flaggedCourses && submitSuccess.flaggedCourses.length > 0 && (
-              <div className="instructor-flag-badge" id="flag-courses">
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                  <path
-                    d="M7 1.167L1.167 12.833h11.666L7 1.167z"
-                    stroke="currentColor"
-                    strokeWidth="1.3"
-                    strokeLinejoin="round"
-                  />
-                  <path d="M7 5.833v2.334M7 10h.008" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
-                </svg>
-                <span>
-                  {submitSuccess.flaggedCourses.length === 1 ? "1 course is" : `${submitSuccess.flaggedCourses.length} courses are`} already assigned to another instructor and{" "}
-                  <strong>flagged for admin review</strong>.
-                </span>
-              </div>
-            )}
+          <p className="text-sm text-[#121212] leading-relaxed mb-6">
+            During review you will have{" "}
+            <strong className="font-black">limited access</strong>. Full
+            access to lecture management tools will be unlocked once your profile is
+            approved.
+          </p>
 
-            <p className="onboarding-success-subtext">
-              During review you will have <strong>limited access</strong>. Full access to lecture
-              management tools will be unlocked once your profile is approved.
-            </p>
-
+          <div className="flex justify-end pt-4 border-t-4 border-[#121212]">
             <button
-              className="onboarding-button onboarding-button-primary"
+              type="button"
+              style={ZERO}
+              className={PRIMARY_BTN}
               onClick={() => router.push("/login")}
               id="instructor-onboarding-go-to-login"
-              style={{ width: "100%" }}
             >
               Go to Login
             </button>
           </div>
-        </main>
-      </div>
+        </section>
+      </main>
     );
   }
 
   // ── Main render ────────────────────────────────────────────
   return (
-    <div className="onboarding-page">
-      <div className="login-bg-orb login-bg-orb-1" />
-      <div className="login-bg-orb login-bg-orb-2" />
-      <div className="login-bg-orb login-bg-orb-3" />
+    <main className="bauhaus-dot-grid min-h-screen px-4 bg-[#F0F0F0]">
+      {/* Editorial top strip */}
+      <p className="text-xs text-neutral-400 max-w-2xl mx-auto pt-8 uppercase tracking-widest">
+        WODOOH · Faculty Registry · Spring 2026
+      </p>
 
-      <main className="onboarding-container">
-        <div className="onboarding-card">
-          {/* Logo / Brand */}
-          <div className="onboarding-brand">
-            <div className="login-logo-img">
-              <img src="/logo.png" alt="WODOOH Logo" className="h-16 w-auto object-contain" />
-            </div>
-            <h1 className="onboarding-title">Instructor Onboarding</h1>
-            <p className="onboarding-subtitle">
-              Set up your instructor profile to manage lecture sessions
-            </p>
-          </div>
+      <section
+        style={ZERO}
+        className="border-4 border-[#121212] bg-[#F0F0F0] shadow-[8px_8px_0px_0px_#121212] p-8 max-w-2xl mx-auto my-8"
+      >
+        {/* ── Card Header ──────────────────────────────────── */}
+        <header className="border-b-4 border-[#121212] pb-6 mb-6">
+          <p className="text-xs uppercase tracking-widest text-neutral-500">
+            WODOOH · Faculty Registry
+          </p>
+          <h1 className="text-4xl font-black tracking-tight mt-1 text-[#121212] uppercase">
+            Faculty Onboarding
+          </h1>
+          <p className="text-xs uppercase tracking-widest text-neutral-500 mt-2">
+            Vol. 2026 · Faculty Registry
+          </p>
+        </header>
 
-          {/* Progress bar */}
-          <div
-            className="onboarding-progress"
-            role="progressbar"
-            aria-valuenow={currentStep}
-            aria-valuemin={1}
-            aria-valuemax={3}
-          >
-            {STEPS.map((step) => (
-              <div
-                key={step.id}
-                className={`onboarding-progress-step ${
-                  step.id === currentStep
-                    ? "onboarding-progress-active"
-                    : step.id < currentStep
-                      ? "onboarding-progress-done"
-                      : ""
-                }`}
-              >
-                <div className="onboarding-progress-circle">
-                  {step.id < currentStep ? (
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                      <path
-                        d="M3 7l3 3 5-5"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  ) : (
-                    step.id
-                  )}
-                </div>
-                <span className="onboarding-progress-label">{step.label}</span>
-              </div>
-            ))}
-            <div className="onboarding-progress-bar">
-              <div
-                className="onboarding-progress-fill"
-                style={{ width: `${((currentStep - 1) / (STEPS.length - 1)) * 100}%` }}
-              />
-            </div>
-          </div>
-
-          {/* Global error */}
-          {submitError && (
-            <div className="onboarding-error" role="alert" id="instructor-onboarding-error">
-              <span className="onboarding-error-icon">⚠️</span>
-              <p className="onboarding-error-text">{submitError}</p>
-            </div>
-          )}
-
-          {/* ── Step 1: Personal Info ─────────────────────── */}
-          {currentStep === 1 && (
-            <div className="onboarding-step" key="step-1">
-              <div className="onboarding-step-header">
-                <h2 className="onboarding-step-title">Personal Information</h2>
-                <p className="onboarding-step-desc">
-                  Enter your name and Faculty ID as they appear in university records
-                </p>
-              </div>
-
-              <div className="onboarding-fields">
-                {/* Full Name */}
-                <div className="onboarding-field">
-                  <label htmlFor="instructor-name" className="onboarding-label">
-                    Full Name <span className="onboarding-label-hint">(Arabic or English)</span>
-                  </label>
-                  <div className={`onboarding-input-wrapper ${nameError ? "onboarding-input-error" : ""}`}>
-                    <svg className="onboarding-input-icon" width="20" height="20" viewBox="0 0 20 20" fill="none">
-                      <path
-                        d="M10 10a3.333 3.333 0 100-6.667A3.333 3.333 0 0010 10zM3.333 16.667c0-2.761 2.985-5 6.667-5s6.667 2.239 6.667 5"
-                        stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
-                      />
-                    </svg>
-                    <input
-                      id="instructor-name"
-                      type="text"
-                      placeholder="د. أحمد الراشد / Dr. Ahmed Al-Rashid"
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      onBlur={() => setNameTouched(true)}
-                      autoFocus
-                      dir="auto"
-                      aria-describedby={nameError ? "instructor-name-error" : undefined}
-                      aria-invalid={!!nameError}
+        {/* ── Stepper ─────────────────────────────────────── */}
+        <nav
+          aria-label="Onboarding progress"
+          className="mb-8"
+          role="progressbar"
+          aria-valuenow={currentStep}
+          aria-valuemin={1}
+          aria-valuemax={3}
+        >
+          <ol className="flex items-start justify-between relative" role="list">
+            {STEPS.map((step, idx) => {
+              const isActive = step.id === currentStep;
+              const isDone = step.id < currentStep;
+              const boxClass = isActive
+                ? "bg-[#F0C020] border-[#F0C020] text-[#121212] shadow-[4px_4px_0px_0px_#121212]"
+                : isDone
+                  ? "bg-[#121212] text-[#F0F0F0] border-[#121212]"
+                  : "bg-[#F0F0F0] text-neutral-400 border-[#121212]";
+              return (
+                <li
+                  key={step.id}
+                  className="flex-1 flex flex-col items-center relative"
+                  aria-current={isActive ? "step" : undefined}
+                >
+                  {idx > 0 && (
+                    <span
+                      aria-hidden="true"
+                      className="absolute top-5 right-1/2 w-full border-t-4 border-[#121212]"
                     />
-                  </div>
-                  {nameError && (
-                    <p id="instructor-name-error" className="onboarding-field-error">{nameError}</p>
                   )}
-                </div>
-
-                {/* Faculty ID */}
-                <div className="onboarding-field">
-                  <label htmlFor="instructor-faculty-id" className="onboarding-label">
-                    Faculty ID
-                  </label>
-                  <div className={`onboarding-input-wrapper ${facultyIdError ? "onboarding-input-error" : ""}`}>
-                    <svg className="onboarding-input-icon" width="20" height="20" viewBox="0 0 20 20" fill="none">
-                      <rect x="3.333" y="2.5" width="13.333" height="15" rx="2" stroke="currentColor" strokeWidth="1.5" />
-                      <path d="M7.5 7.5h5M7.5 10.833h5M7.5 14.167h3.333" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                    </svg>
-                    <input
-                      id="instructor-faculty-id"
-                      type="text"
-                      placeholder="e.g. f12345 or dr9876"
-                      value={facultyId}
-                      onChange={(e) => setFacultyId(e.target.value)}
-                      onBlur={() => setFacultyIdTouched(true)}
-                      aria-describedby={facultyIdError ? "instructor-faculty-id-error" : undefined}
-                      aria-invalid={!!facultyIdError}
-                    />
-                  </div>
-                  {facultyIdError && (
-                    <p id="instructor-faculty-id-error" className="onboarding-field-error">{facultyIdError}</p>
-                  )}
-                  {/* Warning for unrecognised format (not an error — just info) */}
-                  {!facultyIdError && facultyIdWarning && (
-                    <div className="instructor-id-warning" id="instructor-faculty-id-warning">
-                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                        <path d="M7 1.167L1.167 12.833h11.666L7 1.167z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/>
-                        <path d="M7 5.833v2.334M7 10h.008" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+                  <span
+                    style={ZERO}
+                    className={`relative z-10 w-10 h-10 border-4 flex items-center justify-center font-mono text-sm font-black ${boxClass}`}
+                  >
+                    {isDone ? (
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 14 14"
+                        fill="none"
+                        aria-hidden="true"
+                      >
+                        <path
+                          d="M3 7l3 3 5-5"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="square"
+                        />
                       </svg>
-                      <span>{facultyIdWarning}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="onboarding-actions">
-                <button
-                  className="onboarding-button onboarding-button-secondary"
-                  onClick={() => router.push("/login")}
-                  type="button"
-                  id="instructor-onboarding-back"
-                >
-                  Back to Login
-                </button>
-                <button
-                  className="onboarding-button onboarding-button-primary"
-                  disabled={!isStep1Valid}
-                  onClick={() => setCurrentStep(2)}
-                  type="button"
-                  id="instructor-onboarding-next-1"
-                >
-                  Next Step
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                    <path d="M3.333 8h9.334M8.667 4L12.667 8l-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* ── Step 2: Academic Info ─────────────────────── */}
-          {currentStep === 2 && (
-            <div className="onboarding-step" key="step-2">
-              <div className="onboarding-step-header">
-                <h2 className="onboarding-step-title">Academic Information</h2>
-                <p className="onboarding-step-desc">
-                  Select your college, department, and the courses you will be teaching
-                </p>
-              </div>
-
-              <div className="onboarding-fields">
-                {/* College */}
-                <div className="onboarding-field">
-                  <label htmlFor="instructor-college" className="onboarding-label">College</label>
-                  <div className="onboarding-select-wrapper">
-                    <select
-                      id="instructor-college"
-                      className="onboarding-select"
-                      value={selectedCollege}
-                      onChange={(e) => handleCollegeChange(e.target.value)}
-                      disabled={loadingColleges}
-                    >
-                      <option value="">
-                        {loadingColleges ? "Loading colleges…" : "Select your college"}
-                      </option>
-                      {colleges.map((col) => (
-                        <option key={col.collegeID} value={col.collegeID}>
-                          {col.collegeName}
-                        </option>
-                      ))}
-                    </select>
-                    <svg className="onboarding-select-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                      <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </div>
-                </div>
-
-                {/* Department */}
-                <div className="onboarding-field">
-                  <label htmlFor="instructor-department" className="onboarding-label">Department</label>
-                  <div className="onboarding-select-wrapper">
-                    <select
-                      id="instructor-department"
-                      className="onboarding-select"
-                      value={selectedDepartment}
-                      onChange={(e) => handleDepartmentChange(e.target.value)}
-                      disabled={!selectedCollege || loadingDepartments || noDepartments}
-                    >
-                      <option value="">
-                        {loadingDepartments
-                          ? "Loading departments…"
-                          : !selectedCollege
-                            ? "Select a college first"
-                            : noDepartments
-                              ? "No departments available"
-                              : "Select your department"}
-                      </option>
-                      {departments.map((dept) => (
-                        <option key={dept.departmentID} value={dept.departmentID}>
-                          {dept.deptName}
-                        </option>
-                      ))}
-                    </select>
-                    <svg className="onboarding-select-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                      <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </div>
-                  {/* Edge case: missing department */}
-                  {noDepartments && (
-                    <div className="onboarding-admin-contact" role="alert" id="no-departments-message">
-                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                        <circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="1.5" />
-                        <path d="M8 5v3M8 10.5v.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                      </svg>
-                      <span>
-                        No departments found for this college. Please contact the system administrator at{" "}
-                        <strong>admin@university.edu.sa</strong> for assistance.
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Courses */}
-                {selectedDepartment && !loadingCourses && courses.length > 0 && (
-                  <div className="onboarding-field">
-                    <label className="onboarding-label">Courses &amp; Sections</label>
-                    <div className="onboarding-courses-list">
-                      {courses.map((course) => {
-                        const isSelected = courseSelections.some((cs) => cs.courseId === course.courseID);
-                        const selection = courseSelections.find((cs) => cs.courseId === course.courseID);
-                        const sections = sectionsMap[course.courseID] || [];
-                        const isLoadingSections = loadingSections === course.courseID;
-
-                        return (
-                          <div
-                            key={course.courseID}
-                            className={`onboarding-course-item ${isSelected ? "onboarding-course-selected" : ""}`}
-                          >
-                            <button
-                              type="button"
-                              className="onboarding-course-toggle"
-                              onClick={() => handleCourseToggle(course.courseID)}
-                              id={`instructor-course-toggle-${course.courseID}`}
-                            >
-                              <div className={`onboarding-checkbox ${isSelected ? "onboarding-checkbox-checked" : ""}`}>
-                                {isSelected && (
-                                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                                    <path d="M2.5 6l2.5 2.5 4.5-4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                                  </svg>
-                                )}
-                              </div>
-                              <div className="onboarding-course-info">
-                                <span className="onboarding-course-code">{course.courseCode}</span>
-                                <span className="onboarding-course-name">{course.courseName}</span>
-                              </div>
-                            </button>
-
-                            {isSelected && (
-                              <div className="onboarding-section-select">
-                                {isLoadingSections ? (
-                                  <div className="onboarding-section-loading">
-                                    <div className="spinner spinner-small" />
-                                    <span>Loading sections…</span>
-                                  </div>
-                                ) : sections.length > 0 ? (
-                                  <div className="onboarding-select-wrapper onboarding-section-dropdown">
-                                    <select
-                                      className="onboarding-select"
-                                      value={selection?.sectionId || ""}
-                                      onChange={(e) => handleSectionSelect(course.courseID, e.target.value)}
-                                      id={`instructor-section-select-${course.courseID}`}
-                                    >
-                                      <option value="">Select section</option>
-                                      {sections.map((sec) => (
-                                        <option key={sec.sectionID} value={sec.sectionID}>
-                                          {sec.sectionNumber} — {sec.instructorName} ({sec.term})
-                                        </option>
-                                      ))}
-                                    </select>
-                                    <svg className="onboarding-select-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                                      <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                                    </svg>
-                                  </div>
-                                ) : (
-                                  <p className="onboarding-field-error">No sections available for this course.</p>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {selectedDepartment && loadingCourses && (
-                  <div className="onboarding-loading-state">
-                    <div className="spinner" />
-                    <span>Loading courses…</span>
-                  </div>
-                )}
-              </div>
-
-              <div className="onboarding-actions">
-                <button
-                  className="onboarding-button onboarding-button-secondary"
-                  onClick={() => setCurrentStep(1)}
-                  type="button"
-                  id="instructor-onboarding-prev-2"
-                >
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                    <path d="M12.667 8H3.333M7.333 4L3.333 8l4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                  Previous
-                </button>
-                <button
-                  className="onboarding-button onboarding-button-primary"
-                  disabled={!isStep2Valid}
-                  onClick={() => setCurrentStep(3)}
-                  type="button"
-                  id="instructor-onboarding-next-2"
-                >
-                  Review &amp; Confirm
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                    <path d="M3.333 8h9.334M8.667 4L12.667 8l-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* ── Step 3: Confirm ───────────────────────────── */}
-          {currentStep === 3 && (
-            <div className="onboarding-step" key="step-3">
-              <div className="onboarding-step-header">
-                <h2 className="onboarding-step-title">Review &amp; Confirm</h2>
-                <p className="onboarding-step-desc">
-                  Please verify all information below before submitting
-                </p>
-              </div>
-
-              {/* Unrecognised Faculty ID note in confirm step */}
-              {isValidFacultyId(facultyId) && !isKnownFacultyIdFormat(facultyId) && (
-                <div className="instructor-id-warning" style={{ marginBottom: "16px" }} id="confirm-faculty-id-note">
-                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                    <path d="M7 1.167L1.167 12.833h11.666L7 1.167z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/>
-                    <path d="M7 5.833v2.334M7 10h.008" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
-                  </svg>
-                  <span>
-                    Your Faculty ID <strong>{facultyId}</strong> format is unrecognised and will be verified by admin after submission. Your application will still be accepted.
+                    ) : (
+                      String(step.id).padStart(2, "0")
+                    )}
                   </span>
-                </div>
+                  <span
+                    className={`text-xs uppercase tracking-widest mt-2 text-center font-black ${
+                      isActive
+                        ? "text-[#F0C020]"
+                        : isDone
+                          ? "text-[#121212]"
+                          : "text-neutral-400"
+                    }`}
+                  >
+                    {step.label}
+                  </span>
+                </li>
+              );
+            })}
+          </ol>
+        </nav>
+
+        {/* ── Global error ──────────────────────────────────── */}
+        {submitError && (
+          <div
+            style={ZERO}
+            className="border-4 border-[#D02020] bg-[#FEE2E2] text-[#D02020] p-4 mb-6 flex items-start gap-3"
+            role="alert"
+            id="instructor-onboarding-error"
+          >
+            <span
+              className="text-xs uppercase tracking-widest font-black shrink-0"
+              aria-hidden="true"
+            >
+              Error
+            </span>
+            <p className="text-sm leading-relaxed flex-1">{submitError}</p>
+          </div>
+        )}
+
+        {/* ── Step 1: Personal Info ─────────────────────────── */}
+        {currentStep === 1 && (
+          <form
+            key="step-1"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (isStep1Valid) setCurrentStep(2);
+            }}
+            noValidate
+          >
+            <div className="mb-6">
+              <p className="text-xs uppercase tracking-widest text-neutral-500 mb-2">
+                {stepCategory(1)}
+              </p>
+              <h2 className="text-2xl font-black text-[#121212] uppercase">
+                Personal Information
+              </h2>
+              <p className="text-sm text-neutral-700 leading-relaxed mt-2">
+                Enter your name and Faculty ID as they appear in university records.
+              </p>
+            </div>
+
+            <fieldset className="space-y-6 mb-8 border-0 p-0 m-0">
+              <legend className="sr-only">Personal information</legend>
+
+              {/* Full Name */}
+              <div>
+                <label htmlFor="instructor-name" className={LABEL_CLS}>
+                  Full Name{" "}
+                  <span className="normal-case tracking-normal text-neutral-400 font-normal">
+                    (Arabic or English)
+                  </span>
+                </label>
+                <input
+                  id="instructor-name"
+                  type="text"
+                  placeholder="د. أحمد الراشد / Dr. Ahmed Al-Rashid"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  onBlur={() => setNameTouched(true)}
+                  autoFocus
+                  dir="auto"
+                  aria-describedby={nameError ? "instructor-name-error" : undefined}
+                  aria-invalid={!!nameError}
+                  className={`${INPUT_CLS}${nameError ? " border-[#D02020]" : ""}`}
+                  style={ZERO}
+                />
+                {nameError && (
+                  <p
+                    id="instructor-name-error"
+                    className="text-xs text-[#D02020] mt-2 uppercase tracking-wide font-black"
+                    role="alert"
+                  >
+                    <span className="font-black">Error:</span> {nameError}
+                  </p>
+                )}
+              </div>
+
+              {/* Faculty ID */}
+              <div>
+                <label htmlFor="instructor-faculty-id" className={LABEL_CLS}>
+                  Faculty ID
+                </label>
+                <input
+                  id="instructor-faculty-id"
+                  type="text"
+                  placeholder="e.g. f12345 or dr9876"
+                  value={facultyId}
+                  onChange={(e) => setFacultyId(e.target.value)}
+                  onBlur={() => setFacultyIdTouched(true)}
+                  aria-describedby={
+                    facultyIdError
+                      ? "instructor-faculty-id-error"
+                      : facultyIdWarning
+                        ? "instructor-faculty-id-warning"
+                        : undefined
+                  }
+                  aria-invalid={!!facultyIdError}
+                  className={`${INPUT_CLS}${facultyIdError ? " border-[#D02020]" : ""}`}
+                  style={ZERO}
+                />
+                {facultyIdError && (
+                  <p
+                    id="instructor-faculty-id-error"
+                    className="text-xs text-[#D02020] mt-2 uppercase tracking-wide font-black"
+                    role="alert"
+                  >
+                    <span className="font-black">Error:</span> {facultyIdError}
+                  </p>
+                )}
+                {!facultyIdError && facultyIdWarning && (
+                  <div
+                    id="instructor-faculty-id-warning"
+                    style={ZERO}
+                    className="instructor-id-warning border-4 border-[#F0C020] bg-[#FFFAE0] text-[#121212] p-4 flex gap-3 items-start mt-3"
+                    role="status"
+                  >
+                    <span aria-hidden="true" className="text-xs shrink-0 font-black">[!]</span>
+                    <span className="text-sm leading-relaxed">{facultyIdWarning}</span>
+                  </div>
+                )}
+              </div>
+            </fieldset>
+
+            <div className="flex items-center justify-between pt-4 border-t-4 border-[#121212]">
+              <button
+                type="button"
+                style={ZERO}
+                className={GHOST_BTN}
+                onClick={() => router.push("/login")}
+                id="instructor-onboarding-back"
+              >
+                ← Back to Login
+              </button>
+              <button
+                type="submit"
+                style={ZERO}
+                className={PRIMARY_BTN}
+                disabled={!isStep1Valid}
+                id="instructor-onboarding-next-1"
+              >
+                Next Step →
+              </button>
+            </div>
+          </form>
+        )}
+
+        {/* ── Step 2: Academic Info ─────────────────────────── */}
+        {currentStep === 2 && (
+          <form
+            key="step-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (isStep2Valid) setCurrentStep(3);
+            }}
+            noValidate
+          >
+            <div className="mb-6">
+              <p className="text-xs uppercase tracking-widest text-neutral-500 mb-2">
+                {stepCategory(2)}
+              </p>
+              <h2 className="text-2xl font-black text-[#121212] uppercase">
+                Academic Information
+              </h2>
+              <p className="text-sm text-neutral-700 leading-relaxed mt-2">
+                Select your college, department, and the courses you will be teaching.
+              </p>
+            </div>
+
+            <fieldset className="space-y-6 mb-8 border-0 p-0 m-0">
+              <legend className="sr-only">Academic affiliation</legend>
+
+              {/* College */}
+              <div>
+                <label htmlFor="instructor-college" className={LABEL_CLS}>
+                  College
+                </label>
+                <select
+                  id="instructor-college"
+                  value={selectedCollege}
+                  onChange={(e) => handleCollegeChange(e.target.value)}
+                  disabled={loadingColleges}
+                  className={SELECT_CLS}
+                  style={ZERO}
+                >
+                  <option value="">
+                    {loadingColleges ? "Loading colleges…" : "Select your college"}
+                  </option>
+                  {colleges.map((col) => (
+                    <option key={col.collegeID} value={col.collegeID}>
+                      {col.collegeName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Department */}
+              <div>
+                <label htmlFor="instructor-department" className={LABEL_CLS}>
+                  Department
+                </label>
+                <select
+                  id="instructor-department"
+                  value={selectedDepartment}
+                  onChange={(e) => handleDepartmentChange(e.target.value)}
+                  disabled={!selectedCollege || loadingDepartments || noDepartments}
+                  className={SELECT_CLS}
+                  style={ZERO}
+                >
+                  <option value="">
+                    {loadingDepartments
+                      ? "Loading departments…"
+                      : !selectedCollege
+                        ? "Select a college first"
+                        : noDepartments
+                          ? "No departments available"
+                          : "Select your department"}
+                  </option>
+                  {departments.map((dept) => (
+                    <option key={dept.departmentID} value={dept.departmentID}>
+                      {dept.deptName}
+                    </option>
+                  ))}
+                </select>
+
+                {noDepartments && (
+                  <div
+                    id="no-departments-message"
+                    style={ZERO}
+                    className="border-4 border-[#D02020] bg-[#FEE2E2] text-[#D02020] p-4 mt-3 flex items-start gap-3"
+                    role="alert"
+                  >
+                    <span className="text-xs uppercase tracking-widest font-black shrink-0">
+                      Notice
+                    </span>
+                    <p className="text-sm leading-relaxed flex-1">
+                      No departments found for this college. Please contact the system
+                      administrator at{" "}
+                      <span className="font-mono normal-case">
+                        admin@university.edu.sa
+                      </span>{" "}
+                      for assistance.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Courses */}
+              {selectedDepartment && loadingCourses && (
+                <p className="text-xs uppercase tracking-widest text-neutral-500 py-4">
+                  Loading courses…
+                </p>
               )}
 
-              <div className="onboarding-summary">
-                {/* Personal Info */}
-                <div className="onboarding-summary-section">
-                  <h3 className="onboarding-summary-heading">Personal Information</h3>
-                  <div className="onboarding-summary-grid">
-                    <div className="onboarding-summary-item">
-                      <span className="onboarding-summary-label">Full Name</span>
-                      <span className="onboarding-summary-value">{fullName}</span>
-                    </div>
-                    <div className="onboarding-summary-item">
-                      <span className="onboarding-summary-label">Faculty ID</span>
-                      <span className="onboarding-summary-value">{facultyId}</span>
-                    </div>
-                  </div>
-                </div>
+              {selectedDepartment && !loadingCourses && courses.length > 0 && (
+                <div>
+                  <p className={`${LABEL_CLS} mb-3`} id="instructor-courses-section-label">
+                    Courses &amp; Sections
+                  </p>
+                  <ul
+                    role="list"
+                    aria-labelledby="instructor-courses-section-label"
+                    className="space-y-3"
+                  >
+                    {courses.map((course) => {
+                      const isSelected = courseSelections.some(
+                        (cs) => cs.courseId === course.courseID
+                      );
+                      const selection = courseSelections.find(
+                        (cs) => cs.courseId === course.courseID
+                      );
+                      const sections = sectionsMap[course.courseID] || [];
+                      const isLoadingSections = loadingSections === course.courseID;
+                      const sectionInputId = `instructor-section-select-${course.courseID}`;
 
-                {/* Academic Info */}
-                <div className="onboarding-summary-section">
-                  <h3 className="onboarding-summary-heading">Academic Information</h3>
-                  <div className="onboarding-summary-grid">
-                    <div className="onboarding-summary-item">
-                      <span className="onboarding-summary-label">College</span>
-                      <span className="onboarding-summary-value">{getCollegeName(selectedCollege)}</span>
-                    </div>
-                    <div className="onboarding-summary-item">
-                      <span className="onboarding-summary-label">Department</span>
-                      <span className="onboarding-summary-value">{getDepartmentName(selectedDepartment)}</span>
-                    </div>
-                  </div>
-                </div>
+                      return (
+                        <li
+                          key={course.courseID}
+                          style={ZERO}
+                          className={
+                            isSelected
+                              ? "border-4 border-[#F0C020] shadow-[4px_4px_0px_0px_#F0C020] bg-[#FFFAE0] transition-colors duration-200"
+                              : "border-4 border-[#121212] bg-[#F0F0F0] transition-colors duration-200"
+                          }
+                        >
+                          <button
+                            type="button"
+                            onClick={() => handleCourseToggle(course.courseID)}
+                            id={`instructor-course-toggle-${course.courseID}`}
+                            aria-pressed={isSelected}
+                            style={ZERO}
+                            className="w-full text-left p-3 flex items-start gap-3 min-h-[44px] hover:bg-neutral-100 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F0C020] focus-visible:ring-offset-2"
+                          >
+                            <span
+                              style={ZERO}
+                              aria-hidden="true"
+                              className={`w-5 h-5 border-4 border-[#121212] shrink-0 mt-0.5 flex items-center justify-center ${
+                                isSelected
+                                  ? "bg-[#F0C020] text-[#121212]"
+                                  : "bg-[#F0F0F0]"
+                              }`}
+                            >
+                              {isSelected && (
+                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                                  <path
+                                    d="M2.5 6l2.5 2.5 4.5-4.5"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="square"
+                                  />
+                                </svg>
+                              )}
+                            </span>
+                            <span className="flex-1 flex flex-wrap items-center gap-2">
+                              <CourseCodeChip code={course.courseCode} />
+                              <span className="text-base font-black text-[#121212]">
+                                {course.courseName}
+                              </span>
+                            </span>
+                          </button>
 
-                {/* Course Selections */}
-                <div className="onboarding-summary-section">
-                  <h3 className="onboarding-summary-heading">
-                    Selected Courses ({courseSelections.length})
-                  </h3>
-                  <div className="onboarding-summary-courses">
-                    {courseSelections.map((cs) => (
-                      <div key={cs.courseId} className="onboarding-summary-course">
-                        <span className="onboarding-summary-course-name">
-                          {getCourseName(courses, cs.courseId)}
-                        </span>
-                        <span className="onboarding-summary-course-section">
-                          {getSectionLabel(sectionsMap, cs.courseId, cs.sectionId)}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
+                          {/* Section dropdown (cascading) */}
+                          {isSelected && (
+                            <div className="border-t-4 border-[#121212] p-3 bg-[#F5F5F5]">
+                              <label
+                                htmlFor={sectionInputId}
+                                className={LABEL_CLS}
+                              >
+                                Section ·{" "}
+                                <span className="normal-case tracking-normal font-normal">
+                                  {course.courseCode}
+                                </span>
+                              </label>
+                              {isLoadingSections ? (
+                                <p className="text-xs uppercase tracking-widest text-neutral-500 py-2">
+                                  Loading sections…
+                                </p>
+                              ) : sections.length > 0 ? (
+                                <select
+                                  id={sectionInputId}
+                                  value={selection?.sectionId || ""}
+                                  onChange={(e) =>
+                                    handleSectionSelect(course.courseID, e.target.value)
+                                  }
+                                  className={SELECT_CLS}
+                                  style={ZERO}
+                                >
+                                  <option value="">Select section</option>
+                                  {sections.map((sec) => (
+                                    <option key={sec.sectionID} value={sec.sectionID}>
+                                      {sec.sectionNumber} — {sec.instructorName} (
+                                      {sec.term})
+                                    </option>
+                                  ))}
+                                </select>
+                              ) : (
+                                <p
+                                  className="text-xs text-[#D02020] mt-1 uppercase tracking-wide font-black"
+                                  role="alert"
+                                >
+                                  <span className="font-black">Notice:</span>{" "}
+                                  No sections available for this course.
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
                 </div>
-              </div>
+              )}
+            </fieldset>
 
-              <div className="onboarding-actions">
-                <button
-                  className="onboarding-button onboarding-button-secondary"
-                  onClick={() => setCurrentStep(2)}
-                  type="button"
-                  disabled={isSubmitting}
-                  id="instructor-onboarding-prev-3"
-                >
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                    <path d="M12.667 8H3.333M7.333 4L3.333 8l4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                  Edit Information
-                </button>
-                <button
-                  className="onboarding-button onboarding-button-primary"
-                  onClick={handleSubmit}
-                  disabled={isSubmitting}
-                  type="button"
-                  id="instructor-onboarding-submit"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <div className="spinner spinner-small" />
-                      <span>Submitting…</span>
-                    </>
-                  ) : (
-                    <>
-                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                        <path d="M3 8l4 4 6-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                      <span>Submit for Approval</span>
-                    </>
-                  )}
-                </button>
-              </div>
+            <div className="flex items-center justify-between pt-4 border-t-4 border-[#121212]">
+              <button
+                type="button"
+                style={ZERO}
+                className={GHOST_BTN}
+                onClick={() => setCurrentStep(1)}
+                id="instructor-onboarding-prev-2"
+              >
+                ← Previous
+              </button>
+              <button
+                type="submit"
+                style={ZERO}
+                className={PRIMARY_BTN}
+                disabled={!isStep2Valid}
+                id="instructor-onboarding-next-2"
+              >
+                Review &amp; Confirm →
+              </button>
             </div>
-          )}
+          </form>
+        )}
 
-          {/* Footer */}
-          <p className="onboarding-footer">
+        {/* ── Step 3: Confirm ───────────────────────────────── */}
+        {currentStep === 3 && (
+          <form
+            key="step-3"
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSubmit();
+            }}
+            noValidate
+          >
+            <div className="mb-6">
+              <p className="text-xs uppercase tracking-widest text-neutral-500 mb-2">
+                {stepCategory(3)}
+              </p>
+              <h2 className="text-2xl font-black text-[#121212] uppercase">
+                Review &amp; Confirm
+              </h2>
+              <p className="text-sm text-neutral-700 leading-relaxed mt-2">
+                Please verify all information below before submitting.
+              </p>
+            </div>
+
+            {/* Unrecognised Faculty ID note */}
+            {isValidFacultyId(facultyId) && !isKnownFacultyIdFormat(facultyId) && (
+              <div
+                id="confirm-faculty-id-note"
+                style={ZERO}
+                role="status"
+                className="instructor-id-warning border-4 border-[#F0C020] bg-[#FFFAE0] text-[#121212] p-4 flex gap-3 items-start mb-6"
+              >
+                <span aria-hidden="true" className="text-xs shrink-0 font-black">[!]</span>
+                <span className="text-sm leading-relaxed">
+                  Your Faculty ID{" "}
+                  <strong className="font-mono font-black">{facultyId}</strong> format is
+                  unrecognised and will be verified by admin after submission. Your
+                  application will still be accepted.
+                </span>
+              </div>
+            )}
+
+            <div className="space-y-6">
+              {/* Personal Info */}
+              <section>
+                <h3 className="font-black uppercase tracking-widest text-xs text-neutral-600 border-b-4 border-[#121212] pb-2 mb-3">
+                  Personal Information
+                </h3>
+                <dl className="border-4 border-[#121212] divide-y-4 divide-[#121212]">
+                  <div className="flex">
+                    <dt className="font-black uppercase tracking-widest text-xs text-neutral-600 w-44 px-4 py-3 border-r-4 border-[#121212] bg-[#E8E8E8] shrink-0">
+                      Full Name
+                    </dt>
+                    <dd className="text-sm px-4 py-3 flex-1">
+                      {fullName}
+                    </dd>
+                  </div>
+                  <div className="flex">
+                    <dt className="font-black uppercase tracking-widest text-xs text-neutral-600 w-44 px-4 py-3 border-r-4 border-[#121212] bg-[#E8E8E8] shrink-0">
+                      Faculty ID
+                    </dt>
+                    <dd className="font-mono text-sm px-4 py-3 flex-1">
+                      {facultyId}
+                    </dd>
+                  </div>
+                </dl>
+              </section>
+
+              {/* Academic Info */}
+              <section>
+                <h3 className="font-black uppercase tracking-widest text-xs text-neutral-600 border-b-4 border-[#121212] pb-2 mb-3">
+                  Academic Information
+                </h3>
+                <dl className="border-4 border-[#121212] divide-y-4 divide-[#121212]">
+                  <div className="flex">
+                    <dt className="font-black uppercase tracking-widest text-xs text-neutral-600 w-44 px-4 py-3 border-r-4 border-[#121212] bg-[#E8E8E8] shrink-0">
+                      College
+                    </dt>
+                    <dd className="text-sm px-4 py-3 flex-1">
+                      {getCollegeName(selectedCollege)}
+                    </dd>
+                  </div>
+                  <div className="flex">
+                    <dt className="font-black uppercase tracking-widest text-xs text-neutral-600 w-44 px-4 py-3 border-r-4 border-[#121212] bg-[#E8E8E8] shrink-0">
+                      Department
+                    </dt>
+                    <dd className="text-sm px-4 py-3 flex-1">
+                      {getDepartmentName(selectedDepartment)}
+                    </dd>
+                  </div>
+                </dl>
+              </section>
+
+              {/* Course Selections */}
+              <section>
+                <h3 className="font-black uppercase tracking-widest text-xs text-neutral-600 border-b-4 border-[#121212] pb-2 mb-3 flex items-baseline justify-between">
+                  <span>Selected Courses</span>
+                  <span className="font-mono text-xs">
+                    {String(courseSelections.length).padStart(2, "0")} TOTAL
+                  </span>
+                </h3>
+                <table
+                  style={ZERO}
+                  className="w-full border-collapse border-4 border-[#121212] font-mono text-sm"
+                >
+                  <thead>
+                    <tr className="bg-[#121212] text-[#F0F0F0]">
+                      <th
+                        scope="col"
+                        className="border-4 border-[#333] px-3 py-2 text-left text-xs uppercase tracking-widest font-black"
+                      >
+                        Code
+                      </th>
+                      <th
+                        scope="col"
+                        className="border-4 border-[#333] px-3 py-2 text-left text-xs uppercase tracking-widest font-black"
+                      >
+                        Course
+                      </th>
+                      <th
+                        scope="col"
+                        className="border-4 border-[#333] px-3 py-2 text-left text-xs uppercase tracking-widest font-black"
+                      >
+                        Section
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {courseSelections.map((cs) => {
+                      const course = getCourse(cs.courseId);
+                      const section = getSection(cs.courseId, cs.sectionId);
+                      return (
+                        <tr
+                          key={cs.courseId}
+                          className="hover:bg-neutral-100 transition-colors duration-150"
+                        >
+                          <td className="border border-[#E5E5E0] px-3 py-2 align-top">
+                            {course ? (
+                              <CourseCodeChip code={course.courseCode} />
+                            ) : (
+                              <span className="font-mono">{cs.courseId}</span>
+                            )}
+                          </td>
+                          <td className="border border-[#E5E5E0] px-3 py-2">
+                            {course?.courseName ?? getCourseName(courses, cs.courseId)}
+                          </td>
+                          <td className="border border-[#E5E5E0] px-3 py-2 font-mono">
+                            {section
+                              ? `${section.sectionNumber} · ${section.instructorName}`
+                              : getSectionLabel(sectionsMap, cs.courseId, cs.sectionId)}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </section>
+            </div>
+
+            <div className="flex items-center justify-between mt-8 pt-4 border-t-4 border-[#121212]">
+              <button
+                type="button"
+                style={ZERO}
+                className={GHOST_BTN}
+                onClick={() => setCurrentStep(2)}
+                disabled={isSubmitting}
+                id="instructor-onboarding-prev-3"
+              >
+                ← Edit Information
+              </button>
+              <button
+                type="submit"
+                style={ZERO}
+                className={PRIMARY_BTN}
+                disabled={isSubmitting}
+                id="instructor-onboarding-submit"
+              >
+                {isSubmitting ? (
+                  <span>Submitting…</span>
+                ) : (
+                  <>
+                    <span>Submit for Approval</span>
+                    <span aria-hidden="true" className="font-mono">✓</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        )}
+
+        {/* ── Footer ─────────────────────────────────────────── */}
+        <footer className="mt-8 pt-6 border-t-4 border-[#121212] text-center">
+          <p className="text-xs uppercase tracking-widest text-neutral-500">
             Already have an account?{" "}
-            <a href="/login" className="onboarding-footer-link">
+            <a
+              href="/login"
+              className="text-[#F0C020] font-black hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F0C020] focus-visible:ring-offset-2"
+            >
               Sign in here
             </a>
           </p>
-        </div>
-      </main>
-    </div>
+        </footer>
+      </section>
+    </main>
   );
 }

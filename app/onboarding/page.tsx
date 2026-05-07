@@ -18,10 +18,144 @@ import {
 
 // ─── Steps ────────────────────────────────────────────────────
 const STEPS = [
-  { id: 1, label: "Personal Info" },
-  { id: 2, label: "Academic Info" },
+  { id: 1, label: "Personal" },
+  { id: 2, label: "Academic" },
   { id: 3, label: "Confirm" },
 ];
+
+const ZERO_RADIUS = { borderRadius: 0 } as const;
+
+const PRIMARY_BTN =
+  "bg-[#121212] text-[#F0F0F0] border-4 border-[#121212] font-medium uppercase tracking-widest text-xs px-6 py-3 hover:bg-white hover:text-[#121212] hover:border-[#121212] transition-all duration-200 min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1040C0] focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2";
+
+const GHOST_BTN =
+  "text-[#121212] font-medium uppercase tracking-widest text-xs px-4 py-2 hover:bg-[#E5E5E0] transition-colors duration-200 min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1040C0] focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2";
+
+const INPUT_CLASSES =
+  "border-b-4 border-[#121212] bg-transparent px-3 py-2 font-mono text-sm w-full focus-visible:bg-[#F0F0F0] focus-visible:outline-none transition-colors duration-200 min-h-[44px]";
+
+const SELECT_CLASSES =
+  "border-b-4 border-[#121212] bg-transparent px-3 py-2 font-mono text-sm w-full focus-visible:bg-[#F0F0F0] focus-visible:outline-none transition-colors duration-200 min-h-[44px] appearance-none disabled:opacity-50 disabled:cursor-not-allowed";
+
+const LABEL_CLASSES =
+  "text-xs uppercase tracking-widest text-neutral-600 block mb-1 font-bold";
+
+// ─── CourseCodeChip ───────────────────────────────────────────
+function CourseCodeChip({ code }: { code: string }) {
+  return (
+    <span
+      style={ZERO_RADIUS}
+      className="border-2 border-[#121212] font-mono text-xs px-2 py-0.5 inline-block"
+    >
+      {code}
+    </span>
+  );
+}
+
+// ─── Stepper ──────────────────────────────────────────────────
+function Stepper({ currentStep }: { currentStep: number }) {
+  return (
+    <nav aria-label="Onboarding progress" className="mb-10" role="navigation">
+      <ol className="flex items-start justify-between relative" role="list">
+        {STEPS.map((step, idx) => {
+          const isActive = step.id === currentStep;
+          const isDone = step.id < currentStep;
+
+          const boxClass = isActive
+            ? "bg-[#1040C0] text-white border-[#1040C0]"
+            : isDone
+              ? "bg-[#121212] text-white border-[#121212]"
+              : "bg-[#F0F0F0] text-neutral-400 border-4 border-[#121212]";
+
+          return (
+            <li
+              key={step.id}
+              className="flex-1 flex flex-col items-center relative"
+              aria-current={isActive ? "step" : undefined}
+            >
+              {/* Connector line */}
+              {idx > 0 && (
+                <span
+                  aria-hidden="true"
+                  className="absolute top-6 right-1/2 w-full border-t-4 border-[#121212]"
+                />
+              )}
+
+              {/* Step box */}
+              <span
+                style={ZERO_RADIUS}
+                className={`relative z-10 w-12 h-12 border-4 flex items-center justify-center font-mono text-lg ${boxClass}`}
+              >
+                {isDone ? (
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 18 18"
+                    fill="none"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M3.5 9l3.5 3.5 7-7"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                      strokeLinecap="square"
+                      strokeLinejoin="miter"
+                    />
+                  </svg>
+                ) : (
+                  String(step.id).padStart(2, "0")
+                )}
+              </span>
+
+              {/* Step label */}
+              <span
+                className={`uppercase tracking-widest text-[10px] font-bold mt-2 text-center ${
+                  isActive
+                    ? "text-[#1040C0]"
+                    : isDone
+                      ? "text-[#121212]"
+                      : "text-neutral-400"
+                }`}
+              >
+                {step.label}
+              </span>
+            </li>
+          );
+        })}
+      </ol>
+    </nav>
+  );
+}
+
+// ─── StepHeader ───────────────────────────────────────────────
+function StepHeader({
+  step,
+  title,
+  description,
+}: {
+  step: number;
+  title: string;
+  description: string;
+}) {
+  const total = String(STEPS.length).padStart(2, "0");
+  const num = String(step).padStart(2, "0");
+  const label =
+    step === 1 ? "PERSONAL" : step === 2 ? "ACADEMIC" : "CONFIRMATION";
+
+  return (
+    <div className="mb-8">
+      <p className="font-mono text-xs uppercase tracking-widest text-neutral-500 mb-1">
+        STEP {num} / {total} · {label}
+      </p>
+      <h2 className="text-3xl font-bold tracking-tight">
+        {title}
+      </h2>
+      <p className="text-sm text-neutral-600 mt-2 leading-relaxed">
+        {description}
+      </p>
+    </div>
+  );
+}
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -270,63 +404,135 @@ export default function OnboardingPage() {
     colleges.find((c) => c.collegeID === id)?.collegeName ?? id;
   const getDepartmentName = (id: string) =>
     departments.find((d) => d.departmentID === id)?.deptName ?? id;
-  const getCourseName = (id: string) => {
-    const c = courses.find((c) => c.courseID === id);
-    return c ? `${c.courseCode} — ${c.courseName}` : id;
-  };
-  const getSectionName = (courseId: string, sectionId: string) => {
-    const sec = sectionsMap[courseId]?.find((s) => s.sectionID === sectionId);
-    return sec ? `${sec.sectionNumber} (${sec.instructorName})` : sectionId;
-  };
+  const getCourse = (id: string) => courses.find((c) => c.courseID === id);
+  const getSection = (courseId: string, sectionId: string) =>
+    sectionsMap[courseId]?.find((s) => s.sectionID === sectionId);
 
   // ── Success screen ─────────────────────────────────────────
   if (submitSuccess) {
     return (
-      <div className="onboarding-page">
-        <div className="login-bg-orb login-bg-orb-1" />
-        <div className="login-bg-orb login-bg-orb-2" />
-        <div className="login-bg-orb login-bg-orb-3" />
+      <div className="bauhaus-dot-grid min-h-screen">
+        <main className="min-h-screen px-4 py-8">
+          {/* Editorial strip */}
+          <p className="font-mono text-xs text-neutral-400 max-w-2xl mx-auto pb-6 uppercase tracking-widest">
+            WODOOH · Office of the Registrar · Spring 2026
+          </p>
 
-        <main className="onboarding-container">
-          <div className="onboarding-card onboarding-success-card">
-            {/* Success checkmark */}
-            <div className="onboarding-success-icon">
-              <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
-                <circle cx="32" cy="32" r="30" stroke="currentColor" strokeWidth="3" />
-                <path
-                  d="M20 32l8 8 16-16"
-                  stroke="currentColor"
-                  strokeWidth="3"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="onboarding-check-path"
-                />
-              </svg>
+          <section
+            style={ZERO_RADIUS}
+            className="border-4 border-[#121212] bg-[#F0F0F0] max-w-2xl mx-auto shadow-[8px_8px_0px_0px_#121212]"
+          >
+            {/* Page header band */}
+            <header className="border-b-4 border-[#121212] px-8 py-6">
+              <p className="font-mono text-xs uppercase tracking-widest text-neutral-500">
+                WODOOH
+              </p>
+              <h1 className="text-4xl font-bold tracking-tight mt-1">
+                Welcome
+              </h1>
+              <p className="font-mono text-xs uppercase tracking-widest text-neutral-500 mt-2">
+                Vol. 2026 · Spring Semester
+              </p>
+            </header>
+
+            <div className="px-8 py-8">
+              {/* Large celebratory checkmark */}
+              <div
+                style={ZERO_RADIUS}
+                className="border-4 border-[#1040C0] bg-[#EEF2FF] flex flex-col items-center justify-center py-10 mb-8 shadow-[6px_6px_0px_0px_#121212]"
+                role="status"
+              >
+                <div
+                  style={ZERO_RADIUS}
+                  className="w-20 h-20 border-4 border-[#1040C0] bg-[#DBEAFE] flex items-center justify-center mb-4"
+                  aria-hidden="true"
+                >
+                  <svg
+                    width="40"
+                    height="40"
+                    viewBox="0 0 40 40"
+                    fill="none"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M8 20l7.5 7.5L32 12"
+                      stroke="#1040C0"
+                      strokeWidth="3.5"
+                      strokeLinecap="square"
+                      strokeLinejoin="miter"
+                    />
+                  </svg>
+                </div>
+                <p className="font-bold uppercase tracking-widest text-xs text-[#1040C0] mb-2">
+                  Registration Complete
+                </p>
+                <p className="text-xl font-bold text-[#1040C0] text-center">
+                  Welcome, {submitSuccess.fullName}
+                </p>
+                <p className="text-sm text-[#1040C0] mt-2 text-center">
+                  You can now participate in lectures.
+                </p>
+              </div>
+
+              {/* Confirmation ID — prominent display */}
+              <div
+                style={ZERO_RADIUS}
+                className="border-4 border-[#121212] bg-[#121212] text-[#F0F0F0] px-6 py-4 flex items-center justify-between mb-8"
+              >
+                <span className="text-xs uppercase tracking-widest text-neutral-400">
+                  Confirmation ID
+                </span>
+                <span className="font-mono text-xl font-bold tracking-wider">
+                  {submitSuccess.studentId}
+                </span>
+              </div>
+
+              {/* Details review table */}
+              <dl className="border-collapse border-4 border-[#121212] divide-y-4 divide-[#121212] mb-8">
+                <div className="flex">
+                  <dt className="font-bold uppercase tracking-widest text-xs text-neutral-600 w-44 px-4 py-3 border-r-4 border-[#121212] bg-[#E8E8E8]">
+                    Full Name
+                  </dt>
+                  <dd className="text-sm px-4 py-3 flex-1">
+                    {submitSuccess.fullName}
+                  </dd>
+                </div>
+                <div className="flex">
+                  <dt className="font-bold uppercase tracking-widest text-xs text-neutral-600 w-44 px-4 py-3 border-r-4 border-[#121212] bg-[#E8E8E8]">
+                    Account Status
+                  </dt>
+                  <dd className="px-4 py-3 flex-1">
+                    <span
+                      style={ZERO_RADIUS}
+                      className="font-mono uppercase font-black text-xs px-2 py-0.5 border-[3px] border-[#F0C020] bg-[#FFFAE0] text-[#121212]"
+                      role="status"
+                    >
+                      Pending Verification
+                    </span>
+                  </dd>
+                </div>
+              </dl>
+
+              <p className="text-sm text-neutral-700 leading-relaxed mb-8">
+                Your account is active and you can start participating in lectures
+                right away. Your status will automatically update to{" "}
+                <strong>Verified</strong> once the university system syncs your
+                enrollment data.
+              </p>
+
+              <div className="flex justify-end pt-6 border-t-4 border-[#121212]">
+                <button
+                  type="button"
+                  style={ZERO_RADIUS}
+                  className={PRIMARY_BTN}
+                  onClick={() => router.push("/login")}
+                  id="onboarding-go-to-login"
+                >
+                  Continue to Login
+                </button>
+              </div>
             </div>
-
-            <h1 className="onboarding-success-title">Welcome to WODOOH!</h1>
-            <p className="onboarding-success-text">
-              Your profile has been created successfully, <strong>{submitSuccess.fullName}</strong>.
-            </p>
-
-            <div className="onboarding-status-badge">
-              <span className="onboarding-status-dot" />
-              Pending Verification
-            </div>
-
-            <p className="onboarding-success-subtext">
-              Your account is active and you can start participating in lectures right away.
-              Your status will automatically update to &quot;Verified&quot; once the university system syncs your enrollment data.
-            </p>
-
-            <button
-              className="onboarding-button onboarding-button-primary"
-              onClick={() => router.push("/login")}
-              id="onboarding-go-to-login"
-            >
-              Go to Login
-            </button>
-          </div>
+          </section>
         </main>
       </div>
     );
@@ -334,140 +540,119 @@ export default function OnboardingPage() {
 
   // ── Main render ────────────────────────────────────────────
   return (
-    <div className="onboarding-page">
-      <div className="login-bg-orb login-bg-orb-1" />
-      <div className="login-bg-orb login-bg-orb-2" />
-      <div className="login-bg-orb login-bg-orb-3" />
+    <div className="bauhaus-dot-grid min-h-screen">
+      <main className="min-h-screen px-4 py-8">
+        {/* Editorial strip */}
+        <p className="font-mono text-xs text-neutral-400 max-w-2xl mx-auto pb-6 uppercase tracking-widest">
+          WODOOH · Office of the Registrar · Spring 2026
+        </p>
 
-      <main className="onboarding-container">
-        <div className="onboarding-card">
-          {/* Logo / Brand */}
-          <div className="onboarding-brand">
-            <div className="login-logo-img">
-              <img
-                src="/logo.png"
-                alt="WODOOH Logo"
-                className="h-16 w-auto object-contain"
-              />
-            </div>
-            <h1 className="onboarding-title">Student Onboarding</h1>
-            <p className="onboarding-subtitle">
-              Complete your registration to start participating in lectures
+        <section
+          style={ZERO_RADIUS}
+          className="border-4 border-[#121212] bg-[#F0F0F0] max-w-2xl mx-auto shadow-[8px_8px_0px_0px_#121212]"
+        >
+          {/* ── Page header band ─────────────────────────────── */}
+          <header className="border-b-4 border-[#121212] px-8 py-6">
+            <p className="font-mono text-xs uppercase tracking-widest text-neutral-500">
+              WODOOH
             </p>
-          </div>
+            <h1 className="text-4xl font-bold tracking-tight mt-1">
+              Student Onboarding
+            </h1>
+            <p className="font-mono text-xs uppercase tracking-widest text-neutral-500 mt-2">
+              Vol. 2026 · Spring Semester
+            </p>
+          </header>
 
-          {/* Progress bar */}
-          <div className="onboarding-progress" role="progressbar" aria-valuenow={currentStep} aria-valuemin={1} aria-valuemax={3}>
-            {STEPS.map((step) => (
+          <div className="px-8 pt-8 pb-6">
+            {/* ── Stepper ────────────────────────────────────── */}
+            <Stepper currentStep={currentStep} />
+
+            {/* ── Submission Error ───────────────────────────── */}
+            {submitError && (
               <div
-                key={step.id}
-                className={`onboarding-progress-step ${
-                  step.id === currentStep
-                    ? "onboarding-progress-active"
-                    : step.id < currentStep
-                      ? "onboarding-progress-done"
-                      : ""
-                }`}
+                style={ZERO_RADIUS}
+                className="border-4 border-[#D02020] bg-[#FEE2E2] text-[#D02020] p-4 mb-6 flex items-start gap-3 shadow-[4px_4px_0px_0px_#D02020]"
+                role="alert"
+                id="onboarding-error-message"
               >
-                <div className="onboarding-progress-circle">
-                  {step.id < currentStep ? (
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                      <path
-                        d="M3 7l3 3 5-5"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  ) : (
-                    step.id
-                  )}
-                </div>
-                <span className="onboarding-progress-label">{step.label}</span>
-              </div>
-            ))}
-            <div className="onboarding-progress-bar">
-              <div
-                className="onboarding-progress-fill"
-                style={{ width: `${((currentStep - 1) / (STEPS.length - 1)) * 100}%` }}
-              />
-            </div>
-          </div>
-
-          {/* Error message */}
-          {submitError && (
-            <div className="onboarding-error" role="alert" id="onboarding-error-message">
-              <span className="onboarding-error-icon">⚠️</span>
-              <p className="onboarding-error-text">{submitError}</p>
-            </div>
-          )}
-
-          {/* ── Step 1: Personal Info ─────────────────────────── */}
-          {currentStep === 1 && (
-            <div className="onboarding-step" key="step-1">
-              <div className="onboarding-step-header">
-                <h2 className="onboarding-step-title">Personal Information</h2>
-                <p className="onboarding-step-desc">
-                  Enter your name and student ID as they appear in university records
+                <span
+                  className="font-mono text-xs uppercase tracking-widest font-bold shrink-0"
+                  aria-hidden="true"
+                >
+                  Error
+                </span>
+                <p className="text-sm leading-relaxed flex-1">
+                  {submitError}
                 </p>
               </div>
+            )}
 
-              <div className="onboarding-fields">
-                {/* Full Name */}
-                <div className="onboarding-field">
-                  <label htmlFor="onboarding-name" className="onboarding-label">
-                    Full Name <span className="onboarding-label-hint">(Arabic or English)</span>
-                  </label>
-                  <div className={`onboarding-input-wrapper ${nameError ? "onboarding-input-error" : ""}`}>
-                    <svg className="onboarding-input-icon" width="20" height="20" viewBox="0 0 20 20" fill="none">
-                      <path
-                        d="M10 10a3.333 3.333 0 100-6.667A3.333 3.333 0 0010 10zM3.333 16.667c0-2.761 2.985-5 6.667-5s6.667 2.239 6.667 5"
-                        stroke="currentColor"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
+            {/* ── Step 1: Personal Info ───────────────────────── */}
+            {currentStep === 1 && (
+              <form
+                key="step-1"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (isStep1Valid) setCurrentStep(2);
+                }}
+              >
+                <StepHeader
+                  step={1}
+                  title="Personal Information"
+                  description="Enter your name and student ID as they appear in university records."
+                />
+
+                <fieldset className="space-y-6 mb-8 border-0 p-0">
+                  <legend className="sr-only">Personal Information</legend>
+
+                  {/* Full Name */}
+                  <div>
+                    <label htmlFor="onboarding-name" className={LABEL_CLASSES}>
+                      Full Name{" "}
+                      <span className="font-mono normal-case tracking-normal text-neutral-500 font-normal">
+                        (Arabic or English)
+                      </span>
+                    </label>
                     <input
                       id="onboarding-name"
                       type="text"
-                      placeholder="أحمد الراشد / Ahmed Al-Rashid"
+                      placeholder="Ahmed Al-Rashid"
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
                       onBlur={() => setNameTouched(true)}
                       autoFocus
                       dir="auto"
+                      style={ZERO_RADIUS}
+                      className={`${INPUT_CLASSES} focus-visible:ring-0 ${
+                        nameError ? "border-[#D02020]" : ""
+                      }`}
                       aria-describedby={nameError ? "name-error" : undefined}
                       aria-invalid={!!nameError}
                     />
+                    {nameError && (
+                      <p
+                        id="name-error"
+                        className="text-xs text-[#D02020] mt-2 uppercase tracking-wide font-bold"
+                        role="alert"
+                      >
+                        <span className="font-black">Error:</span> {nameError}
+                      </p>
+                    )}
                   </div>
-                  {nameError && (
-                    <p id="name-error" className="onboarding-field-error">
-                      {nameError}
-                    </p>
-                  )}
-                </div>
 
-                {/* Student ID */}
-                <div className="onboarding-field">
-                  <label htmlFor="onboarding-student-id" className="onboarding-label">
-                    Student ID
-                  </label>
-                  <div className={`onboarding-input-wrapper ${studentIdError ? "onboarding-input-error" : ""}`}>
-                    <svg className="onboarding-input-icon" width="20" height="20" viewBox="0 0 20 20" fill="none">
-                      <path
-                        d="M3.333 5.833h13.334M3.333 5.833v9.334c0 .466 0 .7.09.878a.833.833 0 00.365.365c.178.09.411.09.878.09h10.668c.467 0 .7 0 .878-.09a.833.833 0 00.365-.365c.09-.178.09-.412.09-.878V5.833M3.333 5.833l1.334-2.222c.155-.259.233-.388.34-.483a.833.833 0 01.328-.189C5.487 2.883 5.636 2.883 5.933 2.883h8.134c.297 0 .446 0 .598.056a.833.833 0 01.328.19c.107.094.185.223.34.482l1.334 2.222M10 10h.008"
-                        stroke="currentColor"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
+                  {/* Student ID */}
+                  <div>
+                    <label
+                      htmlFor="onboarding-student-id"
+                      className={LABEL_CLASSES}
+                    >
+                      Student ID
+                    </label>
                     <input
                       id="onboarding-student-id"
                       type="text"
-                      placeholder="e.g. s201234"
+                      placeholder="s201234"
                       value={studentId}
                       onChange={(e) => {
                         setStudentId(e.target.value);
@@ -476,75 +661,97 @@ export default function OnboardingPage() {
                       onBlur={() => {
                         setStudentIdTouched(true);
                         if (isValidStudentId(studentId)) {
-                          checkDuplicate(studentId)
+                          checkDuplicate(studentId);
                         }
                       }}
-                      aria-describedby={studentIdError ? "student-id-error" : undefined}
+                      style={ZERO_RADIUS}
+                      className={`${INPUT_CLASSES} ${
+                        studentIdError ? "border-[#D02020]" : ""
+                      }`}
+                      aria-describedby={
+                        studentIdError ? "student-id-error" : undefined
+                      }
                       aria-invalid={!!studentIdError}
                     />
                     {checkingDuplicate && (
-                      <div className="spinner spinner-small onboarding-checking-spinner" />
+                      <p className="font-mono text-xs text-neutral-500 mt-2 uppercase tracking-widest">
+                        Checking availability…
+                      </p>
+                    )}
+                    {studentIdError && (
+                      <p
+                        id="student-id-error"
+                        className="text-xs text-[#D02020] mt-2 uppercase tracking-wide font-bold"
+                        role="alert"
+                      >
+                        <span className="font-black">Error:</span>{" "}
+                        {studentIdError}
+                      </p>
                     )}
                   </div>
-                  {studentIdError && (
-                    <p id="student-id-error" className="onboarding-field-error">
-                      {studentIdError}
-                    </p>
-                  )}
+                </fieldset>
+
+                <div className="flex justify-between items-center pt-4 border-t-4 border-[#121212]">
+                  <button
+                    type="button"
+                    style={ZERO_RADIUS}
+                    className={GHOST_BTN}
+                    onClick={() => router.push("/login")}
+                    id="onboarding-back-to-login"
+                  >
+                    ← Back to Login
+                  </button>
+                  <button
+                    type="submit"
+                    style={ZERO_RADIUS}
+                    className={PRIMARY_BTN}
+                    disabled={!isStep1Valid}
+                    id="onboarding-next-step-1"
+                  >
+                    Next Step →
+                  </button>
                 </div>
-              </div>
+              </form>
+            )}
 
-              <div className="onboarding-actions">
-                <button
-                  className="onboarding-button onboarding-button-secondary"
-                  onClick={() => router.push("/login")}
-                  type="button"
-                  id="onboarding-back-to-login"
-                >
-                  Back to Login
-                </button>
-                <button
-                  className="onboarding-button onboarding-button-primary"
-                  disabled={!isStep1Valid}
-                  onClick={() => setCurrentStep(2)}
-                  type="button"
-                  id="onboarding-next-step-1"
-                >
-                  Next Step
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                    <path d="M3.333 8h9.334M8.667 4L12.667 8l-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-          )}
+            {/* ── Step 2: Academic Info ───────────────────────── */}
+            {currentStep === 2 && (
+              <form
+                key="step-2"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (isStep2Valid) setCurrentStep(3);
+                }}
+              >
+                <StepHeader
+                  step={2}
+                  title="Academic Information"
+                  description="Select your college, department, and the courses you are enrolling in this semester."
+                />
 
-          {/* ── Step 2: Academic Info ─────────────────────────── */}
-          {currentStep === 2 && (
-            <div className="onboarding-step" key="step-2">
-              <div className="onboarding-step-header">
-                <h2 className="onboarding-step-title">Academic Information</h2>
-                <p className="onboarding-step-desc">
-                  Select your college, department, and courses for this semester
-                </p>
-              </div>
+                <fieldset className="space-y-6 mb-8 border-0 p-0">
+                  <legend className="sr-only">Academic Information</legend>
 
-              <div className="onboarding-fields">
-                {/* College Dropdown */}
-                <div className="onboarding-field">
-                  <label htmlFor="onboarding-college" className="onboarding-label">
-                    College
-                  </label>
-                  <div className="onboarding-select-wrapper">
+                  {/* College */}
+                  <div>
+                    <label
+                      htmlFor="onboarding-college"
+                      className={LABEL_CLASSES}
+                    >
+                      College
+                    </label>
                     <select
                       id="onboarding-college"
-                      className="onboarding-select"
                       value={selectedCollege}
                       onChange={(e) => handleCollegeChange(e.target.value)}
                       disabled={loadingColleges}
+                      style={ZERO_RADIUS}
+                      className={SELECT_CLASSES}
                     >
                       <option value="">
-                        {loadingColleges ? "Loading colleges…" : "Select your college"}
+                        {loadingColleges
+                          ? "Loading colleges…"
+                          : "Select your college"}
                       </option>
                       {colleges.map((col) => (
                         <option key={col.collegeID} value={col.collegeID}>
@@ -552,24 +759,25 @@ export default function OnboardingPage() {
                         </option>
                       ))}
                     </select>
-                    <svg className="onboarding-select-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                      <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
                   </div>
-                </div>
 
-                {/* Department Dropdown */}
-                <div className="onboarding-field">
-                  <label htmlFor="onboarding-department" className="onboarding-label">
-                    Department
-                  </label>
-                  <div className="onboarding-select-wrapper">
+                  {/* Department */}
+                  <div>
+                    <label
+                      htmlFor="onboarding-department"
+                      className={LABEL_CLASSES}
+                    >
+                      Department
+                    </label>
                     <select
                       id="onboarding-department"
-                      className="onboarding-select"
                       value={selectedDepartment}
                       onChange={(e) => handleDepartmentChange(e.target.value)}
-                      disabled={!selectedCollege || loadingDepartments || noDepartments}
+                      disabled={
+                        !selectedCollege || loadingDepartments || noDepartments
+                      }
+                      style={ZERO_RADIUS}
+                      className={SELECT_CLASSES}
                     >
                       <option value="">
                         {loadingDepartments
@@ -581,257 +789,374 @@ export default function OnboardingPage() {
                               : "Select your department"}
                       </option>
                       {departments.map((dept) => (
-                        <option key={dept.departmentID} value={dept.departmentID}>
+                        <option
+                          key={dept.departmentID}
+                          value={dept.departmentID}
+                        >
                           {dept.deptName}
                         </option>
                       ))}
                     </select>
-                    <svg className="onboarding-select-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                      <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
+                    {noDepartments && (
+                      <div
+                        style={ZERO_RADIUS}
+                        className="border-4 border-[#F0C020] bg-[#FFFAE0] text-[#121212] p-4 mt-3 flex items-start gap-3 shadow-[4px_4px_0px_0px_#121212]"
+                        role="alert"
+                      >
+                        <span className="font-mono text-xs uppercase tracking-widest font-black shrink-0">
+                          Notice
+                        </span>
+                        <p className="text-sm leading-relaxed flex-1">
+                          No departments found for this college. Please contact
+                          the system administrator at{" "}
+                          <span className="font-mono">
+                            admin@university.edu.sa
+                          </span>
+                          .
+                        </p>
+                      </div>
+                    )}
                   </div>
-                  {/* Edge case: Missing department */}
-                  {noDepartments && (
-                    <div className="onboarding-admin-contact" role="alert">
-                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                        <circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="1.5" />
-                        <path d="M8 5v3M8 10.5v.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                      </svg>
-                      <span>
-                        No departments found for this college. Please contact the system administrator at{" "}
-                        <strong>admin@university.edu.sa</strong> for assistance.
-                      </span>
-                    </div>
+
+                  {/* Courses */}
+                  {selectedDepartment && loadingCourses && (
+                    <p className="font-mono text-xs uppercase tracking-widest text-neutral-500 py-4">
+                      Loading courses…
+                    </p>
                   )}
+
+                  {selectedDepartment &&
+                    !loadingCourses &&
+                    courses.length > 0 && (
+                      <div>
+                        <p
+                          className={`${LABEL_CLASSES} mb-3`}
+                          id="courses-section-label"
+                        >
+                          Courses & Sections
+                        </p>
+                        <ul
+                          role="list"
+                          aria-labelledby="courses-section-label"
+                          className="space-y-3"
+                        >
+                          {courses.map((course) => {
+                            const isSelected = courseSelections.some(
+                              (cs) => cs.courseId === course.courseID
+                            );
+                            const selection = courseSelections.find(
+                              (cs) => cs.courseId === course.courseID
+                            );
+                            const sections = sectionsMap[course.courseID] || [];
+                            const isLoadingSections =
+                              loadingSections === course.courseID;
+
+                            return (
+                              <li
+                                key={course.courseID}
+                                style={ZERO_RADIUS}
+                                className={`hard-shadow-hover transition-all duration-150 ${
+                                  isSelected
+                                    ? "border-4 border-[#1040C0] shadow-[4px_4px_0px_0px_#1040C0] bg-[#EEF2FF]"
+                                    : "border-4 border-[#121212] bg-[#F0F0F0]"
+                                }`}
+                              >
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleCourseToggle(course.courseID)
+                                  }
+                                  id={`course-toggle-${course.courseID}`}
+                                  aria-pressed={isSelected}
+                                  style={ZERO_RADIUS}
+                                  className="w-full text-left p-4 flex items-start gap-3 min-h-[44px] hover:bg-neutral-100 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1040C0] focus-visible:ring-offset-2"
+                                >
+                                  {/* Checkbox indicator */}
+                                  <span
+                                    style={ZERO_RADIUS}
+                                    className={`w-5 h-5 border-4 border-[#121212] shrink-0 mt-0.5 flex items-center justify-center ${
+                                      isSelected
+                                        ? "bg-[#1040C0] border-[#1040C0] text-white"
+                                        : "bg-[#F0F0F0]"
+                                    }`}
+                                    aria-hidden="true"
+                                  >
+                                    {isSelected && (
+                                      <svg
+                                        width="12"
+                                        height="12"
+                                        viewBox="0 0 12 12"
+                                        fill="none"
+                                      >
+                                        <path
+                                          d="M2.5 6l2.5 2.5 4.5-4.5"
+                                          stroke="currentColor"
+                                          strokeWidth="2"
+                                          strokeLinecap="square"
+                                        />
+                                      </svg>
+                                    )}
+                                  </span>
+
+                                  {/* Course info */}
+                                  <span className="flex-1 flex flex-wrap items-center gap-2">
+                                    <CourseCodeChip code={course.courseCode} />
+                                    <span className="text-base font-semibold">
+                                      {course.courseName}
+                                    </span>
+                                  </span>
+                                </button>
+
+                                {/* Section dropdown (cascading) */}
+                                {isSelected && (
+                                  <div className="border-t-4 border-[#1040C0] p-4 bg-[#EEF2FF]">
+                                    <label
+                                      htmlFor={`section-select-${course.courseID}`}
+                                      className={LABEL_CLASSES}
+                                    >
+                                      Section ·{" "}
+                                      <span className="font-mono normal-case tracking-normal font-normal">
+                                        {course.courseCode}
+                                      </span>
+                                    </label>
+                                    {isLoadingSections ? (
+                                      <p className="font-mono text-xs uppercase tracking-widest text-neutral-500 py-2">
+                                        Loading sections…
+                                      </p>
+                                    ) : sections.length > 0 ? (
+                                      <select
+                                        id={`section-select-${course.courseID}`}
+                                        value={selection?.sectionId || ""}
+                                        onChange={(e) =>
+                                          handleSectionSelect(
+                                            course.courseID,
+                                            e.target.value
+                                          )
+                                        }
+                                        style={ZERO_RADIUS}
+                                        className={SELECT_CLASSES}
+                                      >
+                                        <option value="">Select section</option>
+                                        {sections.map((sec) => (
+                                          <option
+                                            key={sec.sectionID}
+                                            value={sec.sectionID}
+                                          >
+                                            {sec.sectionNumber} —{" "}
+                                            {sec.instructorName} ({sec.term})
+                                          </option>
+                                        ))}
+                                      </select>
+                                    ) : (
+                                      <p
+                                        className="text-xs text-[#D02020] mt-1 uppercase tracking-wide font-bold"
+                                        role="alert"
+                                      >
+                                        <span className="font-black">
+                                          Notice:
+                                        </span>{" "}
+                                        No sections available for this course.
+                                      </p>
+                                    )}
+                                  </div>
+                                )}
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      </div>
+                    )}
+                </fieldset>
+
+                <div className="flex justify-between items-center pt-4 border-t-4 border-[#121212]">
+                  <button
+                    type="button"
+                    style={ZERO_RADIUS}
+                    className={GHOST_BTN}
+                    onClick={() => setCurrentStep(1)}
+                    id="onboarding-prev-step-2"
+                  >
+                    ← Previous
+                  </button>
+                  <button
+                    type="submit"
+                    style={ZERO_RADIUS}
+                    className={PRIMARY_BTN}
+                    disabled={!isStep2Valid}
+                    id="onboarding-next-step-2"
+                  >
+                    Review & Confirm →
+                  </button>
                 </div>
+              </form>
+            )}
+
+            {/* ── Step 3: Confirm ─────────────────────────────── */}
+            {currentStep === 3 && (
+              <form
+                key="step-3"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!isSubmitting) handleSubmit();
+                }}
+              >
+                <StepHeader
+                  step={3}
+                  title="Review & Confirm"
+                  description="Please verify all information below before submitting your registration."
+                />
+
+                {/* Personal */}
+                <section className="mb-6">
+                  <h3 className="font-bold uppercase tracking-widest text-xs text-neutral-600 border-b-4 border-[#121212] pb-2 mb-3">
+                    Personal Information
+                  </h3>
+                  <dl className="border-collapse border-4 border-[#121212] divide-y-4 divide-[#121212]">
+                    <div className="flex">
+                      <dt className="font-bold uppercase tracking-widest text-xs text-neutral-600 w-44 px-4 py-3 border-r-4 border-[#121212] bg-[#E8E8E8]">
+                        Full Name
+                      </dt>
+                      <dd className="text-sm px-4 py-3 flex-1">
+                        {fullName}
+                      </dd>
+                    </div>
+                    <div className="flex">
+                      <dt className="font-bold uppercase tracking-widest text-xs text-neutral-600 w-44 px-4 py-3 border-r-4 border-[#121212] bg-[#E8E8E8]">
+                        Student ID
+                      </dt>
+                      <dd className="font-mono text-sm px-4 py-3 flex-1">
+                        {studentId}
+                      </dd>
+                    </div>
+                  </dl>
+                </section>
+
+                {/* Academic */}
+                <section className="mb-6">
+                  <h3 className="font-bold uppercase tracking-widest text-xs text-neutral-600 border-b-4 border-[#121212] pb-2 mb-3">
+                    Academic Information
+                  </h3>
+                  <dl className="border-collapse border-4 border-[#121212] divide-y-4 divide-[#121212]">
+                    <div className="flex">
+                      <dt className="font-bold uppercase tracking-widest text-xs text-neutral-600 w-44 px-4 py-3 border-r-4 border-[#121212] bg-[#E8E8E8]">
+                        College
+                      </dt>
+                      <dd className="text-sm px-4 py-3 flex-1">
+                        {getCollegeName(selectedCollege)}
+                      </dd>
+                    </div>
+                    <div className="flex">
+                      <dt className="font-bold uppercase tracking-widest text-xs text-neutral-600 w-44 px-4 py-3 border-r-4 border-[#121212] bg-[#E8E8E8]">
+                        Department
+                      </dt>
+                      <dd className="text-sm px-4 py-3 flex-1">
+                        {getDepartmentName(selectedDepartment)}
+                      </dd>
+                    </div>
+                  </dl>
+                </section>
 
                 {/* Courses */}
-                {selectedDepartment && !loadingCourses && courses.length > 0 && (
-                  <div className="onboarding-field">
-                    <label className="onboarding-label">
-                      Courses & Sections
-                    </label>
-                    <div className="onboarding-courses-list">
-                      {courses.map((course) => {
-                        const isSelected = courseSelections.some(
-                          (cs) => cs.courseId === course.courseID
-                        );
-                        const selection = courseSelections.find(
-                          (cs) => cs.courseId === course.courseID
-                        );
-                        const sections = sectionsMap[course.courseID] || [];
-                        const isLoadingSections = loadingSections === course.courseID;
-
+                <section className="mb-8">
+                  <h3 className="font-bold uppercase tracking-widest text-xs text-neutral-600 border-b-4 border-[#121212] pb-2 mb-3 flex items-baseline justify-between">
+                    <span>Selected Courses</span>
+                    <span className="font-mono text-xs">
+                      {String(courseSelections.length).padStart(2, "0")} TOTAL
+                    </span>
+                  </h3>
+                  <table
+                    style={ZERO_RADIUS}
+                    className="w-full border-collapse border-4 border-[#121212] font-mono text-sm"
+                  >
+                    <thead>
+                      <tr className="bg-[#121212] text-[#F0F0F0]">
+                        <th
+                          scope="col"
+                          className="border-2 border-[#333] px-3 py-2 text-left text-xs uppercase tracking-widest font-bold"
+                        >
+                          Code
+                        </th>
+                        <th
+                          scope="col"
+                          className="border-2 border-[#333] px-3 py-2 text-left text-xs uppercase tracking-widest font-bold"
+                        >
+                          Course
+                        </th>
+                        <th
+                          scope="col"
+                          className="border-2 border-[#333] px-3 py-2 text-left text-xs uppercase tracking-widest font-bold"
+                        >
+                          Section
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {courseSelections.map((cs) => {
+                        const course = getCourse(cs.courseId);
+                        const section = getSection(cs.courseId, cs.sectionId);
                         return (
-                          <div
-                            key={course.courseID}
-                            className={`onboarding-course-item ${isSelected ? "onboarding-course-selected" : ""}`}
+                          <tr
+                            key={cs.courseId}
+                            className="hover:bg-neutral-100 transition-colors duration-150"
                           >
-                            <button
-                              type="button"
-                              className="onboarding-course-toggle"
-                              onClick={() => handleCourseToggle(course.courseID)}
-                              id={`course-toggle-${course.courseID}`}
-                            >
-                              <div className={`onboarding-checkbox ${isSelected ? "onboarding-checkbox-checked" : ""}`}>
-                                {isSelected && (
-                                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                                    <path d="M2.5 6l2.5 2.5 4.5-4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                                  </svg>
-                                )}
-                              </div>
-                              <div className="onboarding-course-info">
-                                <span className="onboarding-course-code">{course.courseCode}</span>
-                                <span className="onboarding-course-name">{course.courseName}</span>
-                              </div>
-                            </button>
-
-                            {/* Section dropdown (cascading) */}
-                            {isSelected && (
-                              <div className="onboarding-section-select">
-                                {isLoadingSections ? (
-                                  <div className="onboarding-section-loading">
-                                    <div className="spinner spinner-small" />
-                                    <span>Loading sections…</span>
-                                  </div>
-                                ) : sections.length > 0 ? (
-                                  <div className="onboarding-select-wrapper onboarding-section-dropdown">
-                                    <select
-                                      className="onboarding-select"
-                                      value={selection?.sectionId || ""}
-                                      onChange={(e) =>
-                                        handleSectionSelect(course.courseID, e.target.value)
-                                      }
-                                      id={`section-select-${course.courseID}`}
-                                    >
-                                      <option value="">Select section</option>
-                                      {sections.map((sec) => (
-                                        <option key={sec.sectionID} value={sec.sectionID}>
-                                          {sec.sectionNumber} — {sec.instructorName} ({sec.term})
-                                        </option>
-                                      ))}
-                                    </select>
-                                    <svg className="onboarding-select-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                                      <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                                    </svg>
-                                  </div>
-                                ) : (
-                                  <p className="onboarding-field-error">
-                                    No sections available for this course.
-                                  </p>
-                                )}
-                              </div>
-                            )}
-                          </div>
+                            <td className="border-2 border-[#E5E5E0] px-3 py-2 align-top">
+                              {course ? (
+                                <CourseCodeChip code={course.courseCode} />
+                              ) : (
+                                <span className="font-mono">{cs.courseId}</span>
+                              )}
+                            </td>
+                            <td className="border-2 border-[#E5E5E0] px-3 py-2">
+                              {course?.courseName ?? cs.courseId}
+                            </td>
+                            <td className="border-2 border-[#E5E5E0] px-3 py-2 font-mono">
+                              {section
+                                ? `${section.sectionNumber} · ${section.instructorName}`
+                                : cs.sectionId}
+                            </td>
+                          </tr>
                         );
                       })}
-                    </div>
-                  </div>
-                )}
+                    </tbody>
+                  </table>
+                </section>
 
-                {selectedDepartment && loadingCourses && (
-                  <div className="onboarding-loading-state">
-                    <div className="spinner" />
-                    <span>Loading courses…</span>
-                  </div>
-                )}
-              </div>
-
-              <div className="onboarding-actions">
-                <button
-                  className="onboarding-button onboarding-button-secondary"
-                  onClick={() => setCurrentStep(1)}
-                  type="button"
-                  id="onboarding-prev-step-2"
-                >
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                    <path d="M12.667 8H3.333M7.333 4L3.333 8l4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                  Previous
-                </button>
-                <button
-                  className="onboarding-button onboarding-button-primary"
-                  disabled={!isStep2Valid}
-                  onClick={() => setCurrentStep(3)}
-                  type="button"
-                  id="onboarding-next-step-2"
-                >
-                  Review & Confirm
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                    <path d="M3.333 8h9.334M8.667 4L12.667 8l-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* ── Step 3: Confirm ───────────────────────────────── */}
-          {currentStep === 3 && (
-            <div className="onboarding-step" key="step-3">
-              <div className="onboarding-step-header">
-                <h2 className="onboarding-step-title">Review & Confirm</h2>
-                <p className="onboarding-step-desc">
-                  Please verify all information below before submitting
-                </p>
-              </div>
-
-              <div className="onboarding-summary">
-                {/* Personal Info */}
-                <div className="onboarding-summary-section">
-                  <h3 className="onboarding-summary-heading">Personal Information</h3>
-                  <div className="onboarding-summary-grid">
-                    <div className="onboarding-summary-item">
-                      <span className="onboarding-summary-label">Full Name</span>
-                      <span className="onboarding-summary-value">{fullName}</span>
-                    </div>
-                    <div className="onboarding-summary-item">
-                      <span className="onboarding-summary-label">Student ID</span>
-                      <span className="onboarding-summary-value">{studentId}</span>
-                    </div>
-                  </div>
+                <div className="flex justify-between items-center pt-4 border-t-4 border-[#121212]">
+                  <button
+                    type="button"
+                    style={ZERO_RADIUS}
+                    className={GHOST_BTN}
+                    onClick={() => setCurrentStep(2)}
+                    disabled={isSubmitting}
+                    id="onboarding-prev-step-3"
+                  >
+                    ← Edit Information
+                  </button>
+                  <button
+                    type="submit"
+                    style={ZERO_RADIUS}
+                    className={PRIMARY_BTN}
+                    disabled={isSubmitting}
+                    id="onboarding-submit"
+                  >
+                    {isSubmitting ? "Submitting…" : "Complete Registration"}
+                  </button>
                 </div>
+              </form>
+            )}
 
-                {/* Academic Info */}
-                <div className="onboarding-summary-section">
-                  <h3 className="onboarding-summary-heading">Academic Information</h3>
-                  <div className="onboarding-summary-grid">
-                    <div className="onboarding-summary-item">
-                      <span className="onboarding-summary-label">College</span>
-                      <span className="onboarding-summary-value">{getCollegeName(selectedCollege)}</span>
-                    </div>
-                    <div className="onboarding-summary-item">
-                      <span className="onboarding-summary-label">Department</span>
-                      <span className="onboarding-summary-value">{getDepartmentName(selectedDepartment)}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Course Selections */}
-                <div className="onboarding-summary-section">
-                  <h3 className="onboarding-summary-heading">
-                    Selected Courses ({courseSelections.length})
-                  </h3>
-                  <div className="onboarding-summary-courses">
-                    {courseSelections.map((cs) => (
-                      <div key={cs.courseId} className="onboarding-summary-course">
-                        <span className="onboarding-summary-course-name">
-                          {getCourseName(cs.courseId)}
-                        </span>
-                        <span className="onboarding-summary-course-section">
-                          {getSectionName(cs.courseId, cs.sectionId)}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <div className="onboarding-actions">
-                <button
-                  className="onboarding-button onboarding-button-secondary"
-                  onClick={() => setCurrentStep(2)}
-                  type="button"
-                  disabled={isSubmitting}
-                  id="onboarding-prev-step-3"
-                >
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                    <path d="M12.667 8H3.333M7.333 4L3.333 8l4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                  Edit Information
-                </button>
-                <button
-                  className="onboarding-button onboarding-button-primary"
-                  onClick={handleSubmit}
-                  disabled={isSubmitting}
-                  type="button"
-                  id="onboarding-submit"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <div className="spinner spinner-small" />
-                      <span>Submitting…</span>
-                    </>
-                  ) : (
-                    <>
-                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                        <path d="M3 8l4 4 6-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                      <span>Complete Registration</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Footer */}
-          <p className="onboarding-footer">
-            Already have an account?{" "}
-            <a href="/login" className="onboarding-footer-link">
-              Sign in here
-            </a>
-          </p>
-        </div>
+            {/* Footer */}
+            <p className="text-xs uppercase tracking-widest text-neutral-500 mt-8 pt-4 border-t-4 border-[#121212] text-center">
+              Already have an account?{" "}
+              <a
+                href="/login"
+                className="text-[#1040C0] font-bold hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1040C0] focus-visible:ring-offset-2"
+              >
+                Sign in
+              </a>
+            </p>
+          </div>
+        </section>
       </main>
     </div>
   );
