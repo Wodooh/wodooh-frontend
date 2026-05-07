@@ -37,7 +37,6 @@ bun install
 This project uses a shared `.env` file from the parent directory (`../.env`). The frontend's `.env` is a symbolic link to the parent directory's `.env` file.
 
 **No action needed** - just ensure the parent directory's `.env` file contains:
-
 ```env
 # Backend API URL (change this for your backend)
 NEXT_PUBLIC_API_URL=https://wodooh-backend.vercel.app
