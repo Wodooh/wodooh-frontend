@@ -11,15 +11,16 @@ import API_ENDPOINTS from '../api/endpoints';
  */
 export const useUsers = (params: UsersQueryParams = {}, options: { enabled?: boolean } = {}) => {
   const { enabled = true } = options;
+  // Depend on primitive fields, not the params object — callers commonly
+  // pass an inline `{ ... }` literal, which would otherwise re-trigger the
+  // fetch effect every render and cause "Maximum update depth exceeded".
+  const { page, limit, role, query } = params;
 
   const [data, setData] = useState<UsersResponse | null>(null);
   const [users, setUsers] = useState<UsersResponse['users']>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  /**
-   * Build query string from params
-   */
   const buildQueryString = useCallback((queryParams: UsersQueryParams): string => {
     const searchParams = new URLSearchParams();
 
@@ -40,15 +41,13 @@ export const useUsers = (params: UsersQueryParams = {}, options: { enabled?: boo
     return queryString ? `?${queryString}` : '';
   }, []);
 
-  /**
-   * Fetch users
-   */
   const fetchUsers = useCallback(async (queryParams?: UsersQueryParams): Promise<void> => {
     setLoading(true);
     setError(null);
 
     try {
-      const queryString = buildQueryString(queryParams || params);
+      const effective = queryParams ?? { page, limit, role, query };
+      const queryString = buildQueryString(effective);
       // Backend shape: { status, message, data: UserSafe[], pagination: PaginationMeta }
       // Reshape into the nested UsersResponse the rest of the app expects.
       const response = await apiClient.get<UserSafe[]>(`${API_ENDPOINTS.USERS}${queryString}`);
@@ -78,44 +77,35 @@ export const useUsers = (params: UsersQueryParams = {}, options: { enabled?: boo
     } finally {
       setLoading(false);
     }
-  }, [params, buildQueryString]);
+  }, [page, limit, role, query, buildQueryString]);
 
-  /**
-   * Refetch users with same or new params
-   */
   const refetch = useCallback((newParams?: UsersQueryParams) => {
     fetchUsers(newParams);
   }, [fetchUsers]);
 
-  /**
-   * Fetch users on mount
-   */
   useEffect(() => {
     if (enabled) {
       fetchUsers();
     }
   }, [enabled, fetchUsers]);
 
-  /**
-   * Pagination helpers
-   */
   const pagination = data?.pagination;
 
   const nextPage = useCallback(() => {
     if (pagination?.hasNextPage) {
-      fetchUsers({ ...params, page: (params.page || 1) + 1 });
+      fetchUsers({ page: (page || 1) + 1, limit, role, query });
     }
-  }, [pagination, params, fetchUsers]);
+  }, [pagination, page, limit, role, query, fetchUsers]);
 
   const prevPage = useCallback(() => {
     if (pagination?.hasPrevPage) {
-      fetchUsers({ ...params, page: (params.page || 1) - 1 });
+      fetchUsers({ page: (page || 1) - 1, limit, role, query });
     }
-  }, [pagination, params, fetchUsers]);
+  }, [pagination, page, limit, role, query, fetchUsers]);
 
-  const goToPage = useCallback((page: number) => {
-    fetchUsers({ ...params, page });
-  }, [params, fetchUsers]);
+  const goToPage = useCallback((nextPageNum: number) => {
+    fetchUsers({ page: nextPageNum, limit, role, query });
+  }, [limit, role, query, fetchUsers]);
 
   return {
     data,
