@@ -24,30 +24,22 @@ import { USER_ROLES, type UserRole } from "@/lib/types/user-doc.types";
 // Bauhaus design tokens. Role badge colors per spec.
 // -------------------------------------------------------------------------
 const ROLE_BADGE_CLASS: Record<UserRole, string> = {
-  admin:
-    "border-2 border-[#121212] text-[#121212] uppercase font-bold text-[10px] tracking-wider px-2 py-0.5",
-  instructor:
-    "border-2 bg-[#F0C020] border-[#F0C020] text-[#121212] uppercase font-bold text-[10px] tracking-wider px-2 py-0.5",
-  student:
-    "border-2 border-[#1040C0] text-[#1040C0] uppercase font-bold text-[10px] tracking-wider px-2 py-0.5",
-  chairman:
-    "border-2 border-[#D02020] text-[#D02020] uppercase font-bold text-[10px] tracking-wider px-2 py-0.5",
+  admin:      "nx-badge nx-role-admin",
+  instructor: "nx-badge nx-role-instructor",
+  student:    "nx-badge nx-role-student",
+  chairman:   "nx-badge nx-role-chairman",
 };
 
 const BH_INPUT_CLASS =
-  "border-b-4 border-[#121212] bg-transparent px-3 py-2 text-sm w-full focus-visible:bg-[#F0F0F0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#121212] focus-visible:ring-offset-2 transition-colors duration-200 min-h-[44px]";
+  "w-full px-3 py-2 text-sm bg-[var(--nx-bg-elev)] text-[var(--nx-fg)] border border-[var(--nx-border-strong)] rounded-md focus-visible:outline-none focus-visible:border-[var(--nx-accent)] disabled:opacity-50 transition-colors duration-150";
 
-const BH_PRIMARY_BTN =
-  "bg-[#121212] text-white border-4 border-[#121212] shadow-[4px_4px_0px_0px_#505050] hover:-translate-x-0.5 uppercase font-black tracking-widest text-xs px-6 py-3 transition-all duration-200 min-h-[44px] min-w-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#121212] focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed";
+const BH_PRIMARY_BTN = "nx-btn nx-btn-primary";
 
-const BH_OUTLINE_BTN =
-  "border-4 border-[#121212] text-[#121212] uppercase font-black tracking-widest text-xs px-6 py-3 hover:bg-[#121212] hover:text-white transition-all duration-200 min-h-[44px] min-w-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#121212] focus-visible:ring-offset-2";
+const BH_OUTLINE_BTN = "nx-btn nx-btn-ghost";
 
-const BH_DESTRUCTIVE_BTN =
-  "bg-[#D02020] text-white border-4 border-[#D02020] shadow-[4px_4px_0px_0px_#A81010] uppercase font-black tracking-widest text-xs px-6 py-3 hover:opacity-90 transition-all duration-200 min-h-[44px] min-w-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D02020] focus-visible:ring-offset-2";
+const BH_DESTRUCTIVE_BTN = "nx-btn nx-btn-danger";
 
-const BH_GHOST_TAB =
-  "text-xs uppercase tracking-widest font-bold px-4 py-2 transition-colors duration-200 min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#121212] focus-visible:ring-offset-2";
+const BH_GHOST_TAB = "nx-tab";
 
 function formatTimestamp(ts: string | null | undefined): string {
   if (!ts) return "—";
@@ -290,24 +282,15 @@ export default function UserDetailPage() {
         </div>
       </header>
 
-      {/* Tabs */}
-      <div
-        role="tablist"
-        aria-label="User detail views"
-        className="flex border-b-4 border-[#121212] mb-6"
-      >
+      <div role="tablist" aria-label="User detail views" className="nx-tabs">
         <button
           role="tab"
           aria-selected={tab === "edit"}
           aria-controls="panel-edit"
           id="tab-edit"
           onClick={() => setTab("edit")}
-          style={{ borderRadius: 0 }}
-          className={`${BH_GHOST_TAB} ${
-            tab === "edit"
-              ? "bg-[#121212] text-white"
-              : "text-[#121212] hover:bg-[#E0E0E0]"
-          }`}
+          className="nx-tab"
+          data-active={tab === "edit"}
         >
           Edit
         </button>
@@ -317,12 +300,8 @@ export default function UserDetailPage() {
           aria-controls="panel-raw"
           id="tab-raw"
           onClick={() => setTab("raw")}
-          style={{ borderRadius: 0 }}
-          className={`${BH_GHOST_TAB} ${
-            tab === "raw"
-              ? "bg-[#121212] text-white"
-              : "text-[#121212] hover:bg-[#E0E0E0]"
-          }`}
+          className="nx-tab"
+          data-active={tab === "raw"}
         >
           Raw JSON
         </button>

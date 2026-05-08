@@ -19,15 +19,23 @@ The architectural invariants in `../wodooh-docs/CLAUDE.md` (two-pseudonym privac
 
 | Surface | Shell file | CSS file | Token prefix | Theme switch | Status |
 |---|---|---|---|---|---|
-| Marketing / splash (`/`) | `app/page.tsx` | inline `<style>` (`nf-*`) | `nf-*` | none | redirect to `/login` only — keep splash simple |
-| Auth (`/login`, forgot pw) | `app/login/page.tsx` | `app/login/login.css` | `nl-*` (extends `--nx-theme`) | reads `[data-nx-theme]` | implemented |
+| Marketing / splash (`/`) | `app/page.tsx` | `app/nexus.css` | `nx-*` | reads + sets `[data-nx-theme]` | Nexus |
+| Auth (`/login`, forgot pw) | `app/login/page.tsx` | `app/login/login.css` | `nl-*` (extends `--nx-theme`) | reads `[data-nx-theme]` | Nexus (login variant) |
 | Admin (`/admin/**`) | `app/admin/layout.tsx` | `app/nexus.css` | `nx-*` | sets `[data-nx-theme]` + `[data-nx-density]` on `<html>` | **canonical** |
-| Role portals (`/student/**`, `/instructor/**`, `/chairman/**`) | per-page | `app/globals.css` (Bauhaus) | bauhaus utilities + role accents | none | **legacy — migrating to Nexus** |
-| Onboarding (`/onboarding/**`) | per-page | `app/globals.css` | bauhaus utilities | none | **legacy** |
+| Student portal (`/student/**`) | `app/student/layout.tsx` | `app/nexus.css` | `nx-*` | sets dataset attrs | Nexus |
+| Faculty portal (`/instructor/**`) | `app/instructor/layout.tsx` | `app/nexus.css` | `nx-*` | sets dataset attrs | Nexus |
+| Chairman portal (`/chairman/**`) | `app/chairman/layout.tsx` | `app/nexus.css` | `nx-*` | sets dataset attrs | Nexus |
+| Profile (`/profile/[id]`) | per-page | `app/nexus.css` | `nx-*` | reads + sets dataset attrs | Nexus |
+| Onboarding (`/onboarding/**`, `/onboarding/instructor`) | per-page | `app/nexus.css` + `app/globals.css` (residual) | `nx-*` plus per-page `.onboarding-*` / `.instructor-*` helpers | reads + sets dataset attrs | Nexus (chrome) — deeper inline borders pending polish |
 
-`globals.css` carries:
-1. The role-aware `--accent` cascade (read by Nexus components).
-2. A pile of Bauhaus utilities (`.bauhaus-shadow-*`, `.bauhaus-press`, `.bauhaus-dot-grid`, `.bauhaus-block-*`, `.font-nf-*`, `.nf-dot-grid`, `.dashboard-role-*`, etc.) used only by the legacy portal pages. **Treat those as deprecated.** Do not extend them; replace them as you touch a page.
+`globals.css` now carries only:
+1. Tailwind imports (`tailwindcss`, `tw-animate-css`, `shadcn/tailwind.css`).
+2. The role-aware `--accent` cascade (read by Nexus components via `var(--accent)`).
+3. Two transitional utilities (`.academic-texture`, `.hard-shadow-hover`) still referenced by the onboarding wizard and the admin user-detail page. Slated for deletion once those surfaces finish polishing.
+4. The base shadcn/ui token blocks (`--background`, `--foreground`, `--primary`, etc.) and the matching `@theme inline` blocks — **kept** so shadcn primitives in `components/ui/` continue to resolve. The `--font-sans` here points to Inter.
+5. Onboarding-specific component CSS (`.onboarding-*`, `.instructor-*`) — used only by the two wizard pages; treat as page-local until those wizards finish migrating.
+
+Legacy Bauhaus utilities (`.bauhaus-*`, `.font-nf-*`, `.nf-dot-grid`, `.dashboard-*`, `.instructor-dashboard-*`) have been removed. Re-introducing them is a regression.
 
 ## Role-aware accent
 
@@ -499,19 +507,26 @@ The legacy code uses `@hugeicons/react` and `Material+Symbols+Outlined` (loaded 
 9. **Backend role names everywhere in CSS / classes** — `student | instructor | chairman | admin`. The docs casing (`DepartmentChairman`) is for prose only.
 10. **Privacy-respecting UI.** Never render student real identity (`studentNumber`) and `authorAnonymousCourseID` in the same surface. Anonymous content is anonymous in chrome too — no tooltips, no hover-reveal, no debug overlays exposing the bridge.
 
-## Migration checklist (legacy → Nexus)
+## Migration progress
 
-The following pages still render Bauhaus utilities and need migration. Touch them in order of footprint:
+The bulk migration from Bauhaus → Nexus is **done**. All routes now boot under a Nexus shell or page-level Nexus background, share the `--nx-*` token system, and react to `[data-nx-theme]`. Outstanding polish:
 
-- [ ] `app/student/dashboard/page.tsx` — replace inline sidebar/topbar with `nx-shell`; lift body class to `body.student`; replace `font-mono` Tailwind with `nx-tbl-mono` / `nx-kpi-value` where appropriate.
-- [ ] `app/instructor/dashboard/page.tsx` — same; `body.faculty`; remove `bg-[#F0C020]` literals; CTAs use `var(--accent)`.
-- [ ] `app/chairman/dashboard/page.tsx` — same; `body.chairman`; KPI strip becomes `nx-kpi-strip`.
-- [ ] `app/onboarding/page.tsx` + `app/onboarding/instructor/page.tsx` — replace `PRIMARY_BTN`, `GHOST_BTN`, `INPUT_CLASSES` constants with `nx-btn-primary` / `nx-btn-ghost` / `nx-input-wrap`. Drop `borderRadius: 0` style overrides.
-- [ ] `app/page.tsx` — splash is fine; remove if a real landing is built.
-- [ ] `app/test-api/page.tsx` — already used Bauhaus; migrate when the route survives review.
-- [ ] `app/globals.css` — once nothing references the legacy utilities, delete the Bauhaus / `nf-*` / `dashboard-role-*` blocks. Keep only the Tailwind imports, the `body.<role>` accent cascade, and any genuinely shared base styles.
-- [ ] `app/layout.tsx` — drop `Outfit` and `Material Symbols Outlined` font preloads.
-- [ ] Old design doc `DESIGN.md` — already deleted in favor of this file.
+- [x] `app/student/dashboard/page.tsx` — Nexus.
+- [x] `app/instructor/dashboard/page.tsx` — Nexus.
+- [x] `app/chairman/dashboard/page.tsx` — Nexus (KPI / approval queue / department accordion / policy archive ported to `nx-card` + `nx-tbl` primitives).
+- [x] `app/onboarding/page.tsx` + `app/onboarding/instructor/page.tsx` — chrome on Nexus (button / input / select / label constants + page wrappers + `Stepper` + `StepHeader`). Deeper inline borders (`border-t-4 border-[#121212]` between confirmation rows) and the `.onboarding-*` / `.instructor-*` blocks in `globals.css` remain — pending polish.
+- [x] `app/page.tsx` — Nexus splash with accent-gradient logo and `nx-spin`.
+- [x] `app/profile/[id]/page.tsx` — Nexus with `nx-card` + role badge.
+- [x] `app/admin/users/new/page.tsx`, `app/admin/users/[id]/page.tsx` — chrome ported (constants → `nx-btn-*` / `nx-tab` / `nx-field-label`; role badges → `nx-badge nx-role-*`; tab strip → `nx-tabs`). Inline form-section borders deeper in `[id]/page.tsx` remain.
+- [x] `app/test-api/page.tsx` — deleted (dev-only route).
+- [x] `app/globals.css` — Bauhaus utility classes (`.bauhaus-*`, `.font-nf-*`, `.nf-dot-grid`, `.dashboard-*`, `.instructor-dashboard-*`) removed. Body font is now Inter. The retained `:root --bh-*`, `--brand-*`, etc. tokens are still referenced by `.onboarding-*` rules — they get cleaned up alongside those blocks.
+- [x] `app/layout.tsx` — Outfit and Material Symbols Outlined preloads dropped; only IBM Plex Sans Arabic remains for Arabic copy.
+- [x] Dead files removed: `contexts/AuthContext.tsx`, `services/authService.ts`, `types/auth.ts` (per the original frontend `CLAUDE.md`).
+
+Future polish (non-blocking):
+- [ ] Replace inline `border-t-4 border-[#121212]` separators in onboarding wizards with `1px solid var(--nx-border)`.
+- [ ] Replace inline `border-4 border-[#121212]` panels and ad-hoc colors in `app/admin/users/[id]/page.tsx` deeper sections.
+- [ ] Once the above two land, delete `.onboarding-*`, `.instructor-*`, `.academic-texture`, `.hard-shadow-hover`, and the residual `--bh-*` / `--brand-*` token blocks from `globals.css`.
 
 ## Implementation checklist (for new pages)
 
