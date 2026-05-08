@@ -138,6 +138,25 @@ const refetch = useCallback(() => setTick(t => t + 1), []);
 3. **API integration**: Test with backend running on `localhost:5001`
 4. **Authentication**: Test login, logout, and protected routes
 
+## Build-before-push (mandatory)
+
+**Never `git push` from this repo without first running a build and confirming it succeeds.** Vercel reuses the same Next.js build pipeline; pushing a broken build wastes a CI cycle and may publish a degraded preview/production deployment.
+
+The required local sequence before any `git push`:
+
+1. `npx tsc --noEmit` — type-check must be clean (pre-existing tracked errors aside; do not introduce new ones).
+2. `npm run build` — the production Next.js build (`next build`) must complete with **exit code 0** and no compiler/static-analysis errors. Warnings are acceptable; errors are not.
+3. Only after both pass, run `git push`.
+
+If `npm run build` fails:
+- **Do not** push.
+- **Do not** push with `--no-verify` or any flag that bypasses the check.
+- Diagnose and fix the underlying cause (type error, missing import, broken route, ESLint rule, etc.). Re-run the sequence after the fix.
+
+If a build is too slow to run before every push and you're confident the diff is doc-only (e.g., editing a single Markdown file), `npx tsc --noEmit` alone is acceptable in lieu of the full `next build` — but the moment any `.ts`/`.tsx`/`.css`/`next.config.*`/route file changes, the full build is required again.
+
+This rule applies to **all branches**, including feature branches like `refactor/*` and `fix/*`. It's not a CI substitute; it's a precondition for asking CI to run at all.
+
 ## Common Tasks
 
 ### Add a new API endpoint

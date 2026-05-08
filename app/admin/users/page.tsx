@@ -158,7 +158,7 @@ export default function AdminUsersPage() {
                       </div>
                     </td>
                     <td><RoleBadge role={u.role} /></td>
-                    <td className="nx-tbl-mono">{new Date(u.createdAt).toLocaleDateString()}</td>
+                    <td className="nx-tbl-mono">{u.createdAt ? new Date(u.createdAt).toLocaleDateString() : "—"}</td>
                     <td style={{ textAlign: "right" }}>
                       <button className="nx-btn nx-btn-ghost" onClick={() => onChangeRole(u)}>
                         Change role
