@@ -15,6 +15,7 @@ import {
   isValidStudentId,
   trackOnboardingEvent,
 } from "@/services/onboardingService";
+import "../nexus.css";
 
 // ─── Steps ────────────────────────────────────────────────────
 const STEPS = [
@@ -23,49 +24,57 @@ const STEPS = [
   { id: 3, label: "Confirm" },
 ];
 
-const ZERO_RADIUS = { borderRadius: 0 } as const;
+const ZERO_RADIUS = {} as const;
 
-const PRIMARY_BTN =
-  "bg-[#121212] text-[#F0F0F0] border-4 border-[#121212] font-medium uppercase tracking-widest text-xs px-6 py-3 hover:bg-white hover:text-[#121212] hover:border-[#121212] transition-all duration-200 min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1040C0] focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2";
+const PRIMARY_BTN = "nx-btn nx-btn-primary";
 
-const GHOST_BTN =
-  "text-[#121212] font-medium uppercase tracking-widest text-xs px-4 py-2 hover:bg-[#E5E5E0] transition-colors duration-200 min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1040C0] focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2";
+const GHOST_BTN = "nx-btn nx-btn-ghost";
 
 const INPUT_CLASSES =
-  "border-b-4 border-[#121212] bg-transparent px-3 py-2 font-mono text-sm w-full focus-visible:bg-[#F0F0F0] focus-visible:outline-none transition-colors duration-200 min-h-[44px]";
+  "w-full px-3 py-2 text-sm bg-[var(--nx-bg-elev)] text-[var(--nx-fg)] border border-[var(--nx-border-strong)] rounded-md focus-visible:outline-none focus-visible:border-[var(--nx-accent)] disabled:opacity-50 disabled:cursor-not-allowed";
 
-const SELECT_CLASSES =
-  "border-b-4 border-[#121212] bg-transparent px-3 py-2 font-mono text-sm w-full focus-visible:bg-[#F0F0F0] focus-visible:outline-none transition-colors duration-200 min-h-[44px] appearance-none disabled:opacity-50 disabled:cursor-not-allowed";
+const SELECT_CLASSES = "nx-select w-full disabled:opacity-50 disabled:cursor-not-allowed";
 
-const LABEL_CLASSES =
-  "text-xs uppercase tracking-widest text-neutral-600 block mb-1 font-bold";
+const LABEL_CLASSES = "nx-field-label";
 
 // ─── CourseCodeChip ───────────────────────────────────────────
 function CourseCodeChip({ code }: { code: string }) {
-  return (
-    <span
-      style={ZERO_RADIUS}
-      className="border-2 border-[#121212] font-mono text-xs px-2 py-0.5 inline-block"
-    >
-      {code}
-    </span>
-  );
+  return <span className="nx-version-pill">{code}</span>;
 }
 
 // ─── Stepper ──────────────────────────────────────────────────
 function Stepper({ currentStep }: { currentStep: number }) {
   return (
-    <nav aria-label="Onboarding progress" className="mb-10" role="navigation">
+    <nav aria-label="Onboarding progress" className="mb-8" role="navigation">
       <ol className="flex items-start justify-between relative" role="list">
         {STEPS.map((step, idx) => {
           const isActive = step.id === currentStep;
           const isDone = step.id < currentStep;
 
-          const boxClass = isActive
-            ? "bg-[#1040C0] text-white border-[#1040C0]"
-            : isDone
-              ? "bg-[#121212] text-white border-[#121212]"
-              : "bg-[#F0F0F0] text-neutral-400 border-4 border-[#121212]";
+          const dotStyle: React.CSSProperties = {
+            width: 32,
+            height: 32,
+            borderRadius: 999,
+            display: "grid",
+            placeItems: "center",
+            fontSize: 12,
+            fontWeight: 600,
+            fontFamily: "'JetBrains Mono', ui-monospace, monospace",
+            border: "1px solid",
+            background: isActive
+              ? "var(--nx-accent)"
+              : isDone
+                ? "var(--nx-fg)"
+                : "var(--nx-bg-elev)",
+            color: isActive || isDone ? "white" : "var(--nx-fg-muted)",
+            borderColor: isActive
+              ? "var(--nx-accent)"
+              : isDone
+                ? "var(--nx-fg)"
+                : "var(--nx-border-strong)",
+            position: "relative",
+            zIndex: 1,
+          };
 
           return (
             <li
@@ -73,49 +82,43 @@ function Stepper({ currentStep }: { currentStep: number }) {
               className="flex-1 flex flex-col items-center relative"
               aria-current={isActive ? "step" : undefined}
             >
-              {/* Connector line */}
               {idx > 0 && (
                 <span
                   aria-hidden="true"
-                  className="absolute top-6 right-1/2 w-full border-t-4 border-[#121212]"
+                  style={{
+                    position: "absolute",
+                    top: 16,
+                    right: "50%",
+                    width: "100%",
+                    borderTop: `1px solid ${isDone ? "var(--nx-fg)" : "var(--nx-border)"}`,
+                  }}
                 />
               )}
 
-              {/* Step box */}
-              <span
-                style={ZERO_RADIUS}
-                className={`relative z-10 w-12 h-12 border-4 flex items-center justify-center font-mono text-lg ${boxClass}`}
-              >
+              <span style={dotStyle}>
                 {isDone ? (
-                  <svg
-                    width="18"
-                    height="18"
-                    viewBox="0 0 18 18"
-                    fill="none"
-                    aria-hidden="true"
-                  >
-                    <path
-                      d="M3.5 9l3.5 3.5 7-7"
-                      stroke="currentColor"
-                      strokeWidth="2.5"
-                      strokeLinecap="square"
-                      strokeLinejoin="miter"
-                    />
+                  <svg width="14" height="14" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+                    <path d="M3.5 9l3.5 3.5 7-7" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 ) : (
                   String(step.id).padStart(2, "0")
                 )}
               </span>
 
-              {/* Step label */}
               <span
-                className={`uppercase tracking-widest text-[10px] font-bold mt-2 text-center ${
-                  isActive
-                    ? "text-[#1040C0]"
+                style={{
+                  marginTop: 8,
+                  fontSize: 11,
+                  fontWeight: 500,
+                  letterSpacing: "0.04em",
+                  textTransform: "uppercase",
+                  textAlign: "center",
+                  color: isActive
+                    ? "var(--nx-accent)"
                     : isDone
-                      ? "text-[#121212]"
-                      : "text-neutral-400"
-                }`}
+                      ? "var(--nx-fg)"
+                      : "var(--nx-fg-subtle)",
+                }}
               >
                 {step.label}
               </span>
@@ -139,20 +142,24 @@ function StepHeader({
 }) {
   const total = String(STEPS.length).padStart(2, "0");
   const num = String(step).padStart(2, "0");
-  const label =
-    step === 1 ? "PERSONAL" : step === 2 ? "ACADEMIC" : "CONFIRMATION";
+  const label = step === 1 ? "Personal" : step === 2 ? "Academic" : "Confirmation";
 
   return (
-    <div className="mb-8">
-      <p className="font-mono text-xs uppercase tracking-widest text-neutral-500 mb-1">
-        STEP {num} / {total} · {label}
+    <div className="mb-6">
+      <p
+        style={{
+          fontFamily: "'JetBrains Mono', ui-monospace, monospace",
+          fontSize: 11,
+          textTransform: "uppercase",
+          letterSpacing: "0.06em",
+          color: "var(--nx-fg-subtle)",
+          margin: "0 0 6px",
+        }}
+      >
+        Step {num} / {total} · {label}
       </p>
-      <h2 className="text-3xl font-bold tracking-tight">
-        {title}
-      </h2>
-      <p className="text-sm text-neutral-600 mt-2 leading-relaxed">
-        {description}
-      </p>
+      <h2 className="nx-page-title" style={{ fontSize: 22 }}>{title}</h2>
+      <p className="nx-page-sub" style={{ marginTop: 6 }}>{description}</p>
     </div>
   );
 }
@@ -196,6 +203,16 @@ export default function OnboardingPage() {
     studentId: string;
     fullName: string;
   } | null>(null);
+
+  // ── Theme bootstrapping (so onboarding inherits the user's theme choice)
+  useEffect(() => {
+    const stored = typeof window !== "undefined" ? localStorage.getItem("wodooh.theme") : null;
+    const resolved = stored === "light" || stored === "dark"
+      ? stored
+      : window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    document.documentElement.dataset.nxTheme = resolved;
+    document.documentElement.dataset.nxDensity = "compact";
+  }, []);
 
   // ── Analytics: track start ─────────────────────────────────
   useEffect(() => {
@@ -411,7 +428,7 @@ export default function OnboardingPage() {
   // ── Success screen ─────────────────────────────────────────
   if (submitSuccess) {
     return (
-      <div className="bauhaus-dot-grid min-h-screen">
+      <div style={{minHeight:"100vh",background:"var(--nx-bg)",color:"var(--nx-fg)",fontFamily:"Inter,system-ui,sans-serif"}}>
         <main className="min-h-screen px-4 py-8">
           {/* Editorial strip */}
           <p className="font-mono text-xs text-neutral-400 max-w-2xl mx-auto pb-6 uppercase tracking-widest">
@@ -540,7 +557,7 @@ export default function OnboardingPage() {
 
   // ── Main render ────────────────────────────────────────────
   return (
-    <div className="bauhaus-dot-grid min-h-screen">
+    <div style={{minHeight:"100vh",background:"var(--nx-bg)",color:"var(--nx-fg)",fontFamily:"Inter,system-ui,sans-serif"}}>
       <main className="min-h-screen px-4 py-8">
         {/* Editorial strip */}
         <p className="font-mono text-xs text-neutral-400 max-w-2xl mx-auto pb-6 uppercase tracking-widest">

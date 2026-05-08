@@ -16,6 +16,7 @@ import {
   isKnownFacultyIdFormat,
   trackInstructorOnboardingEvent,
 } from "@/services/instructorOnboardingService";
+import "../../nexus.css";
 
 // ─── Steps ────────────────────────────────────────────────────
 const STEPS = [
@@ -35,33 +36,22 @@ function getSectionLabel(sectionsMap: Record<string, Section[]>, courseId: strin
 }
 
 // ─── Style constants ──────────────────────────────────────────
-const ZERO = { borderRadius: 0 } as const;
+const ZERO = {} as const;
 
-const PRIMARY_BTN =
-  "inline-flex items-center justify-center gap-2 bg-[#121212] text-[#F0F0F0] border border-transparent font-medium uppercase tracking-widest text-xs px-6 py-3 hover:bg-[#F0F0F0] hover:text-[#121212] hover:border-[#121212] transition-all duration-200 min-h-[44px] disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F0C020] focus-visible:ring-offset-2";
+const PRIMARY_BTN = "nx-btn nx-btn-primary";
 
-const GHOST_BTN =
-  "inline-flex items-center justify-center gap-2 text-[#121212] text-xs uppercase tracking-widest px-4 py-2 hover:bg-[#E5E5E0] transition-colors duration-200 min-h-[44px] disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F0C020] focus-visible:ring-offset-2";
+const GHOST_BTN = "nx-btn nx-btn-ghost";
 
 const INPUT_CLS =
-  "border-b-4 border-[#121212] bg-transparent px-3 py-2 text-sm w-full focus-visible:bg-[#F0F0F0] focus-visible:outline-none transition-colors duration-200 min-h-[44px]";
+  "w-full px-3 py-2 text-sm bg-[var(--nx-bg-elev)] text-[var(--nx-fg)] border border-[var(--nx-border-strong)] rounded-md focus-visible:outline-none focus-visible:border-[var(--nx-accent)] disabled:opacity-50 disabled:cursor-not-allowed";
 
-const SELECT_CLS =
-  "border-4 border-[#121212] bg-[#F0F0F0] px-3 py-2 text-sm w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F0C020] focus-visible:ring-offset-2 transition-colors duration-200 min-h-[44px] disabled:opacity-50 disabled:cursor-not-allowed appearance-none";
+const SELECT_CLS = "nx-select w-full disabled:opacity-50 disabled:cursor-not-allowed";
 
-const LABEL_CLS =
-  "text-xs uppercase tracking-widest text-neutral-600 block mb-1 font-semibold";
+const LABEL_CLS = "nx-field-label";
 
 // ─── CourseCodeChip ───────────────────────────────────────────
 function CourseCodeChip({ code }: { code: string }) {
-  return (
-    <span
-      style={ZERO}
-      className="border-4 border-[#121212] text-xs px-2 py-0.5 inline-block font-bold"
-    >
-      {code}
-    </span>
-  );
+  return <span className="nx-version-pill">{code}</span>;
 }
 
 export default function InstructorOnboardingPage() {
@@ -102,6 +92,16 @@ export default function InstructorOnboardingPage() {
     flaggedFacultyId?: boolean;
     flaggedCourses?: string[];
   } | null>(null);
+
+  // ── Theme bootstrapping ────────────────────────────────────
+  useEffect(() => {
+    const stored = typeof window !== "undefined" ? localStorage.getItem("wodooh.theme") : null;
+    const resolved = stored === "light" || stored === "dark"
+      ? stored
+      : window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    document.documentElement.dataset.nxTheme = resolved;
+    document.documentElement.dataset.nxDensity = "compact";
+  }, []);
 
   // ── Analytics: track start ─────────────────────────────────
   useEffect(() => {
@@ -288,7 +288,7 @@ export default function InstructorOnboardingPage() {
   // ── Success screen ─────────────────────────────────────────
   if (submitSuccess) {
     return (
-      <main className="bauhaus-dot-grid min-h-screen px-4 bg-[#F0F0F0]">
+      <main style={{minHeight:"100vh",background:"var(--nx-bg)",color:"var(--nx-fg)",fontFamily:"Inter,system-ui,sans-serif",padding:"0 16px"}}>
         <p className="text-xs text-neutral-400 max-w-2xl mx-auto pt-8 uppercase tracking-widest">
           WODOOH · Faculty Registry · Spring 2026
         </p>
@@ -445,7 +445,7 @@ export default function InstructorOnboardingPage() {
 
   // ── Main render ────────────────────────────────────────────
   return (
-    <main className="bauhaus-dot-grid min-h-screen px-4 bg-[#F0F0F0]">
+    <main style={{minHeight:"100vh",background:"var(--nx-bg)",color:"var(--nx-fg)",fontFamily:"Inter,system-ui,sans-serif",padding:"0 16px"}}>
       {/* Editorial top strip */}
       <p className="text-xs text-neutral-400 max-w-2xl mx-auto pt-8 uppercase tracking-widest">
         WODOOH · Faculty Registry · Spring 2026
