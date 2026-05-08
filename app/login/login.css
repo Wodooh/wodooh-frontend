@@ -2,46 +2,52 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
+/*
+ * --nl-* tokens mirror --nx-* (defined in app/nexus.css). DESIGN.md treats
+ * them as a contained namespace inside .nx-login-body so the login page
+ * renders correctly when entered cold (no admin layout has booted yet).
+ * Values must stay aliased — never hard-code a hex here.
+ */
 [data-nx-theme="light"] .nx-login-body {
-  background: #ffffff;
-  --nl-bg: #ffffff;
-  --nl-card-bg: #f6f8fa;
-  --nl-card-border: #d0d7de;
-  --nl-input-bg: #ffffff;
-  --nl-input-border: #d0d7de;
-  --nl-fg: #1f2328;
-  --nl-fg-muted: #59636e;
-  --nl-fg-subtle: #6e7781;
-  --nl-fg-faint: #8c959f;
-  --nl-accent: #0969da;
-  --nl-success: #1f883d;
-  --nl-success-hover: #1a7f37;
-  --nl-danger: #cf222e;
-  --nl-danger-soft: #ffebe9;
-  --nl-warning: #9a6700;
-  --nl-logo-bg: linear-gradient(135deg, #1f1f23 0%, #3a3a42 100%);
+  background: var(--nx-bg);
+  --nl-bg: var(--nx-bg);
+  --nl-card-bg: var(--nx-bg-elev);
+  --nl-card-border: var(--nx-border);
+  --nl-input-bg: var(--nx-bg-elev);
+  --nl-input-border: var(--nx-border-strong);
+  --nl-fg: var(--nx-fg);
+  --nl-fg-muted: var(--nx-fg-muted);
+  --nl-fg-subtle: var(--nx-fg-subtle);
+  --nl-fg-faint: var(--nx-fg-faint);
+  --nl-accent: var(--nx-accent);
+  --nl-accent-hover: var(--nx-accent-hover);
+  --nl-success: var(--nx-success);
+  --nl-danger: var(--nx-danger);
+  --nl-danger-soft: var(--nx-danger-soft);
+  --nl-warning: var(--nx-warning);
+  --nl-logo-bg: linear-gradient(135deg, var(--nx-accent), var(--nx-accent-hover));
   --nl-logo-fg: #ffffff;
 }
 
 [data-nx-theme="dark"] .nx-login-body {
-  background: #0d1117;
-  --nl-bg: #0d1117;
-  --nl-card-bg: #161b22;
-  --nl-card-border: #30363d;
-  --nl-input-bg: #0d1117;
-  --nl-input-border: #30363d;
-  --nl-fg: #e6edf3;
-  --nl-fg-muted: #8d96a0;
-  --nl-fg-subtle: #7d8590;
-  --nl-fg-faint: #6e7681;
-  --nl-accent: #2f81f7;
-  --nl-success: #238636;
-  --nl-success-hover: #2ea043;
-  --nl-danger: #f85149;
-  --nl-danger-soft: #2d1014;
-  --nl-warning: #d29922;
-  --nl-logo-bg: linear-gradient(135deg, #c9d1d9 0%, #8b949e 100%);
-  --nl-logo-fg: #0d1117;
+  background: var(--nx-bg);
+  --nl-bg: var(--nx-bg);
+  --nl-card-bg: var(--nx-bg-elev);
+  --nl-card-border: var(--nx-border);
+  --nl-input-bg: var(--nx-bg-elev);
+  --nl-input-border: var(--nx-border-strong);
+  --nl-fg: var(--nx-fg);
+  --nl-fg-muted: var(--nx-fg-muted);
+  --nl-fg-subtle: var(--nx-fg-subtle);
+  --nl-fg-faint: var(--nx-fg-faint);
+  --nl-accent: var(--nx-accent);
+  --nl-accent-hover: var(--nx-accent-hover);
+  --nl-success: var(--nx-success);
+  --nl-danger: var(--nx-danger);
+  --nl-danger-soft: var(--nx-danger-soft);
+  --nl-warning: var(--nx-warning);
+  --nl-logo-bg: linear-gradient(135deg, var(--nx-accent), var(--nx-accent-hover));
+  --nl-logo-fg: #ffffff;
 }
 
 .nx-login-body {
@@ -215,8 +221,8 @@
 .nx-login-submit {
   height: 32px;
   border-radius: 6px;
-  background: var(--nl-success);
-  border: 1px solid color-mix(in oklab, var(--nl-success) 80%, black);
+  background: var(--nl-accent);
+  border: 1px solid color-mix(in oklab, var(--nl-accent) 75%, black);
   color: white;
   font-size: 14px;
   font-weight: 500;
@@ -231,11 +237,11 @@
 }
 
 .nx-login-submit:hover:not(:disabled) {
-  background: var(--nl-success-hover);
+  background: var(--nl-accent-hover);
 }
 
 .nx-login-submit:active:not(:disabled) {
-  background: color-mix(in oklab, var(--nl-success) 75%, black);
+  background: color-mix(in oklab, var(--nl-accent) 75%, black);
 }
 
 .nx-login-submit:disabled {
