@@ -1,120 +1,77 @@
 "use client";
 
-import React, { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import React from "react";
 import { useAuth } from "@/lib/auth/auth-provider";
-import type { UserRole } from "@/lib/types/auth.types";
 
-export default function DashboardPage() {
-  const router = useRouter();
-  const { user, isAuthenticated, loading, logout } = useAuth();
-
-  useEffect(() => {
-    if (!loading && !isAuthenticated) {
-      router.replace("/login");
-      return;
-    }
-    // Redirect non-student users to their own dashboards
-    if (user && user.role !== "student") {
-      router.replace(
-        user.role === "admin" ? "/admin/dashboard"
-        : user.role === "instructor" ? "/instructor/dashboard"
-        : user.role === "chairman" ? "/chairman/dashboard"
-        : "/login"
-      );
-    }
-  }, [loading, isAuthenticated, user, router]);
-
-  if (loading) {
-    return (
-      <div className="dashboard-page">
-        <div className="dashboard-loader">
-          <div className="spinner" />
-        </div>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated || !user) {
-    return null;
-  }
+export default function StudentDashboardPage() {
+  const { user } = useAuth();
+  const today = new Date().toLocaleDateString(undefined, {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  });
 
   return (
-    <div className="dashboard-page">
-      <div className="dashboard-bg-orb dashboard-bg-orb-1" />
-      <div className="dashboard-bg-orb dashboard-bg-orb-2" />
-
-      <header className="dashboard-header">
-        <div className="dashboard-header-brand">
-          <img
-            src="/logo.png"
-            alt="WODOOH Logo"
-            className="h-8 w-auto object-contain"
-          />
+    <>
+      <div className="nx-page-head">
+        <div>
+          <h1 className="nx-page-title">Dashboard</h1>
+          <p className="nx-page-sub">{today} · Welcome back, {user?.name?.split(" ")[0] ?? "Student"}</p>
         </div>
-        <div className="dashboard-header-user">
-          <div className="dashboard-avatar">
-            {user.name
-              .split(" ")
-              .map((n) => n[0])
-              .join("")
-              .slice(0, 2)}
-          </div>
-          <div className="dashboard-user-info">
-            <span className="dashboard-user-name">{user.name}</span>
-            <span className="dashboard-user-role">Student</span>
-          </div>
-          <button
-            id="logout-button"
-            className="dashboard-logout-btn"
-            onClick={logout}
-          >
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-              <path
-                d="M13.333 14.167L17.5 10m0 0l-4.167-4.167M17.5 10H7.5M7.5 2.5H6.333c-1.4 0-2.1 0-2.635.272A2.5 2.5 0 002.605 3.866C2.333 4.4 2.333 5.1 2.333 6.5v7c0 1.4 0 2.1.272 2.635a2.5 2.5 0 001.093 1.093c.535.272 1.235.272 2.635.272H7.5"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-            Sign Out
-          </button>
-        </div>
-      </header>
+      </div>
 
-      <main className="dashboard-main">
-        <div className="dashboard-welcome-card">
-          <h1 className="dashboard-welcome-title">
-            Welcome back, {user.name.split(" ")[0]}! 👋
-          </h1>
-          <p className="dashboard-welcome-text">
-            You&apos;re signed in as <strong>{user.email}</strong>. This is your
-            student dashboard. Content will be added in upcoming sprints.
-          </p>
+      <div className="nx-kpi-strip">
+        <KPI label="My courses" />
+        <KPI label="Active sessions" />
+        <KPI label="Pending questions" />
+        <KPI label="Announcements" />
+      </div>
+
+      <div className="nx-grid-2">
+        <div className="nx-card">
+          <div className="nx-card-head">
+            <div>
+              <h3 className="nx-card-title">Active sessions</h3>
+              <p className="nx-card-sub">Live lectures you can join right now</p>
+            </div>
+          </div>
+          <div className="nx-empty">
+            <div className="nx-empty-title">No active sessions</div>
+            <div className="nx-empty-sub">When an instructor starts a live session in one of your courses, it will appear here.</div>
+          </div>
         </div>
 
-        <div className="dashboard-grid">
-          <div className="dashboard-stat-card">
-            <div className="dashboard-stat-icon">📚</div>
-            <h3>My Courses</h3>
-            <p className="dashboard-stat-value">—</p>
-            <p className="dashboard-stat-label">Coming soon</p>
+        <div className="nx-card">
+          <div className="nx-card-head">
+            <h3 className="nx-card-title">Quick links</h3>
           </div>
-          <div className="dashboard-stat-card">
-            <div className="dashboard-stat-icon">📝</div>
-            <h3>Assignments</h3>
-            <p className="dashboard-stat-value">—</p>
-            <p className="dashboard-stat-label">Coming soon</p>
-          </div>
-          <div className="dashboard-stat-card">
-            <div className="dashboard-stat-icon">📊</div>
-            <h3>Grades</h3>
-            <p className="dashboard-stat-value">—</p>
-            <p className="dashboard-stat-label">Coming soon</p>
+          <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 8 }}>
+            <a className="nx-btn nx-btn-ghost" href="/student/sessions">Active sessions</a>
+            <a className="nx-btn nx-btn-ghost" href="/student/courses">My courses</a>
+            <a className="nx-btn nx-btn-ghost" href="/student/announcements">Announcements</a>
           </div>
         </div>
-      </main>
+      </div>
+
+      <div className="nx-card">
+        <div className="nx-card-head">
+          <h3 className="nx-card-title">Recent announcements</h3>
+          <p className="nx-card-sub">Updates from your instructors</p>
+        </div>
+        <div className="nx-empty">
+          <div className="nx-empty-title">No announcements yet</div>
+          <div className="nx-empty-sub">You&apos;ll see new course announcements here as instructors post them.</div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+function KPI({ label }: { label: string }) {
+  return (
+    <div className="nx-kpi">
+      <p className="nx-kpi-label">{label}</p>
+      <div className="nx-kpi-value">—</div>
     </div>
   );
 }

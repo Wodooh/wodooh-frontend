@@ -21,7 +21,7 @@ The architectural invariants in `../wodooh-docs/CLAUDE.md` (two-pseudonym privac
 |---|---|---|---|---|---|
 | Marketing / splash (`/`) | `app/page.tsx` | inline `<style>` (`nf-*`) | `nf-*` | none | redirect to `/login` only — keep splash simple |
 | Auth (`/login`, forgot pw) | `app/login/page.tsx` | `app/login/login.css` | `nl-*` (extends `--nx-theme`) | reads `[data-nx-theme]` | implemented |
-| Admin (`/admin/**`) | `app/admin/layout.tsx` | `app/admin/admin.css` | `nx-*` | sets `[data-nx-theme]` + `[data-nx-density]` on `<html>` | **canonical** |
+| Admin (`/admin/**`) | `app/admin/layout.tsx` | `app/nexus.css` | `nx-*` | sets `[data-nx-theme]` + `[data-nx-density]` on `<html>` | **canonical** |
 | Role portals (`/student/**`, `/instructor/**`, `/chairman/**`) | per-page | `app/globals.css` (Bauhaus) | bauhaus utilities + role accents | none | **legacy — migrating to Nexus** |
 | Onboarding (`/onboarding/**`) | per-page | `app/globals.css` | bauhaus utilities | none | **legacy** |
 
@@ -50,7 +50,7 @@ Backend role `instructor` maps to body class `faculty` for the accent cascade �
 
 ## Tokens (Nexus, `--nx-*`)
 
-Defined in `app/admin/admin.css` under `[data-nx-theme="light|dark"]`. All admin and login surfaces resolve through these.
+Defined in `app/nexus.css` under `[data-nx-theme="light|dark"]`. All admin and login surfaces resolve through these.
 
 | Token | Light | Dark |
 |---|---|---|
@@ -175,7 +175,7 @@ Just a redirect to `/login`. The inline `nf-*` styles render a brief animated sp
 
 ## Components
 
-All `.nx-*` classes live in `app/admin/admin.css` and are referenced directly by JSX (no prop-driven wrappers). When a primitive doesn't exist, add it to that file so it picks up theme + density automatically — do not invent inline alternatives in a page file.
+All `.nx-*` classes live in `app/nexus.css` and are referenced directly by JSX (no prop-driven wrappers). When a primitive doesn't exist, add it to that file so it picks up theme + density automatically — do not invent inline alternatives in a page file.
 
 ### Page head
 
@@ -494,7 +494,7 @@ The legacy code uses `@hugeicons/react` and `Material+Symbols+Outlined` (loaded 
 4. **Mono is for data only.** Numbers, IDs, dates, timestamps, version strings, "X of Y" counts. Never for body, labels, or buttons.
 5. **Density is global.** Don't override `--nx-btn-h` on individual buttons — change `data-nx-density` on `<html>`.
 6. **Theme tokens, not media queries.** Dark mode is keyed by `[data-nx-theme="dark"]`, not `prefers-color-scheme`. Always `var(--nx-…)`, never `@media (prefers-color-scheme)` in component CSS.
-7. **No new `.nx-*` classes inline.** Add primitives to `app/admin/admin.css` so they participate in theme + density. Page files are layout, not CSS.
+7. **No new `.nx-*` classes inline.** Add primitives to `app/nexus.css` so they participate in theme + density. Page files are layout, not CSS.
 8. **Role tinting via `var(--accent)`, not class branches.** No `if (role === 'instructor') className="bg-yellow-400"`. Use `body.<role>` cascade and `var(--accent)`.
 9. **Backend role names everywhere in CSS / classes** — `student | instructor | chairman | admin`. The docs casing (`DepartmentChairman`) is for prose only.
 10. **Privacy-respecting UI.** Never render student real identity (`studentNumber`) and `authorAnonymousCourseID` in the same surface. Anonymous content is anonymous in chrome too — no tooltips, no hover-reveal, no debug overlays exposing the bridge.
