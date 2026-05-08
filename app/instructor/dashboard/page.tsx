@@ -81,7 +81,11 @@ function InstructorDashboardInner() {
       return;
     }
     if (user && user.role !== "instructor") {
-      router.replace("/dashboard");
+      router.replace(
+        user.role === "admin" ? "/admin/dashboard"
+        : user.role === "chairman" ? "/chairman/dashboard"
+        : "/student/dashboard"
+      );
     }
   }, [isLoading, isAuthenticated, user, router]);
 

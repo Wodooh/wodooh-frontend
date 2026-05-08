@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { UsersQueryParams, UsersResponse, UserRole } from '../types/user.types';
+import { UsersQueryParams, UsersResponse, UserRole, UserSafe } from '../types/user.types';
 import apiClient from '../api/client';
 import API_ENDPOINTS from '../api/endpoints';
 
@@ -49,11 +49,24 @@ export const useUsers = (params: UsersQueryParams = {}, options: { enabled?: boo
 
     try {
       const queryString = buildQueryString(queryParams || params);
-      const response = await apiClient.get<UsersResponse>(`${API_ENDPOINTS.USERS}${queryString}`);
+      // Backend shape: { status, message, data: UserSafe[], pagination: PaginationMeta }
+      // Reshape into the nested UsersResponse the rest of the app expects.
+      const response = await apiClient.get<UserSafe[]>(`${API_ENDPOINTS.USERS}${queryString}`);
 
-      if (response.status === 'success' && response.data) {
-        setData(response.data);
-        setUsers(response.data.users);
+      if (response.status === 'success' && Array.isArray(response.data)) {
+        const usersList = response.data;
+        const reshaped: UsersResponse = {
+          users: usersList,
+          pagination: response.pagination ?? {
+            currentPage: 1,
+            totalPages: 1,
+            totalUsers: usersList.length,
+            hasNextPage: false,
+            hasPrevPage: false,
+          },
+        };
+        setData(reshaped);
+        setUsers(usersList);
       } else {
         throw new Error(response.message || 'Failed to fetch users');
       }

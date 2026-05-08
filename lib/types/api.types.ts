@@ -9,6 +9,8 @@ export interface ApiResponse<T = unknown> {
   data?: T;
   message?: string;
   error?: string;
+  /** Backend places pagination at the response root for paginated endpoints, not inside `data`. */
+  pagination?: PaginationMeta;
 }
 
 export interface ApiError {

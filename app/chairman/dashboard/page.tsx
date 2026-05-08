@@ -135,7 +135,11 @@ function ChairmanDashboard() {
       return;
     }
     if (user && user.role !== "chairman") {
-      router.replace("/dashboard");
+      router.replace(
+        user.role === "admin" ? "/admin/dashboard"
+        : user.role === "instructor" ? "/instructor/dashboard"
+        : "/student/dashboard"
+      );
     }
   }, [loading, isAuthenticated, user, router]);
 

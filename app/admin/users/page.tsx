@@ -1,569 +1,259 @@
 "use client";
 
-import * as React from "react";
-import Link from "next/link";
-import Fuse from "fuse.js";
-import { toast } from "sonner";
-import { ConfirmDialog } from "@/components/admin/confirm-dialog";
-import { USERS_COLLECTION } from "@/lib/admin/collections";
-import {
-  useAdminUsersList,
-  useBulkChangeRole,
-  useBulkSoftDelete,
-  usePasswordReset,
-  useSoftDeleteAdminUser,
-} from "@/lib/hooks/use-admin-users";
-import type { UserResponse, UserRole } from "@/lib/types/user-doc.types";
-import { USER_ROLES } from "@/lib/types/user-doc.types";
-import { downloadCsv, rowsToCsv } from "@/lib/admin/csv";
+import React, { useEffect, useMemo, useState } from "react";
+import { useUsers } from "@/lib/hooks/use-users";
+import { useUpdateRole } from "@/lib/hooks/use-update-role";
+import type { UserRole, UserSafe } from "@/lib/types/user.types";
+import { useAuth } from "@/lib/auth/auth-provider";
 
-type SortDir = "asc" | "desc";
+const ROLES: UserRole[] = ["admin", "instructor", "chairman", "student"];
 
-// Role accent colors — Bauhaus palette.
-// student → blue, instructor → yellow, chairman → red, admin → black.
-const ROLE_ACCENT: Record<UserRole, string> = {
-  student: "#1040C0",
-  instructor: "#F0C020",
-  chairman: "#D02020",
-  admin: "#121212",
-};
-
-interface TableColumn {
-  key: keyof UserResponse;
-  label: string;
-  sortable: boolean;
+function avatarColor(name: string | undefined) {
+  const seed = name ?? "?";
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+  return `hsl(${h % 360}, 60%, 45%)`;
 }
 
-const TABLE_COLUMNS: TableColumn[] = [
-  { key: "uid", label: "User ID", sortable: false },
-  { key: "name", label: "Name", sortable: true },
-  { key: "email", label: "Email", sortable: true },
-  { key: "role", label: "Role", sortable: true },
-  { key: "active", label: "Status", sortable: false },
-  { key: "createdAt", label: "Created", sortable: true },
-];
-
-const FOCUS_RING =
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#121212] focus-visible:ring-offset-2";
-
-function RoleBadge({ role }: { role: UserRole }) {
-  // Per Bauhaus rules: student blue, instructor yellow fill, chairman red, admin black.
-  const badgeClass: Record<UserRole, string> = {
-    student:
-      "border-2 border-[#1040C0] text-[#1040C0] uppercase font-bold text-[10px] tracking-wider px-2 py-0.5",
-    instructor:
-      "border-2 border-[#F0C020] bg-[#F0C020] text-[#121212] uppercase font-bold text-[10px] tracking-wider px-2 py-0.5",
-    chairman:
-      "border-2 border-[#D02020] text-[#D02020] uppercase font-bold text-[10px] tracking-wider px-2 py-0.5",
-    admin:
-      "border-2 border-[#121212] text-[#121212] uppercase font-bold text-[10px] tracking-wider px-2 py-0.5",
-  };
-  return (
-    <span className={badgeClass[role] ?? badgeClass.admin}>{role}</span>
-  );
+function initials(name: string | undefined) {
+  if (!name) return "?";
+  return name.split(" ").filter(Boolean).map(p => p[0]).join("").slice(0, 2).toUpperCase() || "?";
 }
 
-function StatusBadge({ active }: { active: boolean }) {
-  const styles = active
-    ? { background: "#DCFCE7", color: "#166534", border: "#166534" }
-    : { background: "#FEE2E2", color: "#991B1B", border: "#991B1B" };
-  const label = active ? "Active" : "Inactive";
+function displayName(u: { name?: string; email: string }) {
+  return u.name || u.email.split("@")[0];
+}
+
+function RoleBadge({ role }: { role: UserRole | undefined }) {
+  if (!role) return <span className="nx-badge" style={{ background: "var(--nx-bg-hover)", color: "var(--nx-fg-muted)" }}>no role</span>;
   return (
-    <span
-      role="status"
-      className="text-[10px] px-2 py-0.5 uppercase tracking-wider font-bold border-2"
-      style={{
-        backgroundColor: styles.background,
-        color: styles.color,
-        borderColor: styles.border,
-      }}
-    >
-      {label}
+    <span className={`nx-badge nx-role-${role}`}>
+      <span className="nx-badge-dot" />
+      {role[0].toUpperCase() + role.slice(1)}
     </span>
   );
 }
 
-const PAGE_SIZE = 20;
+export default function AdminUsersPage() {
+  const { user: me } = useAuth();
+  const [page, setPage] = useState(1);
+  const [roleFilter, setRoleFilter] = useState<UserRole | "">("");
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
+  const [toast, setToast] = useState<{ kind: "success" | "error"; msg: string } | null>(null);
 
-export default function UsersListPage() {
-  const [includeDeleted, setIncludeDeleted] = React.useState(false);
-  const [filter, setFilter] = React.useState("");
-  const [roleFilter, setRoleFilter] = React.useState<UserRole | "">("");
-  const [sortField, setSortField] = React.useState<keyof UserResponse>(
-    USERS_COLLECTION.defaultSort.field as keyof UserResponse
-  );
-  const [sortDir, setSortDir] = React.useState<SortDir>(
-    USERS_COLLECTION.defaultSort.direction
-  );
-  const [page, setPage] = React.useState(1);
-  const [refreshKey, setRefreshKey] = React.useState(0);
+  // Debounce search
+  useEffect(() => {
+    const t = setTimeout(() => setSearch(searchInput.trim()), 300);
+    return () => clearTimeout(t);
+  }, [searchInput]);
 
-  const { data, loading, error } = useAdminUsersList(
-    { limit: 100, includeDeleted },
-    [refreshKey, includeDeleted]
-  );
+  const params = useMemo(() => ({
+    page,
+    limit: 20,
+    ...(roleFilter ? { role: roleFilter } : {}),
+    ...(search ? { query: search } : {}),
+  }), [page, roleFilter, search]);
 
-  const users = data?.users ?? [];
+  const { users, pagination, loading, error, refetch } = useUsers(params);
+  const { updateRole, loading: updating } = useUpdateRole();
 
-  const fuse = React.useMemo(
-    () =>
-      new Fuse(users, {
-        keys: USERS_COLLECTION.columns
-          .map(String)
-          .filter((k) => k !== "active" && k !== "createdAt"),
-        threshold: 0.3,
-      }),
-    [users]
-  );
+  const [modal, setModal] = useState<{ user: UserSafe; newRole: UserRole } | null>(null);
 
-  const filtered = React.useMemo(() => {
-    let rows = filter ? fuse.search(filter).map((r) => r.item) : users;
-    if (roleFilter) rows = rows.filter((u) => u.role === roleFilter);
-    return rows;
-  }, [filter, fuse, users, roleFilter]);
+  const onChangeRole = (u: UserSafe) => setModal({ user: u, newRole: u.role });
 
-  const sorted = React.useMemo(() => {
-    const copy = [...filtered];
-    copy.sort((a, b) => {
-      const av = a[sortField];
-      const bv = b[sortField];
-      if (av === bv) return 0;
-      if (av === null || av === undefined) return 1;
-      if (bv === null || bv === undefined) return -1;
-      const cmp = String(av).localeCompare(String(bv), undefined, {
-        numeric: true,
-      });
-      return sortDir === "asc" ? cmp : -cmp;
-    });
-    return copy;
-  }, [filtered, sortField, sortDir]);
-
-  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
-  const safePage = Math.min(page, totalPages);
-  const pageStart = (safePage - 1) * PAGE_SIZE;
-  const pageRows = sorted.slice(pageStart, pageStart + PAGE_SIZE);
-
-  React.useEffect(() => {
-    // reset to first page when filters change
-    setPage(1);
-  }, [filter, roleFilter, includeDeleted]);
-
-  const refresh = () => setRefreshKey((n) => n + 1);
-
-  const { softDelete, loading: deleting } = useSoftDeleteAdminUser();
-  const { resetPassword } = usePasswordReset();
-  // bulk hooks retained to preserve hook usage from original page
-  useBulkSoftDelete();
-  useBulkChangeRole();
-
-  const [confirmDelete, setConfirmDelete] =
-    React.useState<UserResponse | null>(null);
-
-  const handleRowDelete = async () => {
-    if (!confirmDelete) return;
+  const submitRoleChange = async () => {
+    if (!modal) return;
     try {
-      await softDelete(confirmDelete.uid);
-      toast.success(`${confirmDelete.name} deleted`);
-      refresh();
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Delete failed");
-    } finally {
-      setConfirmDelete(null);
+      await updateRole(modal.user._id, { role: modal.newRole });
+      setToast({ kind: "success", msg: `${displayName(modal.user)} is now ${modal.newRole}.` });
+      setModal(null);
+      refetch();
+    } catch (e: unknown) {
+      const err = e as { message?: string };
+      setToast({ kind: "error", msg: err?.message || "Failed to update role." });
     }
   };
 
-  const handleResetPassword = async (u: UserResponse) => {
-    try {
-      const result = await resetPassword(u.uid);
-      if (result.emailSent) {
-        toast.success(`Password reset email sent to ${u.email}`);
-      } else {
-        toast.warning(
-          `No email transport configured. Reset link copied to clipboard for ${u.email}.`,
-          { duration: 8000 }
-        );
-        try {
-          await navigator.clipboard.writeText(result.link);
-        } catch {
-          /* clipboard may be denied */
-        }
-      }
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Password reset failed");
-    }
-  };
+  // Auto-dismiss toast
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
 
-  const exportCsv = () => {
-    const cols = USERS_COLLECTION.columns;
-    const csv = rowsToCsv(sorted, cols as ReadonlyArray<keyof UserResponse>);
-    const filename = `users-${new Date().toISOString().slice(0, 10)}.csv`;
-    downloadCsv(filename, csv);
-  };
-
-  const toggleSort = (field: keyof UserResponse) => {
-    if (field === sortField) {
-      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-    } else {
-      setSortField(field);
-      setSortDir("asc");
-    }
-  };
-
-  const ariaSortFor = (
-    field: keyof UserResponse
-  ): "ascending" | "descending" | "none" => {
-    if (sortField !== field) return "none";
-    return sortDir === "asc" ? "ascending" : "descending";
-  };
-
-  const totalUsers = data?.pagination?.totalUsers ?? users.length;
-
-  const generatedDate = new Date().toLocaleDateString("en-GB", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
+  const total = pagination?.totalUsers ?? 0;
+  const start = total === 0 ? 0 : ((pagination?.currentPage ?? 1) - 1) * 20 + 1;
+  const end = Math.min(start + (users.length - 1), total);
 
   return (
     <>
-      {/* Breadcrumb */}
-      <p className="text-xs uppercase tracking-widest text-[#808080] mb-3 font-bold">
-        Admin / Users
-      </p>
-
-      {/* Page header */}
-      <header className="border-b-4 border-[#121212] pb-6 mb-6 flex items-end justify-between gap-4 flex-wrap">
+      <div className="nx-page-head">
         <div>
-          <h1 className="text-5xl font-black uppercase tracking-tight leading-none text-[#121212]">
-            Users
-          </h1>
-          <p className="text-sm text-[#121212] mt-3 leading-relaxed">
-            Manage every account across the institution. Search, filter by role,
-            and edit individual records.
-          </p>
+          <h1 className="nx-page-title">Users</h1>
+          <p className="nx-page-sub">{total} users · manage roles and access</p>
         </div>
-        <div className="text-right shrink-0">
-          <p className="text-4xl font-black leading-none text-[#121212]">
-            {totalUsers}
-          </p>
-          <p className="text-xs uppercase tracking-widest text-[#808080] mt-1 font-bold">
-            total users
-            {includeDeleted && (
-              <span className="text-[#D02020]"> · incl. deleted</span>
-            )}
-          </p>
-        </div>
-      </header>
+      </div>
 
-      {/* Toolbar */}
-      <section className="flex items-end gap-4 flex-wrap mb-6">
-        {/* Search */}
-        <div className="flex-1 min-w-[260px]">
-          <label
-            htmlFor="user-search"
-            className="text-xs uppercase tracking-widest text-[#808080] block mb-1 font-bold"
-          >
-            Search
-          </label>
-          <div className="relative">
-            <span
-              aria-hidden="true"
-              className="absolute left-2 top-1/2 -translate-y-1/2 text-sm text-[#808080] pointer-events-none select-none font-bold"
-            >
-              /
-            </span>
+      <div className="nx-card">
+        <div className="nx-filter-bar">
+          <div className="nx-input-wrap">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--nx-fg-subtle)" }}>
+              <circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" />
+            </svg>
             <input
-              id="user-search"
-              type="search"
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-              placeholder="Filter by name, email, ID…"
-              style={{ borderRadius: 0 }}
-              className={`border-4 border-[#D0D0D0] focus:border-[#121212] focus:shadow-[4px_4px_0px_0px_#121212] bg-[#F0F0F0] pl-6 pr-3 py-2 text-sm w-full focus-visible:outline-none transition-colors duration-200 min-h-[44px] text-[#121212] ${FOCUS_RING}`}
+              className="nx-input"
+              placeholder="Search by name or email…"
+              value={searchInput}
+              onChange={(e) => { setSearchInput(e.target.value); setPage(1); }}
             />
           </div>
-        </div>
-
-        {/* Role filter */}
-        <div className="min-w-[200px]">
-          <label
-            htmlFor="role-filter"
-            className="text-xs uppercase tracking-widest text-[#808080] block mb-1 font-bold"
-          >
-            Role
-          </label>
           <select
-            id="role-filter"
+            className="nx-select"
             value={roleFilter}
-            onChange={(e) => setRoleFilter(e.target.value as UserRole | "")}
-            style={{ borderRadius: 0 }}
-            className={`border-4 border-[#D0D0D0] focus:border-[#121212] bg-[#F0F0F0] px-2 py-2 text-sm w-full uppercase tracking-widest focus-visible:outline-none transition-colors duration-200 min-h-[44px] text-[#121212] font-bold ${FOCUS_RING}`}
+            onChange={(e) => { setRoleFilter(e.target.value as UserRole | ""); setPage(1); }}
           >
-            <option value="">All Roles</option>
-            {USER_ROLES.map((r) => (
-              <option key={r} value={r}>
-                {r.toUpperCase()}
-              </option>
-            ))}
+            <option value="">All roles</option>
+            {ROLES.map(r => <option key={r} value={r}>{r[0].toUpperCase() + r.slice(1)}</option>)}
           </select>
+          <div className="nx-filter-bar-spacer" />
+          <span className="nx-filter-bar-count">{loading ? "…" : `${users.length} of ${total}`}</span>
         </div>
 
-        {/* Right-side controls */}
-        <div className="flex items-center gap-4 ml-auto flex-wrap">
-          {/* Show Deleted */}
-          <label className="flex items-center gap-2 cursor-pointer select-none min-h-[44px]">
-            <span
-              className={`relative inline-flex w-5 h-5 border-4 border-[#D0D0D0] shrink-0 items-center justify-center bg-transparent transition-colors duration-150 ${includeDeleted ? "bg-[#121212] border-[#121212]" : ""}`}
-              style={{ borderRadius: 0 }}
-            >
-              <input
-                type="checkbox"
-                checked={includeDeleted}
-                onChange={(e) => setIncludeDeleted(e.target.checked)}
-                className={`sr-only ${FOCUS_RING}`}
-              />
-              {includeDeleted && (
-                <svg
-                  aria-hidden="true"
-                  viewBox="0 0 10 8"
-                  className="w-2.5 h-2 text-[#F0F0F0] fill-none stroke-current stroke-2"
-                >
-                  <polyline points="1,4 4,7 9,1" />
-                </svg>
+        {loading ? (
+          <div className="nx-loading"><span className="nx-spin" /> Loading users…</div>
+        ) : error ? (
+          <div className="nx-empty">
+            <div className="nx-empty-title" style={{ color: "var(--nx-danger)" }}>Failed to load users</div>
+            <div className="nx-empty-sub">{error}</div>
+          </div>
+        ) : users.length === 0 ? (
+          <div className="nx-empty">
+            <div className="nx-empty-title">No users match</div>
+            <div className="nx-empty-sub">Try adjusting your search or filter.</div>
+          </div>
+        ) : (
+          <div className="nx-tbl-wrap">
+            <table className="nx-tbl">
+              <thead>
+                <tr>
+                  <th style={{ width: "40%" }}>User</th>
+                  <th style={{ width: "16%" }}>Role</th>
+                  <th style={{ width: "20%" }}>Joined</th>
+                  <th style={{ width: "auto", textAlign: "right" }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.map(u => (
+                  <tr key={u._id}>
+                    <td>
+                      <div className="nx-user-cell">
+                        <div className="nx-avatar" style={{ background: avatarColor(u.name) }}>{initials(u.name)}</div>
+                        <div>
+                          <div className="nx-user-cell-name">
+                            {displayName(u)} {me?._id === u._id && <span style={{ color: "var(--nx-fg-subtle)", fontWeight: 400, fontSize: 11 }}>· you</span>}
+                          </div>
+                          <div className="nx-user-cell-email">{u.email}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td><RoleBadge role={u.role} /></td>
+                    <td className="nx-tbl-mono">{new Date(u.createdAt).toLocaleDateString()}</td>
+                    <td style={{ textAlign: "right" }}>
+                      <button className="nx-btn nx-btn-ghost" onClick={() => onChangeRole(u)}>
+                        Change role
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {pagination && pagination.totalPages > 1 && (
+          <div className="nx-pagination">
+            <span className="nx-pagination-info">{start}–{end} of {total}</span>
+            <div style={{ display: "flex", gap: 6 }}>
+              <button
+                className="nx-btn nx-btn-ghost"
+                disabled={!pagination.hasPrevPage}
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+              >Prev</button>
+              <button
+                className="nx-btn nx-btn-ghost"
+                disabled={!pagination.hasNextPage}
+                onClick={() => setPage(p => p + 1)}
+              >Next</button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Change role modal */}
+      {modal && (
+        <div className="nx-modal-backdrop" onClick={() => !updating && setModal(null)}>
+          <div className="nx-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="nx-modal-head">
+              <h3 className="nx-modal-title">Change role</h3>
+            </div>
+            <div className="nx-modal-body">
+              <div>
+                <span className="nx-field-label">User</span>
+                <div className="nx-user-cell">
+                  <div className="nx-avatar" style={{ background: avatarColor(modal.user.name) }}>{initials(modal.user.name)}</div>
+                  <div>
+                    <div className="nx-user-cell-name">{displayName(modal.user)}</div>
+                    <div className="nx-user-cell-email">{modal.user.email}</div>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <div style={{ flex: 1 }}>
+                  <span className="nx-field-label">Current</span>
+                  <RoleBadge role={modal.user.role} />
+                </div>
+                <div style={{ color: "var(--nx-fg-subtle)", fontSize: 18 }}>→</div>
+                <div style={{ flex: 1 }}>
+                  <span className="nx-field-label">New role</span>
+                  <select
+                    className="nx-select"
+                    value={modal.newRole}
+                    onChange={(e) => setModal({ ...modal, newRole: e.target.value as UserRole })}
+                    style={{ width: "100%" }}
+                  >
+                    {ROLES.map(r => <option key={r} value={r}>{r[0].toUpperCase() + r.slice(1)}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              {me?._id === modal.user._id && modal.newRole !== "admin" && (
+                <div className="nx-login-error" role="alert" style={{ background: "var(--nx-warning-soft)", borderColor: "var(--nx-warning)", color: "var(--nx-warning)" }}>
+                  <span>You are demoting yourself out of admin. You will lose access immediately.</span>
+                </div>
               )}
-            </span>
-            <span className="text-xs uppercase tracking-widest text-[#121212] font-bold">
-              Show Deleted
-            </span>
-          </label>
-
-          {/* Export CSV */}
-          <button
-            type="button"
-            onClick={exportCsv}
-            className={`border-4 border-[#121212] text-[#121212] text-xs uppercase tracking-widest font-bold px-4 py-2 hover:bg-[#121212] hover:text-[#F0F0F0] transition-colors duration-200 min-h-[44px] ${FOCUS_RING}`}
-            style={{ borderRadius: 0 }}
-          >
-            Export CSV
-          </button>
-
-          {/* New User */}
-          <Link
-            href="/admin/users/new"
-            className={`bg-[#121212] text-white border-4 border-[#121212] shadow-[4px_4px_0px_0px_#505050] hover:-translate-x-0.5 hover:-translate-y-0.5 uppercase font-black tracking-widest text-xs px-6 py-3 transition-transform duration-150 min-h-[44px] inline-flex items-center ${FOCUS_RING}`}
-            style={{ borderRadius: 0 }}
-          >
-            + New User
-          </Link>
-        </div>
-      </section>
-
-      {/* Running metadata */}
-      <p className="text-xs text-[#808080] mb-4 uppercase tracking-widest font-bold">
-        Wodooh · Office of the Registrar · Spring 2026 ·
-        Generated: {generatedDate}
-      </p>
-
-      {/* Error banner */}
-      {error && (
-        <div
-          role="alert"
-          className="border-4 border-[#D02020] bg-[#FEE2E2] text-[#D02020] text-sm px-4 py-3 mb-4 uppercase tracking-widest font-bold"
-          style={{ borderRadius: 0 }}
-        >
-          {error}
+            </div>
+            <div className="nx-modal-foot">
+              <button className="nx-btn nx-btn-ghost" disabled={updating} onClick={() => setModal(null)}>Cancel</button>
+              <button
+                className="nx-btn nx-btn-primary"
+                disabled={updating || modal.newRole === modal.user.role}
+                onClick={submitRoleChange}
+              >
+                {updating ? <><span className="nx-spin" /> Saving…</> : "Save"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
-      {/* Table */}
-      <div className="overflow-x-auto">
-        <table
-          className="w-full min-w-[640px] border-collapse border-4 border-[#121212] text-sm"
-          style={{ borderRadius: 0 }}
-        >
-          <caption className="sr-only">All users across the platform</caption>
-          <thead>
-            <tr className="bg-[#121212] text-[#F0F0F0]">
-              {TABLE_COLUMNS.map((col) => {
-                const isSorted = sortField === col.key;
-                const sortable = col.sortable;
-                return (
-                  <th
-                    key={String(col.key)}
-                    scope="col"
-                    aria-sort={sortable ? ariaSortFor(col.key) : undefined}
-                    className="border border-[#333] px-4 py-3 text-left uppercase tracking-widest text-[10px] font-bold text-[#808080] border-b-4 border-[#121212]"
-                  >
-                    {sortable ? (
-                      <button
-                        type="button"
-                        onClick={() => toggleSort(col.key)}
-                        className={`inline-flex items-center gap-1.5 uppercase tracking-widest font-bold text-[10px] hover:text-[#F0F0F0] transition-colors duration-150 ${FOCUS_RING}`}
-                      >
-                        {col.label}
-                        <span aria-hidden="true" className="opacity-70">
-                          {isSorted ? (sortDir === "asc" ? "↑" : "↓") : "↕"}
-                        </span>
-                      </button>
-                    ) : (
-                      col.label
-                    )}
-                  </th>
-                );
-              })}
-              <th
-                scope="col"
-                className="border border-[#333] px-4 py-3 text-left uppercase tracking-widest text-[10px] font-bold text-[#808080] border-b-4 border-[#121212]"
-              >
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading && (
-              <tr>
-                <td
-                  colSpan={TABLE_COLUMNS.length + 1}
-                  className="border border-[#D0D0D0] px-4 py-10 text-center text-xs uppercase tracking-widest text-[#808080] font-bold"
-                >
-                  Loading users…
-                </td>
-              </tr>
-            )}
-
-            {!loading && pageRows.length === 0 && (
-              <tr>
-                <td
-                  colSpan={TABLE_COLUMNS.length + 1}
-                  className="border border-[#D0D0D0] px-4 py-14 text-center"
-                >
-                  <p className="text-lg font-black uppercase tracking-tight text-[#121212]">
-                    No users found
-                  </p>
-                  <p className="text-sm text-[#808080] mt-1">
-                    {filter || roleFilter
-                      ? "Try clearing your search or role filter."
-                      : "Add your first user to get started."}
-                  </p>
-                </td>
-              </tr>
-            )}
-
-            {!loading &&
-              pageRows.map((u) => {
-                const role = u.role as UserRole;
-                const created = u.createdAt
-                  ? new Date(u.createdAt).toLocaleDateString("en-GB", {
-                      day: "2-digit",
-                      month: "short",
-                      year: "numeric",
-                    })
-                  : "—";
-                return (
-                  <tr
-                    key={u.uid}
-                    className="border-b-2 border-[#D0D0D0] hover:bg-[#F0F0F0] transition-colors duration-150"
-                  >
-                    <td className="border border-[#D0D0D0] px-4 py-3 text-xs text-[#808080] font-mono">
-                      {u.uid.slice(0, 12)}
-                    </td>
-                    <td className="border border-[#D0D0D0] px-4 py-3 font-bold text-[#121212]">
-                      {u.name || "—"}
-                    </td>
-                    <td className="border border-[#D0D0D0] px-4 py-3 text-xs font-mono text-[#121212]">
-                      {u.email}
-                    </td>
-                    <td className="border border-[#D0D0D0] px-4 py-3">
-                      <RoleBadge role={role} />
-                    </td>
-                    <td className="border border-[#D0D0D0] px-4 py-3">
-                      <StatusBadge active={u.active} />
-                    </td>
-                    <td className="border border-[#D0D0D0] px-4 py-3 text-xs font-mono text-[#808080]">
-                      {created}
-                    </td>
-                    <td className="border border-[#D0D0D0] px-4 py-3">
-                      <div className="flex items-center gap-1">
-                        <Link
-                          href={`/admin/users/${u.uid}`}
-                          className={`text-xs uppercase tracking-widest font-bold px-3 py-1.5 border-4 border-transparent hover:border-[#121212] hover:bg-[#F0F0F0] transition-all duration-150 min-h-[36px] inline-flex items-center underline underline-offset-4 decoration-[#121212] text-[#121212] ${FOCUS_RING}`}
-                          style={{ borderRadius: 0 }}
-                        >
-                          Edit
-                        </Link>
-                        <button
-                          type="button"
-                          onClick={() => handleResetPassword(u)}
-                          className={`text-xs uppercase tracking-widest font-bold px-3 py-1.5 border-4 border-transparent hover:border-[#121212] hover:bg-[#F0F0F0] transition-all duration-150 min-h-[36px] text-[#121212] ${FOCUS_RING}`}
-                          style={{ borderRadius: 0 }}
-                        >
-                          Reset
-                        </button>
-                        {u.active && (
-                          <button
-                            type="button"
-                            onClick={() => setConfirmDelete(u)}
-                            className={`text-xs uppercase tracking-widest font-bold px-3 py-1.5 border-4 border-[#D02020] text-[#D02020] hover:bg-[#D02020] hover:text-white transition-all duration-200 min-h-[36px] ${FOCUS_RING}`}
-                            style={{ borderRadius: 0 }}
-                          >
-                            Delete
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Pagination */}
-      <footer className="mt-6 flex items-center justify-between gap-4 border-t-4 border-[#121212] pt-4 flex-wrap">
-        <p className="text-xs uppercase tracking-widest text-[#808080] font-bold">
-          Page {safePage} of {totalPages} · Showing {pageRows.length} of{" "}
-          {sorted.length}
-        </p>
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={safePage <= 1}
-            className={`border-4 border-[#121212] shadow-[3px_3px_0px_0px_#121212] hover:-translate-x-0.5 hover:-translate-y-0.5 text-[#121212] font-bold uppercase tracking-widest text-xs px-6 py-3 transition-transform duration-150 min-h-[44px] disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:translate-x-0 disabled:hover:translate-y-0 bg-[#F0F0F0] ${FOCUS_RING}`}
-            style={{ borderRadius: 0 }}
-          >
-            ← Prev
-          </button>
-          <button
-            type="button"
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            disabled={safePage >= totalPages}
-            className={`border-4 border-[#121212] shadow-[3px_3px_0px_0px_#121212] hover:-translate-x-0.5 hover:-translate-y-0.5 text-[#121212] font-bold uppercase tracking-widest text-xs px-6 py-3 transition-transform duration-150 min-h-[44px] disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:translate-x-0 disabled:hover:translate-y-0 bg-[#F0F0F0] ${FOCUS_RING}`}
-            style={{ borderRadius: 0 }}
-          >
-            Next →
-          </button>
+      {/* Toast region */}
+      {toast && (
+        <div className="nx-toast-region">
+          <div className={`nx-toast nx-toast-${toast.kind}`}>{toast.msg}</div>
         </div>
-      </footer>
-
-      <ConfirmDialog
-        open={!!confirmDelete}
-        onOpenChange={(o) => !o && setConfirmDelete(null)}
-        title="Delete user?"
-        description={
-          confirmDelete ? (
-            <>
-              <strong>{confirmDelete.name}</strong> ({confirmDelete.email}) will
-              be soft-deleted and disabled in Firebase Auth. They can be
-              restored from the &quot;Show Deleted&quot; view.
-            </>
-          ) : null
-        }
-        confirmLabel="Delete"
-        destructive
-        loading={deleting}
-        onConfirm={handleRowDelete}
-      />
+      )}
     </>
   );
 }

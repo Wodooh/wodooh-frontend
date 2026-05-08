@@ -151,7 +151,7 @@ export const getUserFromToken = (): {
 
   const payload = parseToken(token);
 
-  if (!payload) {
+  if (!payload || !payload.name || !payload.role) {
     return null;
   }
 

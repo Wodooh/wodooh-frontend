@@ -8,10 +8,9 @@ import API_ENDPOINTS from '../api/endpoints';
  * Health check response type
  */
 export interface HealthCheckResponse {
-  status: string;
-  message: string;
   dbConnected: boolean;
   timestamp: string;
+  message: string;
 }
 
 /**
@@ -41,7 +40,7 @@ export const useHealth = (options: {
       const response = await apiClient.get<HealthCheckResponse>(API_ENDPOINTS.HEALTH);
 
       if (response.status === 'success' && response.data) {
-        setData(response.data);
+        setData({ ...response.data, message: response.message ?? '' });
         setIsHealthy(response.data.dbConnected);
       } else {
         throw new Error(response.message || 'Health check failed');
