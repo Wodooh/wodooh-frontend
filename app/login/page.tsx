@@ -10,29 +10,30 @@ type View = "signin" | "forgot";
 
 function dashboardPathForRole(role: string | undefined): string {
   switch (role) {
-    case "admin": return "/admin/dashboard";
+    case "admin":      return "/admin/dashboard";
     case "instructor": return "/instructor/dashboard";
-    case "chairman": return "/chairman/dashboard";
+    case "chairman":   return "/chairman/dashboard";
     case "student":
-    default: return "/student/dashboard";
+    default:           return "/student/dashboard";
   }
 }
 
-// ── Icons ────────────────────────────────────────────────
-const Icon = ({ size = 14, children }: { size?: number; children: React.ReactNode }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+// ── Icons (stroke-based, brutalist-spec line weight) ───────────
+
+const Icon = ({ size = 14, strokeWidth = 1.6, children }: { size?: number; strokeWidth?: number; children: React.ReactNode }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="square" strokeLinejoin="miter">
     {children}
   </svg>
 );
 
-const Eye = ({ size = 15 }: { size?: number }) => (
+const Eye = ({ size = 16 }: { size?: number }) => (
   <Icon size={size}>
     <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" />
     <circle cx="12" cy="12" r="3" />
   </Icon>
 );
 
-const EyeOff = ({ size = 15 }: { size?: number }) => (
+const EyeOff = ({ size = 16 }: { size?: number }) => (
   <Icon size={size}>
     <path d="M3 3l18 18" />
     <path d="M10.6 10.6a2 2 0 0 0 2.8 2.8" />
@@ -40,42 +41,8 @@ const EyeOff = ({ size = 15 }: { size?: number }) => (
   </Icon>
 );
 
-const AlertTriangle = ({ size = 12 }: { size?: number }) => (
-  <Icon size={size}>
-    <path d="m12 3 10 18H2L12 3Z" />
-    <path d="M12 9v5" />
-    <circle cx="12" cy="17.5" r=".6" fill="currentColor" />
-  </Icon>
-);
+// ── Theme handling ─────────────────────────────────────────
 
-const AlertCircle = ({ size = 15 }: { size?: number }) => (
-  <Icon size={size}>
-    <circle cx="12" cy="12" r="9" />
-    <path d="M12 7v6" />
-    <circle cx="12" cy="16.5" r=".6" fill="currentColor" />
-  </Icon>
-);
-
-const ArrowLeft = ({ size = 12 }: { size?: number }) => (
-  <Icon size={size}>
-    <path d="M19 12H5M12 19l-7-7 7-7" />
-  </Icon>
-);
-
-const Sun = ({ size = 15 }: { size?: number }) => (
-  <Icon size={size}>
-    <circle cx="12" cy="12" r="4" />
-    <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
-  </Icon>
-);
-
-const Moon = ({ size = 15 }: { size?: number }) => (
-  <Icon size={size}>
-    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z" />
-  </Icon>
-);
-
-// ── Theme handling ──────────────────────────────────────
 function useTheme() {
   const [theme, setThemeState] = useState<"light" | "dark">("light");
 
@@ -83,11 +50,13 @@ function useTheme() {
     const stored = typeof window !== "undefined" ? localStorage.getItem("wodooh.theme") : null;
     const resolved = stored === "dark" || stored === "light"
       ? stored
-      : window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+      : "light"; // Brutalist login defaults LIGHT regardless of system preference
     setThemeState(resolved);
     document.documentElement.dataset.nxTheme = resolved;
-    document.body.classList.add("nx-login-body");
-    return () => { document.body.classList.remove("nx-login-body"); };
+    document.body.classList.add("bl-shell");
+    return () => {
+      document.body.classList.remove("bl-shell");
+    };
   }, []);
 
   const setTheme = (t: "light" | "dark") => {
@@ -99,7 +68,33 @@ function useTheme() {
   return { theme, setTheme };
 }
 
-// ── Sign in form ────────────────────────────────────────
+// ── Brand panel (left column) ──────────────────────────────
+
+function BrandPanel() {
+  return (
+    <aside className="bl-brand">
+      <span className="bl-corner-tag">[ A · 01 ]</span>
+
+      <div className="bl-wordmark">
+        <p className="bl-wordmark-meta">Volume 2026 · Spring Term</p>
+        <h2 className="bl-wordmark-latin">WODOOH</h2>
+        <p className="bl-wordmark-arabic" lang="ar" dir="rtl">وضوح</p>
+        <hr className="bl-wordmark-divider" aria-hidden="true" />
+        <p className="bl-tagline">
+          Instant <span className="bl-tagline-accent">·</span> Anonymous <span className="bl-tagline-accent">·</span> Classroom Engagement
+        </p>
+      </div>
+
+      <div className="bl-brand-foot">
+        <span>PG. 01 / 01</span>
+        <span><strong>KSU</strong> · Senior Project</span>
+      </div>
+    </aside>
+  );
+}
+
+// ── Sign-in form (right column) ─────────────────────────────
+
 function SignInForm({ onForgot }: { onForgot: () => void }) {
   const router = useRouter();
   const { login } = useAuth();
@@ -138,8 +133,6 @@ function SignInForm({ onForgot }: { onForgot: () => void }) {
       };
       await login(credentials);
 
-      // Re-read user from localStorage / token after login.
-      // useAuth state updates are async; pull role from JWT directly to avoid a stale render.
       const token = localStorage.getItem("wodooh.token");
       let role: string | undefined;
       if (token) {
@@ -164,96 +157,115 @@ function SignInForm({ onForgot }: { onForgot: () => void }) {
   };
 
   return (
-    <>
-      <div className="nx-login-top">
-        <div className="nx-login-logo">W</div>
-        <h1 className="nx-login-h1">Sign in to WODOOH</h1>
-      </div>
+    <section className="bl-form-panel">
+      <div>
+        <header className="bl-form-head">
+          <p className="bl-form-eyebrow">Portal Access</p>
+          <h1 className="bl-form-title">Sign In</h1>
+          <p className="bl-form-subtitle">
+            Authenticate with your institutional credentials. All access is logged; transcripts are sealed by architecture.
+          </p>
+        </header>
 
-      <form className="nx-login-card" onSubmit={submit} noValidate>
-        <div className="nx-login-form">
+        <form className="bl-form" onSubmit={submit} noValidate>
           {error && (
-            <div className="nx-login-error" role="alert">
-              <AlertCircle size={15} />
+            <div className="bl-error" role="alert">
               <span>{error}</span>
             </div>
           )}
 
-          <div className="nx-login-field">
-            <span className="nx-login-label">Email address</span>
-            <div className={`nx-login-input-wrap ${fieldErrors.email ? "has-error" : ""}`}>
-              <input
-                ref={emailRef}
-                className="nx-login-input"
-                type="email"
-                autoComplete="username"
-                autoCapitalize="off"
-                autoCorrect="off"
-                spellCheck={false}
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-            {fieldErrors.email && (
-              <span className="nx-login-caps" style={{ color: "var(--nl-danger)" }}>
-                <AlertCircle size={11} />{fieldErrors.email}
-              </span>
-            )}
-          </div>
-
-          <div className="nx-login-field">
-            <div className="nx-login-label-row">
-              <span className="nx-login-label">Password</span>
-              <button type="button" className="nx-login-label-link" onClick={onForgot}>
-                Forgot password?
-              </button>
-            </div>
-            <div className={`nx-login-input-wrap ${fieldErrors.pw ? "has-error" : ""}`}>
-              <input
-                className="nx-login-input"
-                type={showPw ? "text" : "password"}
-                autoComplete="current-password"
-                value={pw}
-                onChange={(e) => setPw(e.target.value)}
-                onKeyDown={onPwKey}
-                onKeyUp={onPwKey}
-              />
-              <button
-                type="button"
-                className="nx-login-pw-toggle"
-                onClick={() => setShowPw((v) => !v)}
-                tabIndex={-1}
-                aria-label={showPw ? "Hide password" : "Show password"}
-              >
-                {showPw ? <EyeOff size={15} /> : <Eye size={15} />}
-              </button>
-            </div>
-            {caps && (
-              <div className="nx-login-caps">
-                <AlertTriangle size={12} /> Caps Lock is on.
+          <div className="bl-field">
+            <span className="bl-field-num" aria-hidden="true">01</span>
+            <div className="bl-field-body">
+              <div className="bl-field-row">
+                <label className="bl-field-label" htmlFor="bl-email">Email Address</label>
               </div>
-            )}
-            {fieldErrors.pw && (
-              <span className="nx-login-caps" style={{ color: "var(--nl-danger)" }}>
-                <AlertCircle size={11} />{fieldErrors.pw}
-              </span>
-            )}
+              <div className={`bl-input-wrap ${fieldErrors.email ? "has-error" : ""}`}>
+                <input
+                  ref={emailRef}
+                  id="bl-email"
+                  className="bl-input"
+                  type="email"
+                  autoComplete="username"
+                  autoCapitalize="off"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  placeholder="name@university.edu"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+              {fieldErrors.email && (
+                <span className="bl-field-helper bl-field-error">— {fieldErrors.email}</span>
+              )}
+            </div>
           </div>
 
-          <button type="submit" className="nx-login-submit" disabled={loading}>
-            {loading ? (<><span className="nx-login-spin" /> Signing in…</>) : "Sign in"}
-          </button>
-        </div>
-      </form>
+          <div className="bl-field">
+            <span className="bl-field-num" aria-hidden="true">02</span>
+            <div className="bl-field-body">
+              <div className="bl-field-row">
+                <label className="bl-field-label" htmlFor="bl-pw">Passphrase</label>
+                <button type="button" className="bl-field-link" onClick={onForgot}>
+                  Forgot →
+                </button>
+              </div>
+              <div className={`bl-input-wrap ${fieldErrors.pw ? "has-error" : ""}`}>
+                <input
+                  id="bl-pw"
+                  className="bl-input"
+                  type={showPw ? "text" : "password"}
+                  autoComplete="current-password"
+                  placeholder={showPw ? "" : "••••••••"}
+                  value={pw}
+                  onChange={(e) => setPw(e.target.value)}
+                  onKeyDown={onPwKey}
+                  onKeyUp={onPwKey}
+                />
+                <button
+                  type="button"
+                  className="bl-pw-toggle"
+                  onClick={() => setShowPw((v) => !v)}
+                  tabIndex={-1}
+                  aria-label={showPw ? "Hide passphrase" : "Show passphrase"}
+                >
+                  {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+              {caps && (
+                <span className="bl-field-helper">— Caps Lock is on</span>
+              )}
+              {fieldErrors.pw && (
+                <span className="bl-field-helper bl-field-error">— {fieldErrors.pw}</span>
+              )}
+            </div>
+          </div>
 
-      <div className="nx-login-foot-card">
-        New to WODOOH? <a href="/onboarding">Create an account</a>
+          <div className="bl-submit-row">
+            <span className="bl-submit-num" aria-hidden="true">→</span>
+            <button type="submit" className="bl-submit" disabled={loading}>
+              {loading
+                ? <><span className="bl-spin" /> Authenticating</>
+                : <>Enter <span className="bl-submit-arrow" aria-hidden="true">→</span></>}
+            </button>
+          </div>
+        </form>
       </div>
-    </>
+
+      <footer className="bl-form-foot">
+        <a href="/onboarding">New here? Begin onboarding →</a>
+        <span style={{ display: "inline-flex", gap: 16, flexWrap: "wrap" }}>
+          <a href="#">Terms</a>
+          <a href="#">Privacy</a>
+          <a href="#">Support</a>
+        </span>
+      </footer>
+    </section>
   );
 }
 
-// ── Forgot password screen ─────────────────────────────
+// ── Forgot-password form (right column variant) ────────────
+
 function ForgotForm({ onBack }: { onBack: () => void }) {
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
@@ -275,59 +287,74 @@ function ForgotForm({ onBack }: { onBack: () => void }) {
   };
 
   return (
-    <>
-      <div className="nx-login-top">
-        <div className="nx-login-logo">W</div>
-        <h1 className="nx-login-h1">Reset your password</h1>
-      </div>
+    <section className="bl-form-panel">
+      <div>
+        <header className="bl-form-head">
+          <p className="bl-form-eyebrow">Account Recovery</p>
+          <h1 className="bl-form-title">Reset</h1>
+          <p className="bl-form-subtitle">
+            Enter the email associated with your account. If a record exists, a single-use reset link will be dispatched.
+          </p>
+        </header>
 
-      <form className="nx-forgot-card" onSubmit={submit} noValidate>
         {sent ? (
-          <div className="nx-forgot-success">
-            If an account exists for <strong>{email}</strong>, a password-reset link has been sent. Check your inbox.
-          </div>
-        ) : (
           <>
-            <p className="nx-forgot-intro">
-              Enter the email address associated with your account, and we&apos;ll email you a link to reset your password.
-            </p>
-            <div className="nx-login-form">
-              {error && (
-                <div className="nx-login-error" role="alert">
-                  <AlertCircle size={15} />
-                  <span>{error}</span>
+            <div className="bl-success" role="status" aria-live="polite">
+              <p className="bl-success-eyebrow">Receipt — Reset Link Dispatched</p>
+              If an account exists for <strong>{email}</strong>, a password-reset link has been emailed. The link expires in 30 minutes.
+            </div>
+          </>
+        ) : (
+          <form className="bl-form" onSubmit={submit} noValidate>
+            {error && (
+              <div className="bl-error" role="alert">
+                <span>{error}</span>
+              </div>
+            )}
+
+            <div className="bl-field">
+              <span className="bl-field-num" aria-hidden="true">01</span>
+              <div className="bl-field-body">
+                <div className="bl-field-row">
+                  <label className="bl-field-label" htmlFor="bl-recover-email">Email Address</label>
                 </div>
-              )}
-              <div className="nx-login-field">
-                <span className="nx-login-label">Email address</span>
-                <div className="nx-login-input-wrap">
+                <div className="bl-input-wrap">
                   <input
-                    className="nx-login-input"
+                    id="bl-recover-email"
+                    className="bl-input"
                     type="email"
                     autoFocus
+                    autoComplete="email"
+                    placeholder="name@university.edu"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                   />
                 </div>
               </div>
-              <button type="submit" className="nx-login-submit" disabled={loading}>
-                {loading ? (<><span className="nx-login-spin" /> Sending…</>) : "Send password reset email"}
+            </div>
+
+            <div className="bl-submit-row">
+              <span className="bl-submit-num" aria-hidden="true">→</span>
+              <button type="submit" className="bl-submit" disabled={loading}>
+                {loading
+                  ? <><span className="bl-spin" /> Dispatching</>
+                  : <>Send Reset Link <span className="bl-submit-arrow" aria-hidden="true">→</span></>}
               </button>
             </div>
-          </>
+          </form>
         )}
-      </form>
-
-      <div className="nx-login-foot-card">
-        <button onClick={onBack} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-          <ArrowLeft size={12} /> Back to sign in
-        </button>
       </div>
-    </>
+
+      <footer className="bl-form-foot">
+        <button type="button" onClick={onBack}>← Back to sign in</button>
+        <span><strong style={{ color: "var(--bl-fg)" }}>SECURE BY ARCHITECTURE</strong></span>
+      </footer>
+    </section>
   );
 }
 
-// ── Page ───────────────────────────────────────────────
+// ── Page ───────────────────────────────────────────────────
+
 export default function LoginPage() {
   const router = useRouter();
   const { isAuthenticated, user, loading: authLoading } = useAuth();
@@ -343,32 +370,46 @@ export default function LoginPage() {
   if (authLoading) {
     return (
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh" }}>
-        <span className="nx-login-spin" style={{ borderTopColor: "currentColor", color: "#888" }} />
+        <span className="bl-spin" style={{ color: "currentColor" }} />
       </div>
     );
   }
   if (isAuthenticated) return null;
 
+  const dateString = new Date().toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).toUpperCase();
+
   return (
     <>
-      <button
-        className="nx-login-theme-toggle"
-        title="Toggle theme"
-        aria-label="Toggle theme"
-        onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-      >
-        {theme === "dark" ? <Moon size={15} /> : <Sun size={15} />}
-      </button>
+      <div className="bl-strip" role="banner">
+        <div className="bl-strip-left">
+          <span className="bl-strip-marker" aria-hidden="true" />
+          <span>Registry · Institutional Access</span>
+          <span className="bl-strip-divider" aria-hidden="true" />
+          <span>{dateString}</span>
+          <span className="bl-strip-divider" aria-hidden="true" />
+          <span>Form · {view === "signin" ? "AUTH-001" : "AUTH-002"}</span>
+        </div>
+        <div className="bl-strip-right">
+          <button
+            className="bl-theme-toggle"
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
+          >
+            <span className="bl-theme-toggle-dot" aria-hidden="true" />
+            {theme === "dark" ? "DARK" : "LIGHT"}
+          </button>
+        </div>
+      </div>
 
-      {view === "signin"
-        ? <SignInForm onForgot={() => setView("forgot")} />
-        : <ForgotForm onBack={() => setView("signin")} />}
-
-      <div className="nx-login-foot">
-        <a href="#">Terms</a>
-        <a href="#">Privacy</a>
-        <a href="#">Security</a>
-        <a href="#">Contact support</a>
+      <div className="bl-shell-grid">
+        <BrandPanel />
+        {view === "signin"
+          ? <SignInForm onForgot={() => setView("forgot")} />
+          : <ForgotForm onBack={() => setView("signin")} />}
       </div>
     </>
   );

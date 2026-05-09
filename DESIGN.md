@@ -288,7 +288,7 @@ Per-route shells:
 | Route | Shell file | Token prefix | Theme switch |
 |---|---|---|---|
 | Marketing splash (`/`) | `app/page.tsx` | `nx-*` | reads + sets `[data-nx-theme]` then redirects to `/login` |
-| Auth (`/login`) | `app/login/page.tsx` | `nl-*` (extends `--nx-theme`) | reads `[data-nx-theme]` |
+| Auth (`/login`) | `app/login/page.tsx` | `bl-*` (intentional Nexus exception — see §"Auth shell carve-out") | reads + sets `[data-nx-theme]` |
 | Admin (`/admin/**`) | `app/admin/layout.tsx` | `nx-*` | sets `[data-nx-theme]` + `[data-nx-density]` on `<html>` |
 | Student portal (`/student/**`) | `app/student/layout.tsx` | `nx-*` | sets dataset attrs |
 | Faculty portal (`/instructor/**`) | `app/instructor/layout.tsx` | `nx-*` | sets dataset attrs |
@@ -389,7 +389,32 @@ document.documentElement.dataset.nxDensity = "compact";
 
 Persisted under `localStorage["wodooh.theme"]`. Pages without a layout (splash, profile, onboarding) replicate the same boot.
 
-**Auth shell (login)** is the one exception: a centered card on the page background, no sidebar, no topbar (just a theme-toggle in the top-right). Card width is 308px capped at `calc(100vw - 32px)`. The `--nl-*` tokens in `app/login/login.css` mirror the `--nx-*` values so the login page renders correctly when entered cold without the admin layout having booted yet.
+**Auth shell (login)** is a deliberate exception — see "Auth shell carve-out" below.
+
+## Auth shell carve-out
+
+`/login` runs on its own brutalist / institutional system, **not Nexus**. This is intentional: the auth surface is the only route on the public internet, the only one a user sees before they have a role, and the one that needs the strongest brand statement. The decision was made when migrating to Nexus that a single-card centered form was too anonymous for that role.
+
+The carve-out is contained:
+
+- **Files**: `app/login/page.tsx` and `app/login/login.css` only. No `bl-*` class, token, or font import escapes those two files.
+- **Tokens**: a parallel `--bl-*` palette inside `.bl-shell` (light + dark via `[data-nx-theme]`). These do **not** mirror `--nx-*`.
+  - Light: warm paper `#EFEAE2` background, carbon `#0E0E0C` foreground, oxblood `#C8102E` accent.
+  - Dark: carbon `#0E0E0C` background, paper `#EFEAE2` foreground, safety orange `#FF4500` accent.
+- **Fonts**: Archivo Narrow 800 for display, Public Sans for body, IBM Plex Mono for institutional metadata, IBM Plex Sans Arabic 700 for the وضوح wordmark. None of these are loaded outside `app/login/login.css`.
+- **Layout**: 44 / 56 split — left brand panel with the Latin + Arabic wordmark; right form panel with numbered fields (`01 EMAIL`, `02 PASSPHRASE`) and a full-width `Enter →` button. Top metadata strip carries the date and a form ID (`AUTH-001` / `AUTH-002`). Stacks to one column below 960px.
+- **Shape language**: zero rounded corners, hairline rules (1px), oversized condensed numerals as field anchors, grain overlay via inline-SVG noise, no shadows. The visual vocabulary of a courthouse intake form / university registry, not a SaaS card.
+- **Theme**: light is the canonical default. The toggle still flips `[data-nx-theme]` so the user's choice carries into the rest of the app.
+
+**Rules for the carve-out:**
+
+1. The carve-out applies to `/login` only. Forgot-password is a sub-view inside the same shell. **Do not extend the brutalist surface to `/onboarding`, `/profile`, marketing, or any role portal.** Those stay Nexus.
+2. `--bl-*` tokens are scoped to `.bl-shell`. Outside it, never reference them.
+3. The role-aware `--accent` cascade is irrelevant here — the user does not yet have a role at `/login`.
+4. The `[data-nx-theme]` switch is shared with the rest of the app: choosing dark on `/admin` and signing out lands you on a dark `/login`, choosing light here flips the next route too.
+5. If you change a `--bl-*` token, update both light and dark blocks. Keep oxblood `#C8102E` ↔ safety orange `#FF4500` paired (they are the only carved-out accent values; both deserve their place in the `colors` reference if either is touched).
+6. Do not add a logo, illustration, or marketing column. The brand panel is the marketing — `WODOOH / وضوح` plus the typographic system carries it.
+7. The grain SVG overlay is part of the aesthetic; do not remove it. If perceived performance ever becomes a concern, replace it with a tiled PNG (cached) — never replace it with a flat color.
 
 ## Elevation & Depth
 
