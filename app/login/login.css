@@ -14,6 +14,57 @@
   -webkit-font-smoothing: antialiased;
   display: flex;
   flex-direction: column;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+/* Atmospheric layer: two soft accent blooms anchored to the corners.
+ * Stays out of the way of the card; gives the page depth without
+ * competing with the form. Strength scales up in dark mode because
+ * dark surfaces absorb low-opacity color. */
+.nx-login-shell::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background:
+    radial-gradient(circle 720px at 92% -8%,
+      color-mix(in oklab, var(--nx-accent) 16%, transparent),
+      transparent 72%),
+    radial-gradient(circle 620px at -8% 108%,
+      color-mix(in oklab, var(--nx-accent) 10%, transparent),
+      transparent 72%);
+}
+
+[data-nx-theme="dark"] .nx-login-shell::before {
+  background:
+    radial-gradient(circle 820px at 92% -8%,
+      color-mix(in oklab, var(--nx-accent) 28%, transparent),
+      transparent 72%),
+    radial-gradient(circle 720px at -8% 108%,
+      color-mix(in oklab, var(--nx-accent) 18%, transparent),
+      transparent 72%);
+}
+
+/* Fine fractal grain — breaks up the gradient banding and adds
+ * paper-like texture. Multiply on light, screen on dark so it lifts
+ * rather than crushes the background. */
+.nx-login-shell::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.6 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity: 0.05;
+  mix-blend-mode: multiply;
+}
+
+[data-nx-theme="dark"] .nx-login-shell::after {
+  opacity: 0.10;
+  mix-blend-mode: screen;
 }
 
 .nx-login-topbar {
@@ -39,7 +90,18 @@
   background: var(--nx-bg-elev);
   border: 1px solid var(--nx-border);
   border-radius: 8px;
-  box-shadow: var(--nx-shadow-sm);
+  /* Sit the card against the atmospheric background. A faint accent
+   * tint in the lift shadow keeps the elevation tied to the bloom. */
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 18px 40px -12px color-mix(in oklab, var(--nx-accent) 22%, rgba(15, 18, 35, 0.10));
+}
+
+[data-nx-theme="dark"] .nx-login-card {
+  border-color: color-mix(in oklab, var(--nx-border) 75%, var(--nx-fg));
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.4),
+    0 24px 48px -16px color-mix(in oklab, var(--nx-accent) 35%, rgba(0, 0, 0, 0.6));
 }
 
 .nx-login-head {
