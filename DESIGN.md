@@ -113,9 +113,15 @@ spacing:
   density-compact-stack: 12px
   density-compact-pad: 14px
   density-compact-button-h: 28px
+  density-compact-button-h-lg: 40px
+  density-touch-stack: 16px
+  density-touch-pad: 20px
+  density-touch-button-h: 40px
+  density-touch-button-h-lg: 44px
   density-balanced-stack: 16px
   density-balanced-pad: 18px
   density-balanced-button-h: 30px
+  density-balanced-button-h-lg: 40px
   page: 24px
   page-x: 28px
   card-head-y: 14px
@@ -294,7 +300,7 @@ Per-route shells:
 | Faculty portal (`/instructor/**`) | `app/instructor/layout.tsx` | `nx-*` | sets dataset attrs |
 | Chairman portal (`/chairman/**`) | `app/chairman/layout.tsx` | `nx-*` | sets dataset attrs |
 | Profile (`/profile/[id]`) | per-page | `nx-*` | reads + sets dataset attrs |
-| Onboarding (`/onboarding/**`) | per-page | `nx-*` plus residual `.onboarding-*` | reads + sets dataset attrs |
+| Onboarding (`/onboarding/**`, `/onboarding/instructor`) | per-page | `nx-*` (uses `.nx-stepper`, `.nx-form-group`, `.nx-input-wrap-lg`, `.nx-action-row`) | reads + sets dataset attrs |
 
 ## Colors
 
@@ -369,14 +375,18 @@ The shell is a CSS grid with a fixed sidebar and a fluid main column:
 - Page padding: `spacing.page-x` × `spacing.page` (28px × 24px).
 - Active nav resolution is **longest-href prefix match** against `usePathname()`. Detail routes (`/admin/users/[id]`) still highlight their parent (`Users`).
 
-**Density tokens** scale the visible chrome. The compact preset shipped on every shell today; a balanced preset exists for surfaces where 30px buttons feel right (rare so far). Switching is global — set `[data-nx-density]` on `<html>`, never on a single component.
+**Density tokens** scale the visible chrome. Three tiers; switch is global via `[data-nx-density]` on `<html>`.
 
-| Token | Compact | Balanced |
-|---|---|---|
-| `density-*-stack` (gap between blocks) | 12 | 16 |
-| `density-*-pad` (in-card padding) | 14 | 18 |
-| `density-*-button-h` (button + input height) | 28 | 30 |
-| base font size | 13 | 14 |
+| Token | Compact | Touch | Balanced |
+|---|---|---|---|
+| `density-*-stack` (gap between blocks) | 12 | 16 | 16 |
+| `density-*-pad` (in-card padding) | 14 | 20 | 18 |
+| `density-*-button-h` (button + input height) | 28 | 40 | 30 |
+| `density-*-button-h-lg` (primary entry surfaces) | 40 | 44 | 40 |
+| base font size | 13 | 14 | 14 |
+| Where used | admin shell — data-dense | role portals on mobile, onboarding wizards | rare; reserved for surfaces where 30 px buttons feel right |
+
+`compact` is the default for every shell. The portal layouts (student / instructor / chairman) currently set `compact` for parity with admin, but `touch` is the right pick when those portals get migrated to a mobile-first treatment. Onboarding wizards already declare `compact` at boot but the `nx-input-wrap-lg` (40 px) and `nx-btn-lg` primitives behave correctly under any density.
 
 **Theme switching** is set on `<html>` from each layout:
 
@@ -563,6 +573,71 @@ Underline tabs, not pills. Active is `data-active="true"` → `fg` text + 2px bo
 ```
 
 Flex space-between, 16×0 padding, 1px bottom border (last child none). Stack vertically inside a card.
+
+### Form group
+
+```jsx
+<div className="nx-form-group">
+  <label className="nx-field-label" htmlFor="email">Email</label>
+  <div className="nx-input-wrap-lg">
+    <input id="email" type="email" placeholder="name@university.edu" />
+  </div>
+  <span className="nx-form-helper">Stored in lowercase per backend convention.</span>
+  {/* error variant: <span className="nx-form-helper is-error">…</span> */}
+</div>
+```
+
+The canonical labelled-field row for any form-heavy surface (onboarding wizards, admin user create/edit). Use `.nx-form-group-row` for the label + secondary-action top line ("Password" with an inline "Forgot password?" link). Use `.nx-input-wrap-lg` (40 px) for primary entry forms; `.nx-input-wrap` (compact, var-height) inside admin filter bars.
+
+### Form section
+
+```jsx
+<section className="nx-form-section">
+  <h3 className="nx-form-section-title">Course selections</h3>
+  <p className="nx-form-section-sub">Pick the courses you want enrolled in this term.</p>
+  {/* fields */}
+</section>
+```
+
+Titled subsection separated by a 1px top rule (the first `.nx-form-section` in a card has no rule). Replaces the Bauhaus pattern of using `border-t-4 border-[#121212]` between form regions.
+
+### Stepper (multi-step wizard)
+
+```jsx
+<ol className="nx-stepper">
+  {STEPS.map((step, idx) => {
+    const state = idx + 1 < current ? "done" : idx + 1 === current ? "active" : "upcoming";
+    return (
+      <li key={step.id} className="nx-stepper-item" data-state={state}>
+        <span className="nx-stepper-dot">{state === "done" ? "✓" : String(idx + 1).padStart(2, "0")}</span>
+        <span className="nx-stepper-label">{step.label}</span>
+      </li>
+    );
+  })}
+</ol>
+
+<header className="nx-step-head">
+  <p className="nx-step-head-eyebrow">Step 02 / 03 · Academic</p>
+  <h2 className="nx-step-head-title">Tell us about your courses</h2>
+  <p className="nx-step-head-sub">Select your college, department, and the courses you’re enrolling in.</p>
+</header>
+```
+
+`data-state="upcoming|active|done"` on each `nx-stepper-item` drives the dot color, the connector-rule color, and the label color. The connector is a 1px hairline from the previous dot's center to this dot's center. Pair with `.nx-step-head` for the title block above the step's body.
+
+### Action row (form footer)
+
+```jsx
+<div className="nx-action-row">
+  <button className="nx-btn nx-btn-ghost">Back</button>
+  <div className="nx-action-row-end">
+    <button className="nx-btn nx-btn-ghost">Save draft</button>
+    <button className="nx-btn nx-btn-primary nx-btn-lg" type="submit">Continue</button>
+  </div>
+</div>
+```
+
+Bottom button bar with a 1px top divider. Left slot for a back / cancel action; right slot (`.nx-action-row-end`) holds the primary action plus any tertiary buttons. Use `.nx-btn-lg` on the primary CTA in onboarding wizards (40 px under compact, 44 px under touch) so the "Continue" target is unambiguous.
 
 ### Segmented control
 
