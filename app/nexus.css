@@ -66,6 +66,19 @@
   --nx-pad-card: 14px;
   --nx-base-fs: 13px;
   --nx-btn-h: 28px;
+  --nx-btn-h-lg: 40px;
+}
+
+[data-nx-density="touch"] {
+  /* Touch tier — student / instructor portals on mobile, onboarding
+   * wizards. Bigger tap targets, more generous spacing, slightly
+   * larger base type for readability. Sits between compact (admin)
+   * and balanced (rare). */
+  --nx-stack: 16px;
+  --nx-pad-card: 20px;
+  --nx-base-fs: 14px;
+  --nx-btn-h: 40px;
+  --nx-btn-h-lg: 44px;
 }
 
 [data-nx-density="balanced"] {
@@ -73,6 +86,7 @@
   --nx-pad-card: 18px;
   --nx-base-fs: 14px;
   --nx-btn-h: 30px;
+  --nx-btn-h-lg: 40px;
 }
 
 /* ─── Admin Shell ───────────────────────────────────────── */
@@ -867,4 +881,271 @@
   padding: 40px 20px;
   color: var(--nx-fg-muted);
   font-size: 13px;
+}
+
+/* ─── Form group / form section ─────────────────────────── */
+/* Composite for a labelled field row with optional helper / error.
+ * Use inside multi-step wizards and form-heavy admin pages. */
+
+.nx-form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.nx-form-group > .nx-field-label {
+  margin-bottom: 6px;
+}
+
+.nx-form-group-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  gap: 12px;
+}
+
+.nx-form-helper {
+  font-size: 12px;
+  color: var(--nx-fg-muted);
+  margin-top: 6px;
+  line-height: 1.45;
+}
+
+.nx-form-helper.is-error {
+  color: var(--nx-danger);
+}
+
+.nx-form-section {
+  border-top: 1px solid var(--nx-border);
+  padding-top: 20px;
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.nx-form-section:first-child {
+  border-top: 0;
+  padding-top: 0;
+  margin-top: 0;
+}
+
+.nx-form-section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--nx-fg);
+  margin: 0;
+}
+
+.nx-form-section-sub {
+  font-size: 13px;
+  color: var(--nx-fg-muted);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* ─── Larger input wrap (40px) ─────────────────────────── */
+/* Same as .nx-input-wrap but tuned for primary entry surfaces:
+ * login form, onboarding wizards, "create" forms in admin. */
+
+.nx-input-wrap-lg {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 12px;
+  background: var(--nx-bg-elev);
+  border: 1px solid var(--nx-border-strong);
+  border-radius: 6px;
+  transition: border-color 80ms, box-shadow 80ms;
+}
+
+.nx-input-wrap-lg:focus-within {
+  border-color: var(--nx-accent);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--nx-accent) 22%, transparent);
+}
+
+.nx-input-wrap-lg.has-error {
+  border-color: var(--nx-danger);
+}
+
+.nx-input-wrap-lg.has-error:focus-within {
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--nx-danger) 22%, transparent);
+}
+
+.nx-input-wrap-lg > input,
+.nx-input-wrap-lg > select,
+.nx-input-wrap-lg > textarea {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--nx-fg);
+  font-size: 14px;
+  font-family: inherit;
+  height: 100%;
+}
+
+.nx-input-wrap-lg > input::placeholder,
+.nx-input-wrap-lg > textarea::placeholder {
+  color: var(--nx-fg-faint);
+}
+
+/* ─── Larger button (40px) ─────────────────────────────── */
+
+.nx-btn-lg {
+  height: var(--nx-btn-h-lg);
+  font-size: 14px;
+  padding: 0 16px;
+}
+
+/* ─── Stepper ──────────────────────────────────────────── */
+/* Multi-step wizard progress indicator. Used by onboarding flows. */
+
+.nx-stepper {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  position: relative;
+  margin-bottom: 28px;
+  list-style: none;
+  padding: 0;
+  gap: 8px;
+}
+
+.nx-stepper-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  min-width: 0;
+}
+
+/* Connector line between steps */
+.nx-stepper-item:not(:first-child)::before {
+  content: '';
+  position: absolute;
+  top: 14px;
+  right: calc(50% + 18px);
+  left: calc(-50% + 18px);
+  height: 1px;
+  background: var(--nx-border);
+}
+
+.nx-stepper-item[data-state="done"]:not(:first-child)::before,
+.nx-stepper-item[data-state="active"]:not(:first-child)::before {
+  background: var(--nx-fg);
+}
+
+.nx-stepper-dot {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  background: var(--nx-bg-elev);
+  color: var(--nx-fg-muted);
+  border: 1px solid var(--nx-border-strong);
+  position: relative;
+  z-index: 1;
+  transition: background 120ms, color 120ms, border-color 120ms;
+}
+
+.nx-stepper-item[data-state="done"] .nx-stepper-dot {
+  background: var(--nx-fg);
+  border-color: var(--nx-fg);
+  color: var(--nx-bg-elev);
+}
+
+.nx-stepper-item[data-state="active"] .nx-stepper-dot {
+  background: var(--nx-accent);
+  border-color: var(--nx-accent);
+  color: white;
+}
+
+.nx-stepper-label {
+  margin-top: 8px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--nx-fg-subtle);
+  text-align: center;
+}
+
+.nx-stepper-item[data-state="active"] .nx-stepper-label {
+  color: var(--nx-accent);
+}
+
+.nx-stepper-item[data-state="done"] .nx-stepper-label {
+  color: var(--nx-fg);
+}
+
+/* ─── Step header ──────────────────────────────────────── */
+/* Eyebrow + title + description block above each wizard step. */
+
+.nx-step-head {
+  margin-bottom: 24px;
+}
+
+.nx-step-head-eyebrow {
+  font-size: 11px;
+  font-weight: 500;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--nx-fg-subtle);
+  margin: 0 0 8px;
+}
+
+.nx-step-head-title {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--nx-fg);
+  margin: 0 0 8px;
+  line-height: 1.15;
+}
+
+.nx-step-head-sub {
+  font-size: 14px;
+  color: var(--nx-fg-muted);
+  margin: 0;
+  line-height: 1.55;
+  max-width: 540px;
+}
+
+/* ─── Action row ───────────────────────────────────────── */
+/* Right-aligned button group at the bottom of a wizard step / form. */
+
+.nx-action-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid var(--nx-border);
+  padding-top: 20px;
+  margin-top: 24px;
+}
+
+.nx-action-row-end {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+/* ─── Bilingual: Arabic typography helpers ─────────────── */
+/* When IBM Plex Sans Arabic is used inside the Nexus shell, give it
+ * a slightly relaxed line-height so it doesn't crowd Latin neighbors. */
+
+.nx-shell :where([lang="ar"], [dir="rtl"]) {
+  font-family: 'IBM Plex Sans Arabic', system-ui, sans-serif;
+  line-height: 1.5;
+  letter-spacing: 0;
 }

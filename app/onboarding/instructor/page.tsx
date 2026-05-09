@@ -16,6 +16,7 @@ import {
   isKnownFacultyIdFormat,
   trackInstructorOnboardingEvent,
 } from "@/services/instructorOnboardingService";
+import "../../nexus.css";
 
 // ─── Steps ────────────────────────────────────────────────────
 const STEPS = [
@@ -35,33 +36,22 @@ function getSectionLabel(sectionsMap: Record<string, Section[]>, courseId: strin
 }
 
 // ─── Style constants ──────────────────────────────────────────
-const ZERO = { borderRadius: 0 } as const;
+const ZERO = {} as const;
 
-const PRIMARY_BTN =
-  "inline-flex items-center justify-center gap-2 bg-[#121212] text-[#F0F0F0] border border-transparent font-medium uppercase tracking-widest text-xs px-6 py-3 hover:bg-[#F0F0F0] hover:text-[#121212] hover:border-[#121212] transition-all duration-200 min-h-[44px] disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F0C020] focus-visible:ring-offset-2";
+const PRIMARY_BTN = "nx-btn nx-btn-primary";
 
-const GHOST_BTN =
-  "inline-flex items-center justify-center gap-2 text-[#121212] text-xs uppercase tracking-widest px-4 py-2 hover:bg-[#E5E5E0] transition-colors duration-200 min-h-[44px] disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F0C020] focus-visible:ring-offset-2";
+const GHOST_BTN = "nx-btn nx-btn-ghost";
 
 const INPUT_CLS =
-  "border-b-4 border-[#121212] bg-transparent px-3 py-2 text-sm w-full focus-visible:bg-[#F0F0F0] focus-visible:outline-none transition-colors duration-200 min-h-[44px]";
+  "w-full px-3 py-2 text-sm bg-[var(--nx-bg-elev)] text-[var(--nx-fg)] border border-[var(--nx-border-strong)] rounded-md focus-visible:outline-none focus-visible:border-[var(--nx-accent)] disabled:opacity-50 disabled:cursor-not-allowed";
 
-const SELECT_CLS =
-  "border-4 border-[#121212] bg-[#F0F0F0] px-3 py-2 text-sm w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F0C020] focus-visible:ring-offset-2 transition-colors duration-200 min-h-[44px] disabled:opacity-50 disabled:cursor-not-allowed appearance-none";
+const SELECT_CLS = "nx-select w-full disabled:opacity-50 disabled:cursor-not-allowed";
 
-const LABEL_CLS =
-  "text-xs uppercase tracking-widest text-neutral-600 block mb-1 font-semibold";
+const LABEL_CLS = "nx-field-label";
 
 // ─── CourseCodeChip ───────────────────────────────────────────
 function CourseCodeChip({ code }: { code: string }) {
-  return (
-    <span
-      style={ZERO}
-      className="border-4 border-[#121212] text-xs px-2 py-0.5 inline-block font-bold"
-    >
-      {code}
-    </span>
-  );
+  return <span className="nx-version-pill">{code}</span>;
 }
 
 export default function InstructorOnboardingPage() {
@@ -102,6 +92,16 @@ export default function InstructorOnboardingPage() {
     flaggedFacultyId?: boolean;
     flaggedCourses?: string[];
   } | null>(null);
+
+  // ── Theme bootstrapping ────────────────────────────────────
+  useEffect(() => {
+    const stored = typeof window !== "undefined" ? localStorage.getItem("wodooh.theme") : null;
+    const resolved = stored === "light" || stored === "dark"
+      ? stored
+      : window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    document.documentElement.dataset.nxTheme = resolved;
+    document.documentElement.dataset.nxDensity = "compact";
+  }, []);
 
   // ── Analytics: track start ─────────────────────────────────
   useEffect(() => {
@@ -288,31 +288,29 @@ export default function InstructorOnboardingPage() {
   // ── Success screen ─────────────────────────────────────────
   if (submitSuccess) {
     return (
-      <main className="bauhaus-dot-grid min-h-screen px-4 bg-[#F0F0F0]">
-        <p className="text-xs text-neutral-400 max-w-2xl mx-auto pt-8 uppercase tracking-widest">
+      <main style={{minHeight:"100vh",background:"var(--nx-bg)",color:"var(--nx-fg)",fontFamily:"Inter,system-ui,sans-serif",padding:"0 16px"}}>
+        <p className="text-xs text-neutral-400 max-w-2xl mx-auto pt-8 uppercase ">
           WODOOH · Faculty Registry · Spring 2026
         </p>
         <section
-          style={ZERO}
-          className="border-4 border-[#121212] bg-[#F0F0F0] shadow-[8px_8px_0px_0px_#121212] p-8 max-w-2xl mx-auto my-8"
+                    className="border border-[var(--nx-border)] bg-[var(--nx-bg-sub)] p-8 max-w-2xl mx-auto my-8"
         >
           {/* Card header */}
-          <header className="border-b-4 border-[#121212] pb-6 mb-6">
-            <p className="text-xs uppercase tracking-widest text-neutral-500">
+          <header className="border-b border-[var(--nx-border)] pb-6 mb-6">
+            <p className="text-xs uppercase  text-neutral-500">
               WODOOH · Faculty Registry
             </p>
-            <h1 className="text-4xl font-black tracking-tight mt-1 text-[#121212] uppercase">
+            <h1 className="text-4xl font-semibold  mt-1 text-[var(--nx-fg)] uppercase">
               Application Submitted
             </h1>
-            <p className="text-xs uppercase tracking-widest text-neutral-500 mt-2">
+            <p className="text-xs uppercase  text-neutral-500 mt-2">
               Vol. 2026 · Faculty Registry
             </p>
           </header>
 
           {/* Thank-you banner */}
           <div
-            style={ZERO}
-            className="border-4 border-[#F0C020] bg-[#FFFAE0] text-[#121212] p-6 mb-6 shadow-[4px_4px_0px_0px_#121212]"
+                        className="border border-[var(--nx-warning)] bg-[var(--nx-warning-soft)] text-[var(--nx-fg)] p-6 mb-6 "
             role="status"
           >
             <div className="flex items-start gap-4">
@@ -333,12 +331,12 @@ export default function InstructorOnboardingPage() {
                 />
               </svg>
               <div className="flex-1">
-                <p className="font-black uppercase tracking-widest text-xs mb-2">
+                <p className="font-semibold uppercase  text-xs mb-2">
                   Faculty Profile Recorded
                 </p>
                 <p className="text-base leading-relaxed">
                   Thank you,{" "}
-                  <strong className="font-black">{submitSuccess.fullName}</strong>.
+                  <strong className="font-semibold">{submitSuccess.fullName}</strong>.
                   Your faculty profile has been submitted for administrative review.
                 </p>
               </div>
@@ -346,9 +344,9 @@ export default function InstructorOnboardingPage() {
           </div>
 
           {/* Faculty ID & Status table */}
-          <dl className="border-4 border-[#121212] divide-y-4 divide-[#121212] mb-6">
+          <dl className="border border-[var(--nx-border)] divide-y divide-[var(--nx-fg)] mb-6">
             <div className="flex">
-              <dt className="font-black uppercase tracking-widest text-xs text-neutral-600 w-44 px-4 py-3 border-r-4 border-[#121212] bg-[#E8E8E8] shrink-0">
+              <dt className="font-semibold uppercase  text-xs text-neutral-600 w-44 px-4 py-3 border-r border-[var(--nx-border)] bg-[var(--nx-bg-sub)] shrink-0">
                 Faculty ID
               </dt>
               <dd className="text-sm px-4 py-3 flex-1 font-mono">
@@ -356,14 +354,13 @@ export default function InstructorOnboardingPage() {
               </dd>
             </div>
             <div className="flex">
-              <dt className="font-black uppercase tracking-widest text-xs text-neutral-600 w-44 px-4 py-3 border-r-4 border-[#121212] bg-[#E8E8E8] shrink-0">
+              <dt className="font-semibold uppercase  text-xs text-neutral-600 w-44 px-4 py-3 border-r border-[var(--nx-border)] bg-[var(--nx-bg-sub)] shrink-0">
                 Status
               </dt>
               <dd className="px-4 py-3 flex-1">
                 <span
-                  style={ZERO}
-                  role="status"
-                  className="instructor-pending-badge border-4 border-[#F0C020] bg-[#FFFAE0] text-[#121212] text-xs px-2 py-0.5 uppercase tracking-wide font-black"
+                                    role="status"
+                  className="instructor-pending-badge border border-[var(--nx-warning)] bg-[var(--nx-warning-soft)] text-[var(--nx-fg)] text-xs px-2 py-0.5 uppercase  font-semibold"
                 >
                   Pending Review
                 </span>
@@ -373,11 +370,10 @@ export default function InstructorOnboardingPage() {
 
           {/* Admin notification info box */}
           <div
-            style={ZERO}
-            className="instructor-admin-notified border-4 border-[#1040C0] bg-[#EFF6FF] text-[#1040C0] p-4 flex gap-3 items-start mb-4"
+                        className="instructor-admin-notified border border-[var(--nx-accent)] bg-[var(--nx-accent-soft)] text-[var(--nx-accent)] p-4 flex gap-3 items-start mb-4"
             role="status"
           >
-            <span aria-hidden="true" className="text-xs shrink-0 font-black">[i]</span>
+            <span aria-hidden="true" className="text-xs shrink-0 font-semibold">[i]</span>
             <span className="text-xs leading-relaxed">
               The system administrator has been notified and will review your application.
               You will receive confirmation at your university email.
@@ -387,15 +383,14 @@ export default function InstructorOnboardingPage() {
           {/* Flagged Faculty ID warning */}
           {submitSuccess.flaggedFacultyId && (
             <div
-              style={ZERO}
-              id="flag-faculty-id"
+                            id="flag-faculty-id"
               role="status"
-              className="instructor-flag-badge border-4 border-[#F0C020] bg-[#FFFAE0] text-[#121212] p-4 flex gap-3 items-start mb-4"
+              className="instructor-flag-badge border border-[var(--nx-warning)] bg-[var(--nx-warning-soft)] text-[var(--nx-fg)] p-4 flex gap-3 items-start mb-4"
             >
-              <span aria-hidden="true" className="text-xs shrink-0 font-black">[!]</span>
+              <span aria-hidden="true" className="text-xs shrink-0 font-semibold">[!]</span>
               <span className="text-sm leading-relaxed">
                 Faculty ID{" "}
-                <strong className="font-mono font-black">{submitSuccess.facultyId}</strong>{" "}
+                <strong className="font-mono font-semibold">{submitSuccess.facultyId}</strong>{" "}
                 will be verified by admin — your application is still accepted.
               </span>
             </div>
@@ -404,34 +399,32 @@ export default function InstructorOnboardingPage() {
           {/* Flagged courses */}
           {submitSuccess.flaggedCourses && submitSuccess.flaggedCourses.length > 0 && (
             <div
-              style={ZERO}
-              id="flag-courses"
+                            id="flag-courses"
               role="status"
-              className="instructor-flag-badge border-4 border-[#F0C020] bg-[#FFFAE0] text-[#121212] p-4 flex gap-3 items-start mb-4"
+              className="instructor-flag-badge border border-[var(--nx-warning)] bg-[var(--nx-warning-soft)] text-[var(--nx-fg)] p-4 flex gap-3 items-start mb-4"
             >
-              <span aria-hidden="true" className="text-xs shrink-0 font-black">[!]</span>
+              <span aria-hidden="true" className="text-xs shrink-0 font-semibold">[!]</span>
               <span className="text-sm leading-relaxed">
                 {submitSuccess.flaggedCourses.length === 1
                   ? "1 course is"
                   : `${submitSuccess.flaggedCourses.length} courses are`}{" "}
                 already assigned to another instructor and{" "}
-                <strong className="font-black">flagged for admin review</strong>.
+                <strong className="font-semibold">flagged for admin review</strong>.
               </span>
             </div>
           )}
 
-          <p className="text-sm text-[#121212] leading-relaxed mb-6">
+          <p className="text-sm text-[var(--nx-fg)] leading-relaxed mb-6">
             During review you will have{" "}
-            <strong className="font-black">limited access</strong>. Full
+            <strong className="font-semibold">limited access</strong>. Full
             access to lecture management tools will be unlocked once your profile is
             approved.
           </p>
 
-          <div className="flex justify-end pt-4 border-t-4 border-[#121212]">
+          <div className="flex justify-end pt-4 border-t border-[var(--nx-border)]">
             <button
               type="button"
-              style={ZERO}
-              className={PRIMARY_BTN}
+                            className={PRIMARY_BTN}
               onClick={() => router.push("/login")}
               id="instructor-onboarding-go-to-login"
             >
@@ -445,25 +438,24 @@ export default function InstructorOnboardingPage() {
 
   // ── Main render ────────────────────────────────────────────
   return (
-    <main className="bauhaus-dot-grid min-h-screen px-4 bg-[#F0F0F0]">
+    <main style={{minHeight:"100vh",background:"var(--nx-bg)",color:"var(--nx-fg)",fontFamily:"Inter,system-ui,sans-serif",padding:"0 16px"}}>
       {/* Editorial top strip */}
-      <p className="text-xs text-neutral-400 max-w-2xl mx-auto pt-8 uppercase tracking-widest">
+      <p className="text-xs text-neutral-400 max-w-2xl mx-auto pt-8 uppercase ">
         WODOOH · Faculty Registry · Spring 2026
       </p>
 
       <section
-        style={ZERO}
-        className="border-4 border-[#121212] bg-[#F0F0F0] shadow-[8px_8px_0px_0px_#121212] p-8 max-w-2xl mx-auto my-8"
+                className="border border-[var(--nx-border)] bg-[var(--nx-bg-sub)] p-8 max-w-2xl mx-auto my-8"
       >
         {/* ── Card Header ──────────────────────────────────── */}
-        <header className="border-b-4 border-[#121212] pb-6 mb-6">
-          <p className="text-xs uppercase tracking-widest text-neutral-500">
+        <header className="border-b border-[var(--nx-border)] pb-6 mb-6">
+          <p className="text-xs uppercase  text-neutral-500">
             WODOOH · Faculty Registry
           </p>
-          <h1 className="text-4xl font-black tracking-tight mt-1 text-[#121212] uppercase">
+          <h1 className="text-4xl font-semibold  mt-1 text-[var(--nx-fg)] uppercase">
             Faculty Onboarding
           </h1>
-          <p className="text-xs uppercase tracking-widest text-neutral-500 mt-2">
+          <p className="text-xs uppercase  text-neutral-500 mt-2">
             Vol. 2026 · Faculty Registry
           </p>
         </header>
@@ -482,10 +474,10 @@ export default function InstructorOnboardingPage() {
               const isActive = step.id === currentStep;
               const isDone = step.id < currentStep;
               const boxClass = isActive
-                ? "bg-[#F0C020] border-[#F0C020] text-[#121212] shadow-[4px_4px_0px_0px_#121212]"
+                ? "bg-[var(--nx-warning)] border-[var(--nx-warning)] text-[var(--nx-fg)] "
                 : isDone
-                  ? "bg-[#121212] text-[#F0F0F0] border-[#121212]"
-                  : "bg-[#F0F0F0] text-neutral-400 border-[#121212]";
+                  ? "bg-[var(--nx-fg)] text-white border-[var(--nx-border)]"
+                  : "bg-[var(--nx-bg-sub)] text-neutral-400 border-[var(--nx-border)]";
               return (
                 <li
                   key={step.id}
@@ -495,12 +487,11 @@ export default function InstructorOnboardingPage() {
                   {idx > 0 && (
                     <span
                       aria-hidden="true"
-                      className="absolute top-5 right-1/2 w-full border-t-4 border-[#121212]"
+                      className="absolute top-5 right-1/2 w-full border-t border-[var(--nx-border)]"
                     />
                   )}
                   <span
-                    style={ZERO}
-                    className={`relative z-10 w-10 h-10 border-4 flex items-center justify-center font-mono text-sm font-black ${boxClass}`}
+                                        className={`relative z-10 w-10 h-10 border flex items-center justify-center font-mono text-sm font-semibold ${boxClass}`}
                   >
                     {isDone ? (
                       <svg
@@ -522,11 +513,11 @@ export default function InstructorOnboardingPage() {
                     )}
                   </span>
                   <span
-                    className={`text-xs uppercase tracking-widest mt-2 text-center font-black ${
+                    className={`text-xs uppercase  mt-2 text-center font-semibold ${
                       isActive
-                        ? "text-[#F0C020]"
+                        ? "text-[var(--nx-warning)]"
                         : isDone
-                          ? "text-[#121212]"
+                          ? "text-[var(--nx-fg)]"
                           : "text-neutral-400"
                     }`}
                   >
@@ -541,13 +532,12 @@ export default function InstructorOnboardingPage() {
         {/* ── Global error ──────────────────────────────────── */}
         {submitError && (
           <div
-            style={ZERO}
-            className="border-4 border-[#D02020] bg-[#FEE2E2] text-[#D02020] p-4 mb-6 flex items-start gap-3"
+                        className="border border-[var(--nx-danger)] bg-[var(--nx-danger-soft)] text-[var(--nx-danger)] p-4 mb-6 flex items-start gap-3"
             role="alert"
             id="instructor-onboarding-error"
           >
             <span
-              className="text-xs uppercase tracking-widest font-black shrink-0"
+              className="text-xs uppercase  font-semibold shrink-0"
               aria-hidden="true"
             >
               Error
@@ -567,10 +557,10 @@ export default function InstructorOnboardingPage() {
             noValidate
           >
             <div className="mb-6">
-              <p className="text-xs uppercase tracking-widest text-neutral-500 mb-2">
+              <p className="text-xs uppercase  text-neutral-500 mb-2">
                 {stepCategory(1)}
               </p>
-              <h2 className="text-2xl font-black text-[#121212] uppercase">
+              <h2 className="text-2xl font-semibold text-[var(--nx-fg)] uppercase">
                 Personal Information
               </h2>
               <p className="text-sm text-neutral-700 leading-relaxed mt-2">
@@ -600,16 +590,15 @@ export default function InstructorOnboardingPage() {
                   dir="auto"
                   aria-describedby={nameError ? "instructor-name-error" : undefined}
                   aria-invalid={!!nameError}
-                  className={`${INPUT_CLS}${nameError ? " border-[#D02020]" : ""}`}
-                  style={ZERO}
-                />
+                  className={`${INPUT_CLS}${nameError ? " border-[var(--nx-danger)]" : ""}`}
+                                  />
                 {nameError && (
                   <p
                     id="instructor-name-error"
-                    className="text-xs text-[#D02020] mt-2 uppercase tracking-wide font-black"
+                    className="text-xs text-[var(--nx-danger)] mt-2 uppercase  font-semibold"
                     role="alert"
                   >
-                    <span className="font-black">Error:</span> {nameError}
+                    <span className="font-semibold">Error:</span> {nameError}
                   </p>
                 )}
               </div>
@@ -634,37 +623,34 @@ export default function InstructorOnboardingPage() {
                         : undefined
                   }
                   aria-invalid={!!facultyIdError}
-                  className={`${INPUT_CLS}${facultyIdError ? " border-[#D02020]" : ""}`}
-                  style={ZERO}
-                />
+                  className={`${INPUT_CLS}${facultyIdError ? " border-[var(--nx-danger)]" : ""}`}
+                                  />
                 {facultyIdError && (
                   <p
                     id="instructor-faculty-id-error"
-                    className="text-xs text-[#D02020] mt-2 uppercase tracking-wide font-black"
+                    className="text-xs text-[var(--nx-danger)] mt-2 uppercase  font-semibold"
                     role="alert"
                   >
-                    <span className="font-black">Error:</span> {facultyIdError}
+                    <span className="font-semibold">Error:</span> {facultyIdError}
                   </p>
                 )}
                 {!facultyIdError && facultyIdWarning && (
                   <div
                     id="instructor-faculty-id-warning"
-                    style={ZERO}
-                    className="instructor-id-warning border-4 border-[#F0C020] bg-[#FFFAE0] text-[#121212] p-4 flex gap-3 items-start mt-3"
+                                        className="instructor-id-warning border border-[var(--nx-warning)] bg-[var(--nx-warning-soft)] text-[var(--nx-fg)] p-4 flex gap-3 items-start mt-3"
                     role="status"
                   >
-                    <span aria-hidden="true" className="text-xs shrink-0 font-black">[!]</span>
+                    <span aria-hidden="true" className="text-xs shrink-0 font-semibold">[!]</span>
                     <span className="text-sm leading-relaxed">{facultyIdWarning}</span>
                   </div>
                 )}
               </div>
             </fieldset>
 
-            <div className="flex items-center justify-between pt-4 border-t-4 border-[#121212]">
+            <div className="flex items-center justify-between pt-4 border-t border-[var(--nx-border)]">
               <button
                 type="button"
-                style={ZERO}
-                className={GHOST_BTN}
+                                className={GHOST_BTN}
                 onClick={() => router.push("/login")}
                 id="instructor-onboarding-back"
               >
@@ -672,8 +658,7 @@ export default function InstructorOnboardingPage() {
               </button>
               <button
                 type="submit"
-                style={ZERO}
-                className={PRIMARY_BTN}
+                                className={PRIMARY_BTN}
                 disabled={!isStep1Valid}
                 id="instructor-onboarding-next-1"
               >
@@ -694,10 +679,10 @@ export default function InstructorOnboardingPage() {
             noValidate
           >
             <div className="mb-6">
-              <p className="text-xs uppercase tracking-widest text-neutral-500 mb-2">
+              <p className="text-xs uppercase  text-neutral-500 mb-2">
                 {stepCategory(2)}
               </p>
-              <h2 className="text-2xl font-black text-[#121212] uppercase">
+              <h2 className="text-2xl font-semibold text-[var(--nx-fg)] uppercase">
                 Academic Information
               </h2>
               <p className="text-sm text-neutral-700 leading-relaxed mt-2">
@@ -719,8 +704,7 @@ export default function InstructorOnboardingPage() {
                   onChange={(e) => handleCollegeChange(e.target.value)}
                   disabled={loadingColleges}
                   className={SELECT_CLS}
-                  style={ZERO}
-                >
+                                  >
                   <option value="">
                     {loadingColleges ? "Loading colleges…" : "Select your college"}
                   </option>
@@ -743,8 +727,7 @@ export default function InstructorOnboardingPage() {
                   onChange={(e) => handleDepartmentChange(e.target.value)}
                   disabled={!selectedCollege || loadingDepartments || noDepartments}
                   className={SELECT_CLS}
-                  style={ZERO}
-                >
+                                  >
                   <option value="">
                     {loadingDepartments
                       ? "Loading departments…"
@@ -764,11 +747,10 @@ export default function InstructorOnboardingPage() {
                 {noDepartments && (
                   <div
                     id="no-departments-message"
-                    style={ZERO}
-                    className="border-4 border-[#D02020] bg-[#FEE2E2] text-[#D02020] p-4 mt-3 flex items-start gap-3"
+                                        className="border border-[var(--nx-danger)] bg-[var(--nx-danger-soft)] text-[var(--nx-danger)] p-4 mt-3 flex items-start gap-3"
                     role="alert"
                   >
-                    <span className="text-xs uppercase tracking-widest font-black shrink-0">
+                    <span className="text-xs uppercase  font-semibold shrink-0">
                       Notice
                     </span>
                     <p className="text-sm leading-relaxed flex-1">
@@ -785,7 +767,7 @@ export default function InstructorOnboardingPage() {
 
               {/* Courses */}
               {selectedDepartment && loadingCourses && (
-                <p className="text-xs uppercase tracking-widest text-neutral-500 py-4">
+                <p className="text-xs uppercase  text-neutral-500 py-4">
                   Loading courses…
                 </p>
               )}
@@ -814,11 +796,10 @@ export default function InstructorOnboardingPage() {
                       return (
                         <li
                           key={course.courseID}
-                          style={ZERO}
-                          className={
+                                                    className={
                             isSelected
-                              ? "border-4 border-[#F0C020] shadow-[4px_4px_0px_0px_#F0C020] bg-[#FFFAE0] transition-colors duration-200"
-                              : "border-4 border-[#121212] bg-[#F0F0F0] transition-colors duration-200"
+                              ? "border border-[var(--nx-warning)] bg-[var(--nx-warning-soft)] transition-colors duration-200"
+                              : "border border-[var(--nx-border)] bg-[var(--nx-bg-sub)] transition-colors duration-200"
                           }
                         >
                           <button
@@ -826,16 +807,14 @@ export default function InstructorOnboardingPage() {
                             onClick={() => handleCourseToggle(course.courseID)}
                             id={`instructor-course-toggle-${course.courseID}`}
                             aria-pressed={isSelected}
-                            style={ZERO}
-                            className="w-full text-left p-3 flex items-start gap-3 min-h-[44px] hover:bg-neutral-100 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F0C020] focus-visible:ring-offset-2"
+                                                        className="w-full text-left p-3 flex items-start gap-3 min-h-[44px] hover:bg-neutral-100 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nx-warning)] focus-visible:ring-offset-2"
                           >
                             <span
-                              style={ZERO}
-                              aria-hidden="true"
-                              className={`w-5 h-5 border-4 border-[#121212] shrink-0 mt-0.5 flex items-center justify-center ${
+                                                            aria-hidden="true"
+                              className={`w-5 h-5 border border-[var(--nx-border)] shrink-0 mt-0.5 flex items-center justify-center ${
                                 isSelected
-                                  ? "bg-[#F0C020] text-[#121212]"
-                                  : "bg-[#F0F0F0]"
+                                  ? "bg-[var(--nx-warning)] text-[var(--nx-fg)]"
+                                  : "bg-[var(--nx-bg-sub)]"
                               }`}
                             >
                               {isSelected && (
@@ -851,7 +830,7 @@ export default function InstructorOnboardingPage() {
                             </span>
                             <span className="flex-1 flex flex-wrap items-center gap-2">
                               <CourseCodeChip code={course.courseCode} />
-                              <span className="text-base font-black text-[#121212]">
+                              <span className="text-base font-semibold text-[var(--nx-fg)]">
                                 {course.courseName}
                               </span>
                             </span>
@@ -859,7 +838,7 @@ export default function InstructorOnboardingPage() {
 
                           {/* Section dropdown (cascading) */}
                           {isSelected && (
-                            <div className="border-t-4 border-[#121212] p-3 bg-[#F5F5F5]">
+                            <div className="border-t border-[var(--nx-border)] p-3 bg-[var(--nx-bg-sub)]">
                               <label
                                 htmlFor={sectionInputId}
                                 className={LABEL_CLS}
@@ -870,7 +849,7 @@ export default function InstructorOnboardingPage() {
                                 </span>
                               </label>
                               {isLoadingSections ? (
-                                <p className="text-xs uppercase tracking-widest text-neutral-500 py-2">
+                                <p className="text-xs uppercase  text-neutral-500 py-2">
                                   Loading sections…
                                 </p>
                               ) : sections.length > 0 ? (
@@ -881,8 +860,7 @@ export default function InstructorOnboardingPage() {
                                     handleSectionSelect(course.courseID, e.target.value)
                                   }
                                   className={SELECT_CLS}
-                                  style={ZERO}
-                                >
+                                                                  >
                                   <option value="">Select section</option>
                                   {sections.map((sec) => (
                                     <option key={sec.sectionID} value={sec.sectionID}>
@@ -893,10 +871,10 @@ export default function InstructorOnboardingPage() {
                                 </select>
                               ) : (
                                 <p
-                                  className="text-xs text-[#D02020] mt-1 uppercase tracking-wide font-black"
+                                  className="text-xs text-[var(--nx-danger)] mt-1 uppercase  font-semibold"
                                   role="alert"
                                 >
-                                  <span className="font-black">Notice:</span>{" "}
+                                  <span className="font-semibold">Notice:</span>{" "}
                                   No sections available for this course.
                                 </p>
                               )}
@@ -910,11 +888,10 @@ export default function InstructorOnboardingPage() {
               )}
             </fieldset>
 
-            <div className="flex items-center justify-between pt-4 border-t-4 border-[#121212]">
+            <div className="flex items-center justify-between pt-4 border-t border-[var(--nx-border)]">
               <button
                 type="button"
-                style={ZERO}
-                className={GHOST_BTN}
+                                className={GHOST_BTN}
                 onClick={() => setCurrentStep(1)}
                 id="instructor-onboarding-prev-2"
               >
@@ -922,8 +899,7 @@ export default function InstructorOnboardingPage() {
               </button>
               <button
                 type="submit"
-                style={ZERO}
-                className={PRIMARY_BTN}
+                                className={PRIMARY_BTN}
                 disabled={!isStep2Valid}
                 id="instructor-onboarding-next-2"
               >
@@ -944,10 +920,10 @@ export default function InstructorOnboardingPage() {
             noValidate
           >
             <div className="mb-6">
-              <p className="text-xs uppercase tracking-widest text-neutral-500 mb-2">
+              <p className="text-xs uppercase  text-neutral-500 mb-2">
                 {stepCategory(3)}
               </p>
-              <h2 className="text-2xl font-black text-[#121212] uppercase">
+              <h2 className="text-2xl font-semibold text-[var(--nx-fg)] uppercase">
                 Review &amp; Confirm
               </h2>
               <p className="text-sm text-neutral-700 leading-relaxed mt-2">
@@ -959,14 +935,13 @@ export default function InstructorOnboardingPage() {
             {isValidFacultyId(facultyId) && !isKnownFacultyIdFormat(facultyId) && (
               <div
                 id="confirm-faculty-id-note"
-                style={ZERO}
-                role="status"
-                className="instructor-id-warning border-4 border-[#F0C020] bg-[#FFFAE0] text-[#121212] p-4 flex gap-3 items-start mb-6"
+                                role="status"
+                className="instructor-id-warning border border-[var(--nx-warning)] bg-[var(--nx-warning-soft)] text-[var(--nx-fg)] p-4 flex gap-3 items-start mb-6"
               >
-                <span aria-hidden="true" className="text-xs shrink-0 font-black">[!]</span>
+                <span aria-hidden="true" className="text-xs shrink-0 font-semibold">[!]</span>
                 <span className="text-sm leading-relaxed">
                   Your Faculty ID{" "}
-                  <strong className="font-mono font-black">{facultyId}</strong> format is
+                  <strong className="font-mono font-semibold">{facultyId}</strong> format is
                   unrecognised and will be verified by admin after submission. Your
                   application will still be accepted.
                 </span>
@@ -976,12 +951,12 @@ export default function InstructorOnboardingPage() {
             <div className="space-y-6">
               {/* Personal Info */}
               <section>
-                <h3 className="font-black uppercase tracking-widest text-xs text-neutral-600 border-b-4 border-[#121212] pb-2 mb-3">
+                <h3 className="font-semibold uppercase  text-xs text-neutral-600 border-b border-[var(--nx-border)] pb-2 mb-3">
                   Personal Information
                 </h3>
-                <dl className="border-4 border-[#121212] divide-y-4 divide-[#121212]">
+                <dl className="border border-[var(--nx-border)] divide-y divide-[var(--nx-fg)]">
                   <div className="flex">
-                    <dt className="font-black uppercase tracking-widest text-xs text-neutral-600 w-44 px-4 py-3 border-r-4 border-[#121212] bg-[#E8E8E8] shrink-0">
+                    <dt className="font-semibold uppercase  text-xs text-neutral-600 w-44 px-4 py-3 border-r border-[var(--nx-border)] bg-[var(--nx-bg-sub)] shrink-0">
                       Full Name
                     </dt>
                     <dd className="text-sm px-4 py-3 flex-1">
@@ -989,7 +964,7 @@ export default function InstructorOnboardingPage() {
                     </dd>
                   </div>
                   <div className="flex">
-                    <dt className="font-black uppercase tracking-widest text-xs text-neutral-600 w-44 px-4 py-3 border-r-4 border-[#121212] bg-[#E8E8E8] shrink-0">
+                    <dt className="font-semibold uppercase  text-xs text-neutral-600 w-44 px-4 py-3 border-r border-[var(--nx-border)] bg-[var(--nx-bg-sub)] shrink-0">
                       Faculty ID
                     </dt>
                     <dd className="font-mono text-sm px-4 py-3 flex-1">
@@ -1001,12 +976,12 @@ export default function InstructorOnboardingPage() {
 
               {/* Academic Info */}
               <section>
-                <h3 className="font-black uppercase tracking-widest text-xs text-neutral-600 border-b-4 border-[#121212] pb-2 mb-3">
+                <h3 className="font-semibold uppercase  text-xs text-neutral-600 border-b border-[var(--nx-border)] pb-2 mb-3">
                   Academic Information
                 </h3>
-                <dl className="border-4 border-[#121212] divide-y-4 divide-[#121212]">
+                <dl className="border border-[var(--nx-border)] divide-y divide-[var(--nx-fg)]">
                   <div className="flex">
-                    <dt className="font-black uppercase tracking-widest text-xs text-neutral-600 w-44 px-4 py-3 border-r-4 border-[#121212] bg-[#E8E8E8] shrink-0">
+                    <dt className="font-semibold uppercase  text-xs text-neutral-600 w-44 px-4 py-3 border-r border-[var(--nx-border)] bg-[var(--nx-bg-sub)] shrink-0">
                       College
                     </dt>
                     <dd className="text-sm px-4 py-3 flex-1">
@@ -1014,7 +989,7 @@ export default function InstructorOnboardingPage() {
                     </dd>
                   </div>
                   <div className="flex">
-                    <dt className="font-black uppercase tracking-widest text-xs text-neutral-600 w-44 px-4 py-3 border-r-4 border-[#121212] bg-[#E8E8E8] shrink-0">
+                    <dt className="font-semibold uppercase  text-xs text-neutral-600 w-44 px-4 py-3 border-r border-[var(--nx-border)] bg-[var(--nx-bg-sub)] shrink-0">
                       Department
                     </dt>
                     <dd className="text-sm px-4 py-3 flex-1">
@@ -1026,33 +1001,32 @@ export default function InstructorOnboardingPage() {
 
               {/* Course Selections */}
               <section>
-                <h3 className="font-black uppercase tracking-widest text-xs text-neutral-600 border-b-4 border-[#121212] pb-2 mb-3 flex items-baseline justify-between">
+                <h3 className="font-semibold uppercase  text-xs text-neutral-600 border-b border-[var(--nx-border)] pb-2 mb-3 flex items-baseline justify-between">
                   <span>Selected Courses</span>
                   <span className="font-mono text-xs">
                     {String(courseSelections.length).padStart(2, "0")} TOTAL
                   </span>
                 </h3>
                 <table
-                  style={ZERO}
-                  className="w-full border-collapse border-4 border-[#121212] font-mono text-sm"
+                                    className="w-full border-collapse border border-[var(--nx-border)] font-mono text-sm"
                 >
                   <thead>
-                    <tr className="bg-[#121212] text-[#F0F0F0]">
+                    <tr className="bg-[var(--nx-fg)] text-white">
                       <th
                         scope="col"
-                        className="border-4 border-[#333] px-3 py-2 text-left text-xs uppercase tracking-widest font-black"
+                        className="border border-[var(--nx-border)] px-3 py-2 text-left text-xs uppercase  font-semibold"
                       >
                         Code
                       </th>
                       <th
                         scope="col"
-                        className="border-4 border-[#333] px-3 py-2 text-left text-xs uppercase tracking-widest font-black"
+                        className="border border-[var(--nx-border)] px-3 py-2 text-left text-xs uppercase  font-semibold"
                       >
                         Course
                       </th>
                       <th
                         scope="col"
-                        className="border-4 border-[#333] px-3 py-2 text-left text-xs uppercase tracking-widest font-black"
+                        className="border border-[var(--nx-border)] px-3 py-2 text-left text-xs uppercase  font-semibold"
                       >
                         Section
                       </th>
@@ -1067,17 +1041,17 @@ export default function InstructorOnboardingPage() {
                           key={cs.courseId}
                           className="hover:bg-neutral-100 transition-colors duration-150"
                         >
-                          <td className="border border-[#E5E5E0] px-3 py-2 align-top">
+                          <td className="border border-[var(--nx-border)] px-3 py-2 align-top">
                             {course ? (
                               <CourseCodeChip code={course.courseCode} />
                             ) : (
                               <span className="font-mono">{cs.courseId}</span>
                             )}
                           </td>
-                          <td className="border border-[#E5E5E0] px-3 py-2">
+                          <td className="border border-[var(--nx-border)] px-3 py-2">
                             {course?.courseName ?? getCourseName(courses, cs.courseId)}
                           </td>
-                          <td className="border border-[#E5E5E0] px-3 py-2 font-mono">
+                          <td className="border border-[var(--nx-border)] px-3 py-2 font-mono">
                             {section
                               ? `${section.sectionNumber} · ${section.instructorName}`
                               : getSectionLabel(sectionsMap, cs.courseId, cs.sectionId)}
@@ -1090,11 +1064,10 @@ export default function InstructorOnboardingPage() {
               </section>
             </div>
 
-            <div className="flex items-center justify-between mt-8 pt-4 border-t-4 border-[#121212]">
+            <div className="flex items-center justify-between mt-8 pt-4 border-t border-[var(--nx-border)]">
               <button
                 type="button"
-                style={ZERO}
-                className={GHOST_BTN}
+                                className={GHOST_BTN}
                 onClick={() => setCurrentStep(2)}
                 disabled={isSubmitting}
                 id="instructor-onboarding-prev-3"
@@ -1103,8 +1076,7 @@ export default function InstructorOnboardingPage() {
               </button>
               <button
                 type="submit"
-                style={ZERO}
-                className={PRIMARY_BTN}
+                                className={PRIMARY_BTN}
                 disabled={isSubmitting}
                 id="instructor-onboarding-submit"
               >
@@ -1122,12 +1094,12 @@ export default function InstructorOnboardingPage() {
         )}
 
         {/* ── Footer ─────────────────────────────────────────── */}
-        <footer className="mt-8 pt-6 border-t-4 border-[#121212] text-center">
-          <p className="text-xs uppercase tracking-widest text-neutral-500">
+        <footer className="mt-8 pt-6 border-t border-[var(--nx-border)] text-center">
+          <p className="text-xs uppercase  text-neutral-500">
             Already have an account?{" "}
             <a
               href="/login"
-              className="text-[#F0C020] font-black hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F0C020] focus-visible:ring-offset-2"
+              className="text-[var(--nx-warning)] font-semibold hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nx-warning)] focus-visible:ring-offset-2"
             >
               Sign in here
             </a>

@@ -1,258 +1,204 @@
-/* ─── Nexus Login Design (general) ─────────────────────── */
+/* ─────────────────────────────────────────────────────────
+ * Login — Nexus auth shell.
+ * Visual tokens come from app/nexus.css (--nx-*). This file only
+ * adds page-level layout (centered card, topbar, footer) and a
+ * couple of login-specific helpers (logo tile, larger input wrap).
+ * No --nl-* / --bl-* / hex literals.
+ * ──────────────────────────────────────────────────────── */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-
-[data-nx-theme="light"] .nx-login-body {
-  background: #ffffff;
-  --nl-bg: #ffffff;
-  --nl-card-bg: #f6f8fa;
-  --nl-card-border: #d0d7de;
-  --nl-input-bg: #ffffff;
-  --nl-input-border: #d0d7de;
-  --nl-fg: #1f2328;
-  --nl-fg-muted: #59636e;
-  --nl-fg-subtle: #6e7781;
-  --nl-fg-faint: #8c959f;
-  --nl-accent: #0969da;
-  --nl-success: #1f883d;
-  --nl-success-hover: #1a7f37;
-  --nl-danger: #cf222e;
-  --nl-danger-soft: #ffebe9;
-  --nl-warning: #9a6700;
-  --nl-logo-bg: linear-gradient(135deg, #1f1f23 0%, #3a3a42 100%);
-  --nl-logo-fg: #ffffff;
-}
-
-[data-nx-theme="dark"] .nx-login-body {
-  background: #0d1117;
-  --nl-bg: #0d1117;
-  --nl-card-bg: #161b22;
-  --nl-card-border: #30363d;
-  --nl-input-bg: #0d1117;
-  --nl-input-border: #30363d;
-  --nl-fg: #e6edf3;
-  --nl-fg-muted: #8d96a0;
-  --nl-fg-subtle: #7d8590;
-  --nl-fg-faint: #6e7681;
-  --nl-accent: #2f81f7;
-  --nl-success: #238636;
-  --nl-success-hover: #2ea043;
-  --nl-danger: #f85149;
-  --nl-danger-soft: #2d1014;
-  --nl-warning: #d29922;
-  --nl-logo-bg: linear-gradient(135deg, #c9d1d9 0%, #8b949e 100%);
-  --nl-logo-fg: #0d1117;
-}
-
-.nx-login-body {
+.nx-login-shell {
+  min-height: 100vh;
+  background: var(--nx-bg);
+  color: var(--nx-fg);
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  min-height: 100vh;
-  padding: 0;
-  color: var(--nl-fg);
   position: relative;
+  isolation: isolate;
+  overflow: hidden;
 }
 
-.nx-login-theme-toggle {
+/* Atmospheric layer: two soft accent blooms anchored to the corners.
+ * Stays out of the way of the card; gives the page depth without
+ * competing with the form. Strength scales up in dark mode because
+ * dark surfaces absorb low-opacity color. */
+.nx-login-shell::before {
+  content: '';
   position: absolute;
-  top: 16px;
-  right: 16px;
-  width: 32px;
-  height: 32px;
-  display: grid;
-  place-items: center;
-  border-radius: 6px;
-  background: transparent;
-  border: 1px solid transparent;
-  color: var(--nl-fg-muted);
-  cursor: pointer;
-  transition: background 80ms, color 80ms, border-color 80ms;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background:
+    radial-gradient(circle 720px at 92% -8%,
+      color-mix(in oklab, var(--nx-accent) 16%, transparent),
+      transparent 72%),
+    radial-gradient(circle 620px at -8% 108%,
+      color-mix(in oklab, var(--nx-accent) 10%, transparent),
+      transparent 72%);
 }
 
-.nx-login-theme-toggle:hover {
-  background: var(--nl-card-bg);
-  color: var(--nl-fg);
-  border-color: var(--nl-card-border);
+[data-nx-theme="dark"] .nx-login-shell::before {
+  background:
+    radial-gradient(circle 820px at 92% -8%,
+      color-mix(in oklab, var(--nx-accent) 28%, transparent),
+      transparent 72%),
+    radial-gradient(circle 720px at -8% 108%,
+      color-mix(in oklab, var(--nx-accent) 18%, transparent),
+      transparent 72%);
 }
 
-.nx-login-top {
-  padding: 40px 0 16px;
+/* Fine fractal grain — breaks up the gradient banding and adds
+ * paper-like texture. Multiply on light, screen on dark so it lifts
+ * rather than crushes the background. */
+.nx-login-shell::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.6 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity: 0.05;
+  mix-blend-mode: multiply;
+}
+
+[data-nx-theme="dark"] .nx-login-shell::after {
+  opacity: 0.10;
+  mix-blend-mode: screen;
+}
+
+.nx-login-topbar {
+  height: 56px;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.nx-login-main {
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-}
-
-.nx-login-logo {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  background: var(--nl-logo-bg);
-  color: var(--nl-logo-fg);
-  display: grid;
-  place-items: center;
-  font-weight: 700;
-  font-size: 22px;
-  letter-spacing: -0.02em;
-}
-
-.nx-login-h1 {
-  font-size: 22px;
-  font-weight: 300;
-  letter-spacing: -0.01em;
-  margin: 22px 0 0;
-  text-align: center;
-  color: var(--nl-fg);
+  justify-content: center;
+  padding: 24px 16px;
 }
 
 .nx-login-card {
-  width: 308px;
-  max-width: calc(100vw - 32px);
-  margin-top: 16px;
-  padding: 16px;
-  background: var(--nl-card-bg);
-  border: 1px solid var(--nl-card-border);
+  width: 100%;
+  max-width: 380px;
+  background: var(--nx-bg-elev);
+  border: 1px solid var(--nx-border);
   border-radius: 8px;
+  /* Sit the card against the atmospheric background. A faint accent
+   * tint in the lift shadow keeps the elevation tied to the bloom. */
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 18px 40px -12px color-mix(in oklab, var(--nx-accent) 22%, rgba(15, 18, 35, 0.10));
+}
+
+[data-nx-theme="dark"] .nx-login-card {
+  border-color: color-mix(in oklab, var(--nx-border) 75%, var(--nx-fg));
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.4),
+    0 24px 48px -16px color-mix(in oklab, var(--nx-accent) 35%, rgba(0, 0, 0, 0.6));
+}
+
+.nx-login-head {
+  padding: 32px 28px 8px;
+  text-align: center;
+}
+
+.nx-login-logo {
+  width: 44px;
+  height: 44px;
+  margin: 0 auto;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--nx-accent), var(--nx-accent-hover));
+  color: #ffffff;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 20px;
+  letter-spacing: -0.02em;
+}
+
+.nx-login-title {
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 16px 0 4px;
+  color: var(--nx-fg);
+}
+
+.nx-login-sub {
+  font-size: 13px;
+  color: var(--nx-fg-muted);
+  margin: 0;
+  line-height: 1.5;
 }
 
 .nx-login-form {
+  padding: 20px 28px 24px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
+}
+
+.nx-login-field-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
 }
 
 .nx-login-field {
   display: flex;
   flex-direction: column;
-  gap: 8px;
 }
 
-.nx-login-label-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+.nx-login-field > .nx-field-label {
+  display: block;
+  margin-bottom: 6px;
 }
 
-.nx-login-label {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--nl-fg);
-}
-
-.nx-login-label-link {
+.nx-login-helper {
   font-size: 12px;
-  color: var(--nl-accent);
-  text-decoration: none;
-  cursor: pointer;
-  background: none;
-  border: 0;
-  padding: 0;
-  font-family: inherit;
-}
-
-.nx-login-label-link:hover {
-  text-decoration: underline;
-}
-
-.nx-login-input-wrap {
-  display: flex;
-  align-items: center;
-  background: var(--nl-input-bg);
-  border: 1px solid var(--nl-input-border);
-  border-radius: 6px;
-  height: 32px;
-  transition: border-color 80ms, box-shadow 80ms;
-}
-
-.nx-login-input-wrap:focus-within {
-  border-color: var(--nl-accent);
-  box-shadow: 0 0 0 3px color-mix(in oklab, var(--nl-accent) 22%, transparent);
-}
-
-.nx-login-input-wrap.has-error {
-  border-color: var(--nl-danger);
-}
-
-.nx-login-input-wrap.has-error:focus-within {
-  box-shadow: 0 0 0 3px color-mix(in oklab, var(--nl-danger) 22%, transparent);
-}
-
-.nx-login-input {
-  flex: 1;
-  min-width: 0;
-  border: 0;
-  background: transparent;
-  outline: 0;
-  height: 100%;
-  padding: 0 10px;
-  font-size: 13px;
-  color: var(--nl-fg);
-  font-family: inherit;
-}
-
-.nx-login-input::placeholder { color: var(--nl-fg-faint); }
-
-.nx-login-pw-toggle {
-  background: transparent;
-  border: 0;
-  width: 32px;
-  height: 100%;
-  display: grid;
-  place-items: center;
-  color: var(--nl-fg-subtle);
-  cursor: pointer;
-  border-top-right-radius: 6px;
-  border-bottom-right-radius: 6px;
-}
-
-.nx-login-pw-toggle:hover {
-  color: var(--nl-fg);
-  background: var(--nl-card-bg);
-}
-
-.nx-login-submit {
-  height: 32px;
-  border-radius: 6px;
-  background: var(--nl-success);
-  border: 1px solid color-mix(in oklab, var(--nl-success) 80%, black);
-  color: white;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  font-family: inherit;
-  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.18);
-  transition: background 80ms, opacity 80ms;
+  color: var(--nx-fg-muted);
+  margin-top: 6px;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
+  gap: 6px;
 }
 
-.nx-login-submit:hover:not(:disabled) {
-  background: var(--nl-success-hover);
+.nx-login-helper.is-error {
+  color: var(--nx-danger);
 }
 
-.nx-login-submit:active:not(:disabled) {
-  background: color-mix(in oklab, var(--nl-success) 75%, black);
+.nx-login-link {
+  background: transparent;
+  border: 0;
+  color: var(--nx-accent);
+  cursor: pointer;
+  font-size: 12.5px;
+  font-family: inherit;
+  font-weight: 500;
+  padding: 0;
+  text-decoration: none;
 }
 
-.nx-login-submit:disabled {
-  opacity: 0.65;
-  cursor: not-allowed;
-}
+.nx-login-link:hover { text-decoration: underline; }
 
 .nx-login-error {
-  background: var(--nl-danger-soft);
-  border: 1px solid color-mix(in oklab, var(--nl-danger) 35%, transparent);
-  color: color-mix(in oklab, var(--nl-danger) 90%, var(--nl-fg));
-  padding: 10px 12px;
+  border: 1px solid color-mix(in oklab, var(--nx-danger) 35%, transparent);
+  background: var(--nx-danger-soft);
+  color: var(--nx-danger);
   border-radius: 6px;
-  font-size: 12.5px;
-  line-height: 1.45;
+  padding: 10px 12px;
+  font-size: 13px;
+  line-height: 1.5;
   display: flex;
-  gap: 8px;
+  gap: 10px;
   align-items: flex-start;
 }
 
@@ -260,118 +206,96 @@
   color: #ffb4b4;
 }
 
-.nx-login-error svg {
-  flex-shrink: 0;
-  margin-top: 2px;
-}
-
-.nx-login-caps {
-  font-size: 11.5px;
-  color: var(--nl-warning);
+/* Login-specific input wrap: same as .nx-input-wrap but taller for
+ * better readability on a primary entry surface. */
+.nx-login-input-wrap {
   display: flex;
-  gap: 5px;
   align-items: center;
-  margin-top: 2px;
+  gap: 8px;
+  height: 40px;
+  padding: 0 12px;
+  background: var(--nx-bg-elev);
+  border: 1px solid var(--nx-border-strong);
+  border-radius: 6px;
+  transition: border-color 80ms, box-shadow 80ms;
 }
 
-.nx-login-caps svg { flex-shrink: 0; }
-
-.nx-login-foot-card {
-  width: 360px;
-  max-width: calc(100vw - 32px);
-  margin-top: 16px;
-  padding: 14px 16px;
-  background: var(--nl-card-bg);
-  border: 1px solid var(--nl-card-border);
-  border-radius: 8px;
-  text-align: center;
-  font-size: 13px;
-  color: var(--nl-fg-muted);
+.nx-login-input-wrap:focus-within {
+  border-color: var(--nx-accent);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--nx-accent) 22%, transparent);
 }
 
-.nx-login-foot-card a,
-.nx-login-foot-card button {
-  color: var(--nl-accent);
-  text-decoration: none;
-  cursor: pointer;
-  background: none;
+.nx-login-input-wrap.has-error {
+  border-color: var(--nx-danger);
+}
+
+.nx-login-input-wrap.has-error:focus-within {
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--nx-danger) 22%, transparent);
+}
+
+.nx-login-input {
+  flex: 1;
+  min-width: 0;
   border: 0;
-  padding: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--nx-fg);
+  font-size: 14px;
   font-family: inherit;
-  font-size: inherit;
+  height: 100%;
 }
 
-.nx-login-foot-card a:hover,
-.nx-login-foot-card button:hover {
-  text-decoration: underline;
+.nx-login-input::placeholder { color: var(--nx-fg-faint); }
+
+.nx-login-pw-toggle {
+  background: transparent;
+  border: 0;
+  color: var(--nx-fg-muted);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
 }
+
+.nx-login-pw-toggle:hover { color: var(--nx-fg); }
+
+.nx-login-submit {
+  height: 40px;
+  width: 100%;
+  font-size: 14px;
+  margin-top: 4px;
+}
+
+.nx-login-meta {
+  margin: 16px 0 0;
+  font-size: 13px;
+  color: var(--nx-fg-muted);
+  text-align: center;
+}
+
+.nx-login-meta a {
+  color: var(--nx-accent);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.nx-login-meta a:hover { text-decoration: underline; }
 
 .nx-login-foot {
-  margin-top: auto;
-  padding: 24px 16px 32px;
-  width: 100%;
-  max-width: 720px;
-  display: flex;
-  justify-content: center;
-  gap: 18px;
-  flex-wrap: wrap;
+  padding: 20px 24px;
+  text-align: center;
   font-size: 12px;
-  color: var(--nl-fg-subtle);
+  color: var(--nx-fg-faint);
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
 }
 
 .nx-login-foot a {
-  color: var(--nl-fg-muted);
+  color: inherit;
   text-decoration: none;
-  cursor: pointer;
 }
 
-.nx-login-foot a:hover { color: var(--nl-accent); }
-
-/* Forgot screen */
-.nx-forgot-card {
-  width: 360px;
-  max-width: calc(100vw - 32px);
-  margin-top: 16px;
-  padding: 24px 20px 32px;
-  background: var(--nl-card-bg);
-  border: 1px solid var(--nl-card-border);
-  border-radius: 8px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-}
-
-.nx-forgot-card .nx-login-form { width: 100%; }
-
-.nx-forgot-intro {
-  font-size: 13px;
-  color: var(--nl-fg-muted);
-  margin: 0 0 14px;
-  line-height: 1.5;
-}
-
-.nx-forgot-success {
-  background: color-mix(in oklab, var(--nl-success) 18%, transparent);
-  border: 1px solid color-mix(in oklab, var(--nl-success) 35%, transparent);
-  color: color-mix(in oklab, var(--nl-success) 80%, var(--nl-fg));
-  padding: 12px 14px;
-  border-radius: 6px;
-  font-size: 13px;
-  line-height: 1.5;
-}
-
-[data-nx-theme="dark"] .nx-forgot-success { color: #b8f4cf; }
-
-.nx-login-spin {
-  width: 14px;
-  height: 14px;
-  border: 2px solid rgba(255, 255, 255, 0.4);
-  border-top-color: white;
-  border-radius: 50%;
-  animation: nx-login-spin 600ms linear infinite;
-  display: inline-block;
-  vertical-align: -2px;
-}
-
-@keyframes nx-login-spin { to { transform: rotate(360deg); } }
+.nx-login-foot a:hover { color: var(--nx-fg-muted); }

@@ -138,6 +138,25 @@ const refetch = useCallback(() => setTick(t => t + 1), []);
 3. **API integration**: Test with backend running on `localhost:5001`
 4. **Authentication**: Test login, logout, and protected routes
 
+## Build-before-push (mandatory)
+
+**Never `git push` from this repo without first running a build and confirming it succeeds.** Vercel reuses the same Next.js build pipeline; pushing a broken build wastes a CI cycle and may publish a degraded preview/production deployment.
+
+The required local sequence before any `git push`:
+
+1. `npx tsc --noEmit` — type-check must be clean (pre-existing tracked errors aside; do not introduce new ones).
+2. `npm run build` — the production Next.js build (`next build`) must complete with **exit code 0** and no compiler/static-analysis errors. Warnings are acceptable; errors are not.
+3. Only after both pass, run `git push`.
+
+If `npm run build` fails:
+- **Do not** push.
+- **Do not** push with `--no-verify` or any flag that bypasses the check.
+- Diagnose and fix the underlying cause (type error, missing import, broken route, ESLint rule, etc.). Re-run the sequence after the fix.
+
+If a build is too slow to run before every push and you're confident the diff is doc-only (e.g., editing a single Markdown file), `npx tsc --noEmit` alone is acceptable in lieu of the full `next build` — but the moment any `.ts`/`.tsx`/`.css`/`next.config.*`/route file changes, the full build is required again.
+
+This rule applies to **all branches**, including feature branches like `refactor/*` and `fix/*`. It's not a CI substitute; it's a precondition for asking CI to run at all.
+
 ## Common Tasks
 
 ### Add a new API endpoint
@@ -184,8 +203,29 @@ NEXT_PUBLIC_TOKEN_REFRESH_THRESHOLD_MS=300000
 - **Admin Email**: `admin@wodooh.com`
 - **Admin Password**: `Password123`
 
+## Design System
+
+The visual design system for every route — admin, role portals (student / instructor / chairman), authentication, onboarding, and marketing/splash — is **Nexus**, documented in [`DESIGN.md`](DESIGN.md). Treat that file as the canonical spec for tokens, components, and UI authoring rules. Do **not** keep a parallel design doc; if a rule belongs in the design system, update `DESIGN.md`.
+
+`DESIGN.md` follows the [Google Stitch `DESIGN.md` format](https://github.com/google-labs-code/design.md): a YAML front-matter block of design tokens (`colors`, `typography`, `rounded`, `spacing`, `components`) followed by Markdown sections in canonical order — **Overview, Colors, Typography, Layout, Elevation & Depth, Shapes, Components, Do's and Don'ts**. When adding or changing a design rule:
+
+1. Update the relevant front-matter token if it's a value (color, type scale, radius, spacing, component property).
+2. Update the matching prose section to explain the rule.
+3. Preserve the canonical section order — Stitch validators warn on out-of-order or duplicate headings.
+4. Token references use `{path.to.token}` (e.g. `{colors.primary}`); never embed hex literals in component definitions.
+
+Implementation files referenced by `DESIGN.md`:
+
+- `app/nexus.css` — the `--nx-*` token surface (light/dark via `[data-nx-theme]`, density via `[data-nx-density]`) and every `.nx-*` primitive.
+- `app/globals.css` — Tailwind imports, the role-aware `--accent` cascade (`body.<role>`), shadcn/ui base tokens, and a couple of transitional helpers used by the onboarding wizards.
+- `app/login/login.css` — the auth-shell variant (`--nl-*`), which mirrors `--nx-*` so login renders cold without the admin layout having booted.
+- `app/{admin,student,instructor,chairman}/layout.tsx` — the four role shells; each follows the `nx-shell` pattern from `DESIGN.md` §Layout.
+
+Design-related authoring rule: **no hex literals in `.tsx`** for new code. Always read values from `var(--nx-*)` or `var(--accent)`. The Bauhaus / Northfield utilities documented in earlier doc revisions (`.bauhaus-*`, `.font-nf-*`, `.dashboard-*`) have been removed from `globals.css`; re-introducing them is a regression.
+
 ## Documentation
 
+- [DESIGN.md](DESIGN.md) - **Canonical** design system (Nexus) in Google Stitch format
 - [API Integration Guide](docs/API_INTEGRATION.md) - Complete API usage examples
 - [README.md](README.md) - Project overview and setup instructions
 - Backend API documentation in `../wodooh-backend/`

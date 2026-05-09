@@ -26,18 +26,10 @@ export default function RootLayout({
           />
           <link
             rel="stylesheet"
-            href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;700;900&display=block"
-          />
-          <link
-            rel="stylesheet"
             href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;600;700&display=swap"
           />
-          <link
-            rel="stylesheet"
-            href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20,300,0,0&display=swap"
-          />
         </head>
-        <body className="antialiased bauhaus-dot-grid text-[#121212]">
+        <body className="antialiased">
           <RoleBodyClass />
           {children}
         </body>

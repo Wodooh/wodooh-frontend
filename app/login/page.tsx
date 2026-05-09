@@ -4,35 +4,37 @@ import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth/auth-provider";
 import type { LoginCredentials } from "@/lib/types/auth.types";
+import "../nexus.css";
 import "./login.css";
 
 type View = "signin" | "forgot";
 
 function dashboardPathForRole(role: string | undefined): string {
   switch (role) {
-    case "admin": return "/admin/dashboard";
+    case "admin":      return "/admin/dashboard";
     case "instructor": return "/instructor/dashboard";
-    case "chairman": return "/chairman/dashboard";
+    case "chairman":   return "/chairman/dashboard";
     case "student":
-    default: return "/student/dashboard";
+    default:           return "/student/dashboard";
   }
 }
 
 // ── Icons ────────────────────────────────────────────────
+
 const Icon = ({ size = 14, children }: { size?: number; children: React.ReactNode }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
     {children}
   </svg>
 );
 
-const Eye = ({ size = 15 }: { size?: number }) => (
+const Eye = ({ size = 16 }: { size?: number }) => (
   <Icon size={size}>
     <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" />
     <circle cx="12" cy="12" r="3" />
   </Icon>
 );
 
-const EyeOff = ({ size = 15 }: { size?: number }) => (
+const EyeOff = ({ size = 16 }: { size?: number }) => (
   <Icon size={size}>
     <path d="M3 3l18 18" />
     <path d="M10.6 10.6a2 2 0 0 0 2.8 2.8" />
@@ -40,42 +42,27 @@ const EyeOff = ({ size = 15 }: { size?: number }) => (
   </Icon>
 );
 
-const AlertTriangle = ({ size = 12 }: { size?: number }) => (
-  <Icon size={size}>
-    <path d="m12 3 10 18H2L12 3Z" />
-    <path d="M12 9v5" />
-    <circle cx="12" cy="17.5" r=".6" fill="currentColor" />
-  </Icon>
-);
-
-const AlertCircle = ({ size = 15 }: { size?: number }) => (
-  <Icon size={size}>
-    <circle cx="12" cy="12" r="9" />
-    <path d="M12 7v6" />
-    <circle cx="12" cy="16.5" r=".6" fill="currentColor" />
-  </Icon>
-);
-
-const ArrowLeft = ({ size = 12 }: { size?: number }) => (
-  <Icon size={size}>
-    <path d="M19 12H5M12 19l-7-7 7-7" />
-  </Icon>
-);
-
-const Sun = ({ size = 15 }: { size?: number }) => (
+const Sun = ({ size = 16 }: { size?: number }) => (
   <Icon size={size}>
     <circle cx="12" cy="12" r="4" />
     <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
   </Icon>
 );
 
-const Moon = ({ size = 15 }: { size?: number }) => (
+const Moon = ({ size = 16 }: { size?: number }) => (
   <Icon size={size}>
     <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z" />
   </Icon>
 );
 
-// ── Theme handling ──────────────────────────────────────
+const ArrowLeft = ({ size = 14 }: { size?: number }) => (
+  <Icon size={size}>
+    <path d="M19 12H5M12 19l-7-7 7-7" />
+  </Icon>
+);
+
+// ── Theme ───────────────────────────────────────────────
+
 function useTheme() {
   const [theme, setThemeState] = useState<"light" | "dark">("light");
 
@@ -86,8 +73,7 @@ function useTheme() {
       : window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
     setThemeState(resolved);
     document.documentElement.dataset.nxTheme = resolved;
-    document.body.classList.add("nx-login-body");
-    return () => { document.body.classList.remove("nx-login-body"); };
+    document.documentElement.dataset.nxDensity = "compact";
   }, []);
 
   const setTheme = (t: "light" | "dark") => {
@@ -99,7 +85,8 @@ function useTheme() {
   return { theme, setTheme };
 }
 
-// ── Sign in form ────────────────────────────────────────
+// ── Sign in ─────────────────────────────────────────────
+
 function SignInForm({ onForgot }: { onForgot: () => void }) {
   const router = useRouter();
   const { login } = useAuth();
@@ -138,15 +125,13 @@ function SignInForm({ onForgot }: { onForgot: () => void }) {
       };
       await login(credentials);
 
-      // Re-read user from localStorage / token after login.
-      // useAuth state updates are async; pull role from JWT directly to avoid a stale render.
       const token = localStorage.getItem("wodooh.token");
       let role: string | undefined;
       if (token) {
         try {
           const payload = JSON.parse(atob(token.split(".")[1]));
           role = payload.role;
-        } catch { /* fall through to default */ }
+        } catch { /* fall through */ }
       }
       router.replace(dashboardPathForRole(role));
     } catch (err: unknown) {
@@ -164,96 +149,89 @@ function SignInForm({ onForgot }: { onForgot: () => void }) {
   };
 
   return (
-    <>
-      <div className="nx-login-top">
+    <div className="nx-login-card">
+      <div className="nx-login-head">
         <div className="nx-login-logo">W</div>
-        <h1 className="nx-login-h1">Sign in to WODOOH</h1>
+        <h1 className="nx-login-title">Sign in to WODOOH</h1>
+        <p className="nx-login-sub">Use your institutional credentials</p>
       </div>
 
-      <form className="nx-login-card" onSubmit={submit} noValidate>
-        <div className="nx-login-form">
-          {error && (
-            <div className="nx-login-error" role="alert">
-              <AlertCircle size={15} />
-              <span>{error}</span>
-            </div>
+      <form className="nx-login-form" onSubmit={submit} noValidate>
+        {error && (
+          <div className="nx-login-error" role="alert">{error}</div>
+        )}
+
+        <div className="nx-login-field">
+          <label className="nx-field-label" htmlFor="email">Email</label>
+          <div className={`nx-login-input-wrap ${fieldErrors.email ? "has-error" : ""}`}>
+            <input
+              ref={emailRef}
+              id="email"
+              className="nx-login-input"
+              type="email"
+              autoComplete="username"
+              autoCapitalize="off"
+              autoCorrect="off"
+              spellCheck={false}
+              placeholder="name@university.edu"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </div>
+          {fieldErrors.email && (
+            <span className="nx-login-helper is-error">{fieldErrors.email}</span>
           )}
-
-          <div className="nx-login-field">
-            <span className="nx-login-label">Email address</span>
-            <div className={`nx-login-input-wrap ${fieldErrors.email ? "has-error" : ""}`}>
-              <input
-                ref={emailRef}
-                className="nx-login-input"
-                type="email"
-                autoComplete="username"
-                autoCapitalize="off"
-                autoCorrect="off"
-                spellCheck={false}
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-            {fieldErrors.email && (
-              <span className="nx-login-caps" style={{ color: "var(--nl-danger)" }}>
-                <AlertCircle size={11} />{fieldErrors.email}
-              </span>
-            )}
-          </div>
-
-          <div className="nx-login-field">
-            <div className="nx-login-label-row">
-              <span className="nx-login-label">Password</span>
-              <button type="button" className="nx-login-label-link" onClick={onForgot}>
-                Forgot password?
-              </button>
-            </div>
-            <div className={`nx-login-input-wrap ${fieldErrors.pw ? "has-error" : ""}`}>
-              <input
-                className="nx-login-input"
-                type={showPw ? "text" : "password"}
-                autoComplete="current-password"
-                value={pw}
-                onChange={(e) => setPw(e.target.value)}
-                onKeyDown={onPwKey}
-                onKeyUp={onPwKey}
-              />
-              <button
-                type="button"
-                className="nx-login-pw-toggle"
-                onClick={() => setShowPw((v) => !v)}
-                tabIndex={-1}
-                aria-label={showPw ? "Hide password" : "Show password"}
-              >
-                {showPw ? <EyeOff size={15} /> : <Eye size={15} />}
-              </button>
-            </div>
-            {caps && (
-              <div className="nx-login-caps">
-                <AlertTriangle size={12} /> Caps Lock is on.
-              </div>
-            )}
-            {fieldErrors.pw && (
-              <span className="nx-login-caps" style={{ color: "var(--nl-danger)" }}>
-                <AlertCircle size={11} />{fieldErrors.pw}
-              </span>
-            )}
-          </div>
-
-          <button type="submit" className="nx-login-submit" disabled={loading}>
-            {loading ? (<><span className="nx-login-spin" /> Signing in…</>) : "Sign in"}
-          </button>
         </div>
-      </form>
 
-      <div className="nx-login-foot-card">
-        New to WODOOH? <a href="/onboarding">Create an account</a>
-      </div>
-    </>
+        <div className="nx-login-field">
+          <div className="nx-login-field-row">
+            <label className="nx-field-label" htmlFor="password">Password</label>
+            <button type="button" className="nx-login-link" onClick={onForgot}>
+              Forgot password?
+            </button>
+          </div>
+          <div className={`nx-login-input-wrap ${fieldErrors.pw ? "has-error" : ""}`}>
+            <input
+              id="password"
+              className="nx-login-input"
+              type={showPw ? "text" : "password"}
+              autoComplete="current-password"
+              placeholder="••••••••"
+              value={pw}
+              onChange={(e) => setPw(e.target.value)}
+              onKeyDown={onPwKey}
+              onKeyUp={onPwKey}
+            />
+            <button
+              type="button"
+              className="nx-login-pw-toggle"
+              onClick={() => setShowPw((v) => !v)}
+              tabIndex={-1}
+              aria-label={showPw ? "Hide password" : "Show password"}
+            >
+              {showPw ? <EyeOff /> : <Eye />}
+            </button>
+          </div>
+          {caps && <span className="nx-login-helper">Caps Lock is on</span>}
+          {fieldErrors.pw && (
+            <span className="nx-login-helper is-error">{fieldErrors.pw}</span>
+          )}
+        </div>
+
+        <button
+          type="submit"
+          className="nx-btn nx-btn-primary nx-login-submit"
+          disabled={loading}
+        >
+          {loading ? <><span className="nx-spin" /> Signing in…</> : "Sign in"}
+        </button>
+      </form>
+    </div>
   );
 }
 
-// ── Forgot password screen ─────────────────────────────
+// ── Forgot password ─────────────────────────────────────
+
 function ForgotForm({ onBack }: { onBack: () => void }) {
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
@@ -268,66 +246,85 @@ function ForgotForm({ onBack }: { onBack: () => void }) {
       return;
     }
     setLoading(true);
-    // No backend endpoint yet — surface generic success to avoid email enumeration.
     await new Promise((r) => setTimeout(r, 600));
     setLoading(false);
     setSent(true);
   };
 
   return (
-    <>
-      <div className="nx-login-top">
+    <div className="nx-login-card">
+      <div className="nx-login-head">
         <div className="nx-login-logo">W</div>
-        <h1 className="nx-login-h1">Reset your password</h1>
+        <h1 className="nx-login-title">Reset your password</h1>
+        <p className="nx-login-sub">
+          {sent
+            ? "Check your inbox for the reset link."
+            : "Enter your email and we’ll send you a reset link."}
+        </p>
       </div>
 
-      <form className="nx-forgot-card" onSubmit={submit} noValidate>
-        {sent ? (
-          <div className="nx-forgot-success">
-            If an account exists for <strong>{email}</strong>, a password-reset link has been sent. Check your inbox.
+      {sent ? (
+        <div className="nx-login-form">
+          <div className="nx-login-error" role="status" style={{
+            borderColor: "color-mix(in oklab, var(--nx-success) 35%, transparent)",
+            background: "var(--nx-success-soft)",
+            color: "var(--nx-success)",
+          }}>
+            If an account exists for <strong>{email}</strong>, a password-reset link has been sent.
           </div>
-        ) : (
-          <>
-            <p className="nx-forgot-intro">
-              Enter the email address associated with your account, and we&apos;ll email you a link to reset your password.
-            </p>
-            <div className="nx-login-form">
-              {error && (
-                <div className="nx-login-error" role="alert">
-                  <AlertCircle size={15} />
-                  <span>{error}</span>
-                </div>
-              )}
-              <div className="nx-login-field">
-                <span className="nx-login-label">Email address</span>
-                <div className="nx-login-input-wrap">
-                  <input
-                    className="nx-login-input"
-                    type="email"
-                    autoFocus
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
-                </div>
-              </div>
-              <button type="submit" className="nx-login-submit" disabled={loading}>
-                {loading ? (<><span className="nx-login-spin" /> Sending…</>) : "Send password reset email"}
-              </button>
-            </div>
-          </>
-        )}
-      </form>
+          <button
+            type="button"
+            className="nx-btn nx-btn-ghost nx-login-submit"
+            onClick={onBack}
+            style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}
+          >
+            <ArrowLeft /> Back to sign in
+          </button>
+        </div>
+      ) : (
+        <form className="nx-login-form" onSubmit={submit} noValidate>
+          {error && <div className="nx-login-error" role="alert">{error}</div>}
 
-      <div className="nx-login-foot-card">
-        <button onClick={onBack} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-          <ArrowLeft size={12} /> Back to sign in
-        </button>
-      </div>
-    </>
+          <div className="nx-login-field">
+            <label className="nx-field-label" htmlFor="reset-email">Email</label>
+            <div className="nx-login-input-wrap">
+              <input
+                id="reset-email"
+                className="nx-login-input"
+                type="email"
+                autoFocus
+                autoComplete="email"
+                placeholder="name@university.edu"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            className="nx-btn nx-btn-primary nx-login-submit"
+            disabled={loading}
+          >
+            {loading ? <><span className="nx-spin" /> Sending…</> : "Send reset link"}
+          </button>
+
+          <button
+            type="button"
+            className="nx-login-link"
+            onClick={onBack}
+            style={{ alignSelf: "center", display: "inline-flex", alignItems: "center", gap: 6, marginTop: 4 }}
+          >
+            <ArrowLeft /> Back to sign in
+          </button>
+        </form>
+      )}
+    </div>
   );
 }
 
 // ── Page ───────────────────────────────────────────────
+
 export default function LoginPage() {
   const router = useRouter();
   const { isAuthenticated, user, loading: authLoading } = useAuth();
@@ -342,34 +339,45 @@ export default function LoginPage() {
 
   if (authLoading) {
     return (
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh" }}>
-        <span className="nx-login-spin" style={{ borderTopColor: "currentColor", color: "#888" }} />
-      </div>
+      <main className="nx-login-shell">
+        <div className="nx-login-main">
+          <span className="nx-spin" />
+        </div>
+      </main>
     );
   }
   if (isAuthenticated) return null;
 
   return (
-    <>
-      <button
-        className="nx-login-theme-toggle"
-        title="Toggle theme"
-        aria-label="Toggle theme"
-        onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-      >
-        {theme === "dark" ? <Moon size={15} /> : <Sun size={15} />}
-      </button>
+    <main className="nx-login-shell">
+      <div className="nx-login-topbar">
+        <button
+          className="nx-icon-btn"
+          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+          aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
+          title="Toggle theme"
+        >
+          {theme === "dark" ? <Sun /> : <Moon />}
+        </button>
+      </div>
 
-      {view === "signin"
-        ? <SignInForm onForgot={() => setView("forgot")} />
-        : <ForgotForm onBack={() => setView("signin")} />}
+      <div className="nx-login-main">
+        {view === "signin"
+          ? <SignInForm onForgot={() => setView("forgot")} />
+          : <ForgotForm onBack={() => setView("signin")} />}
 
-      <div className="nx-login-foot">
+        {view === "signin" && (
+          <p className="nx-login-meta">
+            New to WODOOH? <a href="/onboarding">Create an account</a>
+          </p>
+        )}
+      </div>
+
+      <footer className="nx-login-foot">
         <a href="#">Terms</a>
         <a href="#">Privacy</a>
-        <a href="#">Security</a>
-        <a href="#">Contact support</a>
-      </div>
-    </>
+        <a href="#">Support</a>
+      </footer>
+    </main>
   );
 }

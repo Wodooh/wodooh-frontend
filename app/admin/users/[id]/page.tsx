@@ -24,30 +24,22 @@ import { USER_ROLES, type UserRole } from "@/lib/types/user-doc.types";
 // Bauhaus design tokens. Role badge colors per spec.
 // -------------------------------------------------------------------------
 const ROLE_BADGE_CLASS: Record<UserRole, string> = {
-  admin:
-    "border-2 border-[#121212] text-[#121212] uppercase font-bold text-[10px] tracking-wider px-2 py-0.5",
-  instructor:
-    "border-2 bg-[#F0C020] border-[#F0C020] text-[#121212] uppercase font-bold text-[10px] tracking-wider px-2 py-0.5",
-  student:
-    "border-2 border-[#1040C0] text-[#1040C0] uppercase font-bold text-[10px] tracking-wider px-2 py-0.5",
-  chairman:
-    "border-2 border-[#D02020] text-[#D02020] uppercase font-bold text-[10px] tracking-wider px-2 py-0.5",
+  admin:      "nx-badge nx-role-admin",
+  instructor: "nx-badge nx-role-instructor",
+  student:    "nx-badge nx-role-student",
+  chairman:   "nx-badge nx-role-chairman",
 };
 
 const BH_INPUT_CLASS =
-  "border-b-4 border-[#121212] bg-transparent px-3 py-2 text-sm w-full focus-visible:bg-[#F0F0F0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#121212] focus-visible:ring-offset-2 transition-colors duration-200 min-h-[44px]";
+  "w-full px-3 py-2 text-sm bg-[var(--nx-bg-elev)] text-[var(--nx-fg)] border border-[var(--nx-border-strong)] rounded-md focus-visible:outline-none focus-visible:border-[var(--nx-accent)] disabled:opacity-50 transition-colors duration-150";
 
-const BH_PRIMARY_BTN =
-  "bg-[#121212] text-white border-4 border-[#121212] shadow-[4px_4px_0px_0px_#505050] hover:-translate-x-0.5 uppercase font-black tracking-widest text-xs px-6 py-3 transition-all duration-200 min-h-[44px] min-w-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#121212] focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed";
+const BH_PRIMARY_BTN = "nx-btn nx-btn-primary";
 
-const BH_OUTLINE_BTN =
-  "border-4 border-[#121212] text-[#121212] uppercase font-black tracking-widest text-xs px-6 py-3 hover:bg-[#121212] hover:text-white transition-all duration-200 min-h-[44px] min-w-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#121212] focus-visible:ring-offset-2";
+const BH_OUTLINE_BTN = "nx-btn nx-btn-ghost";
 
-const BH_DESTRUCTIVE_BTN =
-  "bg-[#D02020] text-white border-4 border-[#D02020] shadow-[4px_4px_0px_0px_#A81010] uppercase font-black tracking-widest text-xs px-6 py-3 hover:opacity-90 transition-all duration-200 min-h-[44px] min-w-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D02020] focus-visible:ring-offset-2";
+const BH_DESTRUCTIVE_BTN = "nx-btn nx-btn-danger";
 
-const BH_GHOST_TAB =
-  "text-xs uppercase tracking-widest font-bold px-4 py-2 transition-colors duration-200 min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#121212] focus-visible:ring-offset-2";
+const BH_GHOST_TAB = "nx-tab";
 
 function formatTimestamp(ts: string | null | undefined): string {
   if (!ts) return "—";
@@ -100,14 +92,14 @@ export default function UserDetailPage() {
   if (loading) {
     return (
       <section
-        className="py-16 flex flex-col gap-4 bg-[#F0F0F0]"
+        className="py-16 flex flex-col gap-4 bg-[var(--nx-bg-sub)]"
         aria-busy="true"
       >
-        <div className="border-4 border-[#121212] shadow-[8px_8px_0px_0px_#121212] p-8 max-w-sm bg-white">
-          <p className="uppercase tracking-widest text-[10px] font-bold text-[#808080] mb-2">
+        <div className="border border-[var(--nx-border)] p-8 max-w-sm bg-white">
+          <p className="uppercase  text-[10px] font-bold text-[var(--nx-fg-muted)] mb-2">
             Please wait
           </p>
-          <p className="text-4xl font-black uppercase tracking-tight text-[#121212]">
+          <p className="text-4xl font-semibold uppercase  text-[var(--nx-fg)]">
             Loading…
           </p>
         </div>
@@ -117,18 +109,18 @@ export default function UserDetailPage() {
 
   if (error) {
     return (
-      <section className="py-16 flex flex-col gap-4 bg-[#F0F0F0]">
+      <section className="py-16 flex flex-col gap-4 bg-[var(--nx-bg-sub)]">
         <div
           role="alert"
-          className="border-4 border-[#D02020] shadow-[8px_8px_0px_0px_#D02020] bg-white p-8 max-w-sm"
+          className="border border-[var(--nx-danger)] bg-white p-8 max-w-sm"
         >
-          <p className="uppercase tracking-widest text-[10px] font-bold text-[#D02020] mb-2">
+          <p className="uppercase  text-[10px] font-bold text-[var(--nx-danger)] mb-2">
             Error
           </p>
-          <p className="text-4xl font-black uppercase tracking-tight text-[#D02020] mb-3">
+          <p className="text-4xl font-semibold uppercase  text-[var(--nx-danger)] mb-3">
             Load Failed.
           </p>
-          <p className="text-sm font-semibold text-[#D02020]">{error}</p>
+          <p className="text-sm font-semibold text-[var(--nx-danger)]">{error}</p>
         </div>
       </section>
     );
@@ -136,12 +128,12 @@ export default function UserDetailPage() {
 
   if (!user || !uid) {
     return (
-      <section className="py-16 flex flex-col gap-4 bg-[#F0F0F0]">
-        <div className="border-4 border-[#121212] shadow-[8px_8px_0px_0px_#121212] bg-white p-8 max-w-sm">
-          <p className="uppercase tracking-widest text-[10px] font-bold text-[#808080] mb-2">
+      <section className="py-16 flex flex-col gap-4 bg-[var(--nx-bg-sub)]">
+        <div className="border border-[var(--nx-border)] bg-white p-8 max-w-sm">
+          <p className="uppercase  text-[10px] font-bold text-[var(--nx-fg-muted)] mb-2">
             404 · Not Found
           </p>
-          <p className="text-4xl font-black uppercase tracking-tight text-[#121212]">
+          <p className="text-4xl font-semibold uppercase  text-[var(--nx-fg)]">
             No user record matches this ID.
           </p>
         </div>
@@ -226,19 +218,19 @@ export default function UserDetailPage() {
   const fieldValues = form.watch();
 
   return (
-    <section className="min-h-screen bg-[#F0F0F0]">
+    <section className="min-h-screen bg-[var(--nx-bg-sub)]">
       {/* Running metadata */}
-      <p className="text-[10px] text-[#808080] mb-4 uppercase tracking-widest font-bold">
+      <p className="text-[10px] text-[var(--nx-fg-muted)] mb-4 uppercase  font-bold">
         Wodooh · Admin Portal · User Record · Generated: {todayLabel()}
       </p>
 
       {/* Breadcrumb */}
       <nav aria-label="Breadcrumb" className="mb-6">
-        <ol className="flex flex-wrap items-center gap-2 uppercase tracking-widest text-xs font-bold text-[#808080]">
+        <ol className="flex flex-wrap items-center gap-2 uppercase  text-xs font-bold text-[var(--nx-fg-muted)]">
           <li>
             <a
               href="/admin"
-              className="hover:text-[#121212] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#121212] focus-visible:ring-offset-2"
+              className="hover:text-[var(--nx-fg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nx-fg)] focus-visible:ring-offset-2"
             >
               Admin
             </a>
@@ -247,67 +239,58 @@ export default function UserDetailPage() {
           <li>
             <a
               href="/admin/users"
-              className="hover:text-[#121212] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#121212] focus-visible:ring-offset-2"
+              className="hover:text-[var(--nx-fg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nx-fg)] focus-visible:ring-offset-2"
             >
               Users
             </a>
           </li>
           <li aria-hidden="true">&gt;</li>
-          <li className="text-[#121212] break-all" aria-current="page">
+          <li className="text-[var(--nx-fg)] break-all" aria-current="page">
             {user.uid}
           </li>
         </ol>
       </nav>
 
       {/* Title block */}
-      <header className="border-b-4 border-[#121212] pb-6 mb-8 flex flex-col gap-3">
-        <h1 className="text-5xl font-black uppercase tracking-tight text-[#121212]">
+      <header className="border-b border-[var(--nx-border)] pb-6 mb-8 flex flex-col gap-3">
+        <h1 className="text-5xl font-semibold uppercase  text-[var(--nx-fg)]">
           {user.displayName}
         </h1>
-        <p className="text-sm font-semibold text-[#121212]">{user.email}</p>
+        <p className="text-sm font-semibold text-[var(--nx-fg)]">{user.email}</p>
         <div className="flex flex-wrap items-center gap-3">
           <span className={ROLE_BADGE_CLASS[user.role]}>{user.role}</span>
           {user.active ? (
             <span
               role="status"
-              className="border-2 border-[#121212] text-[#121212] bg-[#F0C020] uppercase font-bold text-[10px] tracking-wider px-2 py-0.5"
+              className="border-2 border-[var(--nx-border)] text-[var(--nx-fg)] bg-[var(--nx-warning)] uppercase font-bold text-[10px]  px-2 py-0.5"
             >
               Active
             </span>
           ) : (
             <span
               role="status"
-              className="border-2 border-[#D02020] text-[#D02020] uppercase font-bold text-[10px] tracking-wider px-2 py-0.5"
+              className="border-2 border-[var(--nx-danger)] text-[var(--nx-danger)] uppercase font-bold text-[10px]  px-2 py-0.5"
             >
               Inactive
             </span>
           )}
           {user.isSeed && (
-            <span className="border-2 border-[#121212] text-[#121212] uppercase font-bold text-[10px] tracking-wider px-2 py-0.5">
+            <span className="border-2 border-[var(--nx-border)] text-[var(--nx-fg)] uppercase font-bold text-[10px]  px-2 py-0.5">
               Seed Account
             </span>
           )}
         </div>
       </header>
 
-      {/* Tabs */}
-      <div
-        role="tablist"
-        aria-label="User detail views"
-        className="flex border-b-4 border-[#121212] mb-6"
-      >
+      <div role="tablist" aria-label="User detail views" className="nx-tabs">
         <button
           role="tab"
           aria-selected={tab === "edit"}
           aria-controls="panel-edit"
           id="tab-edit"
           onClick={() => setTab("edit")}
-          style={{ borderRadius: 0 }}
-          className={`${BH_GHOST_TAB} ${
-            tab === "edit"
-              ? "bg-[#121212] text-white"
-              : "text-[#121212] hover:bg-[#E0E0E0]"
-          }`}
+          className="nx-tab"
+          data-active={tab === "edit"}
         >
           Edit
         </button>
@@ -317,12 +300,8 @@ export default function UserDetailPage() {
           aria-controls="panel-raw"
           id="tab-raw"
           onClick={() => setTab("raw")}
-          style={{ borderRadius: 0 }}
-          className={`${BH_GHOST_TAB} ${
-            tab === "raw"
-              ? "bg-[#121212] text-white"
-              : "text-[#121212] hover:bg-[#E0E0E0]"
-          }`}
+          className="nx-tab"
+          data-active={tab === "raw"}
         >
           Raw JSON
         </button>
@@ -338,25 +317,25 @@ export default function UserDetailPage() {
         >
           {/* Identity panel */}
           <aside
-            className="bg-white border-4 border-[#121212] shadow-[8px_8px_0px_0px_#121212] p-6 flex flex-col gap-4"
+            className="bg-white border border-[var(--nx-border)] p-6 flex flex-col gap-4"
             aria-label="Identity"
           >
-            <h2 className="text-2xl lg:text-3xl font-black uppercase tracking-tight text-[#121212]">
+            <h2 className="text-2xl lg:text-3xl font-semibold uppercase  text-[var(--nx-fg)]">
               Identity
             </h2>
 
             <div className="flex items-center gap-4">
               <div
                 aria-hidden="true"
-                className="academic-texture bg-[#121212] text-white border-4 border-[#121212] w-20 h-20 flex items-center justify-center font-black text-3xl uppercase shrink-0"
+                className="academic-texture bg-[var(--nx-fg)] text-white border border-[var(--nx-border)] w-20 h-20 flex items-center justify-center font-semibold text-3xl uppercase shrink-0"
               >
                 {initials || "?"}
               </div>
               <div className="flex flex-col gap-1">
-                <p className="uppercase tracking-widest text-[10px] font-bold text-[#808080]">
+                <p className="uppercase  text-[10px] font-bold text-[var(--nx-fg-muted)]">
                   Display Name
                 </p>
-                <p className="text-base font-semibold text-[#121212]">
+                <p className="text-base font-semibold text-[var(--nx-fg)]">
                   {user.displayName}
                 </p>
               </div>
@@ -379,11 +358,11 @@ export default function UserDetailPage() {
                 value={user.active ? "Active" : "Inactive"}
                 renderValue={() =>
                   user.active ? (
-                    <span className="border-2 border-[#121212] text-[#121212] bg-[#F0C020] uppercase font-bold text-[10px] tracking-wider px-2 py-0.5">
+                    <span className="border-2 border-[var(--nx-border)] text-[var(--nx-fg)] bg-[var(--nx-warning)] uppercase font-bold text-[10px]  px-2 py-0.5">
                       Active
                     </span>
                   ) : (
-                    <span className="border-2 border-[#D02020] text-[#D02020] uppercase font-bold text-[10px] tracking-wider px-2 py-0.5">
+                    <span className="border-2 border-[var(--nx-danger)] text-[var(--nx-danger)] uppercase font-bold text-[10px]  px-2 py-0.5">
                       Inactive
                     </span>
                   )
@@ -424,10 +403,10 @@ export default function UserDetailPage() {
 
           {/* Action / details panel */}
           <div
-            className="bg-white border-4 border-[#121212] shadow-[8px_8px_0px_0px_#121212] p-6 flex flex-col gap-6"
+            className="bg-white border border-[var(--nx-border)] p-6 flex flex-col gap-6"
             aria-label="Edit and actions"
           >
-            <h2 className="text-2xl lg:text-3xl font-black uppercase tracking-tight text-[#121212]">
+            <h2 className="text-2xl lg:text-3xl font-semibold uppercase  text-[var(--nx-fg)]">
               Edit Record
             </h2>
 
@@ -439,14 +418,14 @@ export default function UserDetailPage() {
               <div>
                 <label
                   htmlFor="user-email"
-                  className="uppercase tracking-widest text-[10px] font-bold text-[#808080] block mb-1"
+                  className="uppercase  text-[10px] font-bold text-[var(--nx-fg-muted)] block mb-1"
                 >
                   Email
                 </label>
                 <input
                   id="user-email"
                   type="email"
-                  style={{ borderRadius: 0 }}
+                  style={{ }}
                   className={BH_INPUT_CLASS}
                   aria-invalid={!!errors.email}
                   aria-describedby={errors.email ? "user-email-error" : undefined}
@@ -456,7 +435,7 @@ export default function UserDetailPage() {
                   <p
                     id="user-email-error"
                     role="alert"
-                    className="text-xs font-semibold text-[#D02020] mt-1"
+                    className="text-xs font-semibold text-[var(--nx-danger)] mt-1"
                   >
                     {errors.email.message}
                   </p>
@@ -466,14 +445,14 @@ export default function UserDetailPage() {
               <div>
                 <label
                   htmlFor="user-displayName"
-                  className="uppercase tracking-widest text-[10px] font-bold text-[#808080] block mb-1"
+                  className="uppercase  text-[10px] font-bold text-[var(--nx-fg-muted)] block mb-1"
                 >
                   Display Name
                 </label>
                 <input
                   id="user-displayName"
                   type="text"
-                  style={{ borderRadius: 0 }}
+                  style={{ }}
                   className={BH_INPUT_CLASS}
                   aria-invalid={!!errors.displayName}
                   aria-describedby={
@@ -485,7 +464,7 @@ export default function UserDetailPage() {
                   <p
                     id="user-displayName-error"
                     role="alert"
-                    className="text-xs font-semibold text-[#D02020] mt-1"
+                    className="text-xs font-semibold text-[var(--nx-danger)] mt-1"
                   >
                     {errors.displayName.message}
                   </p>
@@ -495,15 +474,15 @@ export default function UserDetailPage() {
               <div>
                 <label
                   htmlFor="user-role"
-                  className="uppercase tracking-widest text-[10px] font-bold text-[#808080] block mb-1"
+                  className="uppercase  text-[10px] font-bold text-[var(--nx-fg-muted)] block mb-1"
                 >
                   Role
                 </label>
                 <div className="relative">
                   <select
                     id="user-role"
-                    style={{ borderRadius: 0 }}
-                    className="border-4 border-[#D0D0D0] bg-[#F0F0F0] focus:border-[#121212] uppercase font-bold appearance-none cursor-pointer pr-8 px-3 py-2 text-sm w-full focus-visible:outline-none min-h-[44px] transition-colors duration-200"
+                    style={{ }}
+                    className="border border-[var(--nx-border-strong)] bg-[var(--nx-bg-sub)] focus:border-[var(--nx-border)] uppercase font-bold appearance-none cursor-pointer pr-8 px-3 py-2 text-sm w-full focus-visible:outline-none min-h-[44px] transition-colors duration-200"
                     aria-invalid={!!errors.role}
                     aria-describedby={errors.role ? "user-role-error" : undefined}
                     {...form.register("role")}
@@ -516,7 +495,7 @@ export default function UserDetailPage() {
                   </select>
                   <span
                     aria-hidden="true"
-                    className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#808080] font-bold"
+                    className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[var(--nx-fg-muted)] font-bold"
                   >
                     ▾
                   </span>
@@ -525,22 +504,22 @@ export default function UserDetailPage() {
                   <p
                     id="user-role-error"
                     role="alert"
-                    className="text-xs font-semibold text-[#D02020] mt-1"
+                    className="text-xs font-semibold text-[var(--nx-danger)] mt-1"
                   >
                     {errors.role.message}
                   </p>
                 )}
               </div>
 
-              <div className="border-4 border-[#121212] p-4 flex items-start justify-between gap-4">
+              <div className="border border-[var(--nx-border)] p-4 flex items-start justify-between gap-4">
                 <div className="flex flex-col gap-1">
                   <label
                     htmlFor="user-active"
-                    className="uppercase tracking-widest text-[10px] font-bold text-[#121212]"
+                    className="uppercase  text-[10px] font-bold text-[var(--nx-fg)]"
                   >
                     Active
                   </label>
-                  <p className="text-xs font-semibold text-[#808080] leading-relaxed max-w-xs">
+                  <p className="text-xs font-semibold text-[var(--nx-fg-muted)] leading-relaxed max-w-xs">
                     Toggling off soft-deletes the user (sets deletedAt and
                     disables Auth login).
                   </p>
@@ -548,8 +527,8 @@ export default function UserDetailPage() {
                 <input
                   id="user-active"
                   type="checkbox"
-                  className="w-6 h-6 accent-[#121212] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#121212] focus-visible:ring-offset-2 min-h-[44px]"
-                  style={{ borderRadius: 0 }}
+                  className="w-6 h-6 accent-[var(--nx-fg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nx-fg)] focus-visible:ring-offset-2 min-h-[44px]"
+                  style={{ }}
                   checked={!!fieldValues.active}
                   onChange={(e) =>
                     form.setValue("active", e.target.checked, {
@@ -559,11 +538,11 @@ export default function UserDetailPage() {
                 />
               </div>
 
-              <div className="flex gap-3 pt-2 border-t-4 border-[#121212]">
+              <div className="flex gap-3 pt-2 border-t border-[var(--nx-border)]">
                 <button
                   type="submit"
                   disabled={saving}
-                  style={{ borderRadius: 0 }}
+                  style={{ }}
                   className={BH_PRIMARY_BTN}
                 >
                   {saving ? "Saving…" : "Save Changes"}
@@ -572,15 +551,15 @@ export default function UserDetailPage() {
             </form>
 
             {/* Account actions */}
-            <div className="border-t-4 border-[#121212] pt-6 flex flex-col gap-4">
-              <h3 className="text-lg lg:text-xl font-black uppercase tracking-tight text-[#121212]">
+            <div className="border-t border-[var(--nx-border)] pt-6 flex flex-col gap-4">
+              <h3 className="text-lg lg:text-xl font-semibold uppercase  text-[var(--nx-fg)]">
                 Account Actions
               </h3>
               <div className="flex flex-wrap gap-3">
                 <button
                   type="button"
                   onClick={handleResetPassword}
-                  style={{ borderRadius: 0 }}
+                  style={{ }}
                   className={BH_OUTLINE_BTN}
                 >
                   Send Password Reset
@@ -589,7 +568,7 @@ export default function UserDetailPage() {
                   <button
                     type="button"
                     onClick={() => setConfirmDelete(true)}
-                    style={{ borderRadius: 0 }}
+                    style={{ }}
                     className={BH_DESTRUCTIVE_BTN}
                     aria-haspopup="dialog"
                   >
@@ -602,7 +581,7 @@ export default function UserDetailPage() {
                   <button
                     type="button"
                     onClick={() => setConfirmPermanent(true)}
-                    style={{ borderRadius: 0 }}
+                    style={{ }}
                     className={BH_DESTRUCTIVE_BTN}
                     aria-haspopup="dialog"
                   >
@@ -621,22 +600,22 @@ export default function UserDetailPage() {
           id="panel-raw"
           role="tabpanel"
           aria-labelledby="tab-raw"
-          className="bg-white border-4 border-[#121212] shadow-[8px_8px_0px_0px_#121212] p-6 flex flex-col gap-4"
+          className="bg-white border border-[var(--nx-border)] p-6 flex flex-col gap-4"
         >
-          <p className="uppercase tracking-widest text-[10px] font-bold text-[#808080]">
+          <p className="uppercase  text-[10px] font-bold text-[var(--nx-fg-muted)]">
             Firestore Document · Raw
           </p>
-          <p className="text-sm font-semibold text-[#121212] leading-relaxed">
+          <p className="text-sm font-semibold text-[var(--nx-fg)] leading-relaxed">
             The Firestore document as it actually is. Use this when the form
             abstraction lies and you need to see what&apos;s on disk.
           </p>
-          <pre className="text-xs bg-[#121212] text-white p-6 overflow-auto border-4 border-[#121212]">
+          <pre className="text-xs bg-[var(--nx-fg)] text-white p-6 overflow-auto border border-[var(--nx-border)]">
             {JSON.stringify(user, null, 2)}
           </pre>
           <div>
             <button
               type="button"
-              style={{ borderRadius: 0 }}
+              style={{ }}
               className={BH_OUTLINE_BTN}
               onClick={() => {
                 navigator.clipboard.writeText(JSON.stringify(user, null, 2));
@@ -692,14 +671,14 @@ function FieldRow({
   return (
     <div
       className={`flex items-center justify-between gap-4 py-3 ${
-        last ? "" : "border-b-2 border-[#E0E0E0]"
+        last ? "" : "border-b-2 border-[var(--nx-bg-hover)]"
       }`}
     >
-      <dt className="uppercase tracking-widest text-[10px] font-bold text-[#808080] shrink-0">
+      <dt className="uppercase  text-[10px] font-bold text-[var(--nx-fg-muted)] shrink-0">
         {label}
       </dt>
       <dd
-        className={`text-right text-base font-semibold text-[#121212] break-all ${
+        className={`text-right text-base font-semibold text-[var(--nx-fg)] break-all ${
           mono ? "font-mono" : ""
         }`}
       >

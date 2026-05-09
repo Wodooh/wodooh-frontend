@@ -15,6 +15,7 @@ import {
   isValidStudentId,
   trackOnboardingEvent,
 } from "@/services/onboardingService";
+import "../nexus.css";
 
 // ─── Steps ────────────────────────────────────────────────────
 const STEPS = [
@@ -23,49 +24,57 @@ const STEPS = [
   { id: 3, label: "Confirm" },
 ];
 
-const ZERO_RADIUS = { borderRadius: 0 } as const;
+const ZERO_RADIUS = {} as const;
 
-const PRIMARY_BTN =
-  "bg-[#121212] text-[#F0F0F0] border-4 border-[#121212] font-medium uppercase tracking-widest text-xs px-6 py-3 hover:bg-white hover:text-[#121212] hover:border-[#121212] transition-all duration-200 min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1040C0] focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2";
+const PRIMARY_BTN = "nx-btn nx-btn-primary";
 
-const GHOST_BTN =
-  "text-[#121212] font-medium uppercase tracking-widest text-xs px-4 py-2 hover:bg-[#E5E5E0] transition-colors duration-200 min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1040C0] focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2";
+const GHOST_BTN = "nx-btn nx-btn-ghost";
 
 const INPUT_CLASSES =
-  "border-b-4 border-[#121212] bg-transparent px-3 py-2 font-mono text-sm w-full focus-visible:bg-[#F0F0F0] focus-visible:outline-none transition-colors duration-200 min-h-[44px]";
+  "w-full px-3 py-2 text-sm bg-[var(--nx-bg-elev)] text-[var(--nx-fg)] border border-[var(--nx-border-strong)] rounded-md focus-visible:outline-none focus-visible:border-[var(--nx-accent)] disabled:opacity-50 disabled:cursor-not-allowed";
 
-const SELECT_CLASSES =
-  "border-b-4 border-[#121212] bg-transparent px-3 py-2 font-mono text-sm w-full focus-visible:bg-[#F0F0F0] focus-visible:outline-none transition-colors duration-200 min-h-[44px] appearance-none disabled:opacity-50 disabled:cursor-not-allowed";
+const SELECT_CLASSES = "nx-select w-full disabled:opacity-50 disabled:cursor-not-allowed";
 
-const LABEL_CLASSES =
-  "text-xs uppercase tracking-widest text-neutral-600 block mb-1 font-bold";
+const LABEL_CLASSES = "nx-field-label";
 
 // ─── CourseCodeChip ───────────────────────────────────────────
 function CourseCodeChip({ code }: { code: string }) {
-  return (
-    <span
-      style={ZERO_RADIUS}
-      className="border-2 border-[#121212] font-mono text-xs px-2 py-0.5 inline-block"
-    >
-      {code}
-    </span>
-  );
+  return <span className="nx-version-pill">{code}</span>;
 }
 
 // ─── Stepper ──────────────────────────────────────────────────
 function Stepper({ currentStep }: { currentStep: number }) {
   return (
-    <nav aria-label="Onboarding progress" className="mb-10" role="navigation">
+    <nav aria-label="Onboarding progress" className="mb-8" role="navigation">
       <ol className="flex items-start justify-between relative" role="list">
         {STEPS.map((step, idx) => {
           const isActive = step.id === currentStep;
           const isDone = step.id < currentStep;
 
-          const boxClass = isActive
-            ? "bg-[#1040C0] text-white border-[#1040C0]"
-            : isDone
-              ? "bg-[#121212] text-white border-[#121212]"
-              : "bg-[#F0F0F0] text-neutral-400 border-4 border-[#121212]";
+          const dotStyle: React.CSSProperties = {
+            width: 32,
+            height: 32,
+            borderRadius: 999,
+            display: "grid",
+            placeItems: "center",
+            fontSize: 12,
+            fontWeight: 600,
+            fontFamily: "'JetBrains Mono', ui-monospace, monospace",
+            border: "1px solid",
+            background: isActive
+              ? "var(--nx-accent)"
+              : isDone
+                ? "var(--nx-fg)"
+                : "var(--nx-bg-elev)",
+            color: isActive || isDone ? "white" : "var(--nx-fg-muted)",
+            borderColor: isActive
+              ? "var(--nx-accent)"
+              : isDone
+                ? "var(--nx-fg)"
+                : "var(--nx-border-strong)",
+            position: "relative",
+            zIndex: 1,
+          };
 
           return (
             <li
@@ -73,49 +82,43 @@ function Stepper({ currentStep }: { currentStep: number }) {
               className="flex-1 flex flex-col items-center relative"
               aria-current={isActive ? "step" : undefined}
             >
-              {/* Connector line */}
               {idx > 0 && (
                 <span
                   aria-hidden="true"
-                  className="absolute top-6 right-1/2 w-full border-t-4 border-[#121212]"
+                  style={{
+                    position: "absolute",
+                    top: 16,
+                    right: "50%",
+                    width: "100%",
+                    borderTop: `1px solid ${isDone ? "var(--nx-fg)" : "var(--nx-border)"}`,
+                  }}
                 />
               )}
 
-              {/* Step box */}
-              <span
-                style={ZERO_RADIUS}
-                className={`relative z-10 w-12 h-12 border-4 flex items-center justify-center font-mono text-lg ${boxClass}`}
-              >
+              <span style={dotStyle}>
                 {isDone ? (
-                  <svg
-                    width="18"
-                    height="18"
-                    viewBox="0 0 18 18"
-                    fill="none"
-                    aria-hidden="true"
-                  >
-                    <path
-                      d="M3.5 9l3.5 3.5 7-7"
-                      stroke="currentColor"
-                      strokeWidth="2.5"
-                      strokeLinecap="square"
-                      strokeLinejoin="miter"
-                    />
+                  <svg width="14" height="14" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+                    <path d="M3.5 9l3.5 3.5 7-7" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 ) : (
                   String(step.id).padStart(2, "0")
                 )}
               </span>
 
-              {/* Step label */}
               <span
-                className={`uppercase tracking-widest text-[10px] font-bold mt-2 text-center ${
-                  isActive
-                    ? "text-[#1040C0]"
+                style={{
+                  marginTop: 8,
+                  fontSize: 11,
+                  fontWeight: 500,
+                  letterSpacing: "0.04em",
+                  textTransform: "uppercase",
+                  textAlign: "center",
+                  color: isActive
+                    ? "var(--nx-accent)"
                     : isDone
-                      ? "text-[#121212]"
-                      : "text-neutral-400"
-                }`}
+                      ? "var(--nx-fg)"
+                      : "var(--nx-fg-subtle)",
+                }}
               >
                 {step.label}
               </span>
@@ -139,20 +142,24 @@ function StepHeader({
 }) {
   const total = String(STEPS.length).padStart(2, "0");
   const num = String(step).padStart(2, "0");
-  const label =
-    step === 1 ? "PERSONAL" : step === 2 ? "ACADEMIC" : "CONFIRMATION";
+  const label = step === 1 ? "Personal" : step === 2 ? "Academic" : "Confirmation";
 
   return (
-    <div className="mb-8">
-      <p className="font-mono text-xs uppercase tracking-widest text-neutral-500 mb-1">
-        STEP {num} / {total} · {label}
+    <div className="mb-6">
+      <p
+        style={{
+          fontFamily: "'JetBrains Mono', ui-monospace, monospace",
+          fontSize: 11,
+          textTransform: "uppercase",
+          letterSpacing: "0.06em",
+          color: "var(--nx-fg-subtle)",
+          margin: "0 0 6px",
+        }}
+      >
+        Step {num} / {total} · {label}
       </p>
-      <h2 className="text-3xl font-bold tracking-tight">
-        {title}
-      </h2>
-      <p className="text-sm text-neutral-600 mt-2 leading-relaxed">
-        {description}
-      </p>
+      <h2 className="nx-page-title" style={{ fontSize: 22 }}>{title}</h2>
+      <p className="nx-page-sub" style={{ marginTop: 6 }}>{description}</p>
     </div>
   );
 }
@@ -196,6 +203,16 @@ export default function OnboardingPage() {
     studentId: string;
     fullName: string;
   } | null>(null);
+
+  // ── Theme bootstrapping (so onboarding inherits the user's theme choice)
+  useEffect(() => {
+    const stored = typeof window !== "undefined" ? localStorage.getItem("wodooh.theme") : null;
+    const resolved = stored === "light" || stored === "dark"
+      ? stored
+      : window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    document.documentElement.dataset.nxTheme = resolved;
+    document.documentElement.dataset.nxDensity = "compact";
+  }, []);
 
   // ── Analytics: track start ─────────────────────────────────
   useEffect(() => {
@@ -411,26 +428,25 @@ export default function OnboardingPage() {
   // ── Success screen ─────────────────────────────────────────
   if (submitSuccess) {
     return (
-      <div className="bauhaus-dot-grid min-h-screen">
+      <div style={{minHeight:"100vh",background:"var(--nx-bg)",color:"var(--nx-fg)",fontFamily:"Inter,system-ui,sans-serif"}}>
         <main className="min-h-screen px-4 py-8">
           {/* Editorial strip */}
-          <p className="font-mono text-xs text-neutral-400 max-w-2xl mx-auto pb-6 uppercase tracking-widest">
+          <p className="text-xs text-neutral-400 max-w-2xl mx-auto pb-6 uppercase ">
             WODOOH · Office of the Registrar · Spring 2026
           </p>
 
           <section
-            style={ZERO_RADIUS}
-            className="border-4 border-[#121212] bg-[#F0F0F0] max-w-2xl mx-auto shadow-[8px_8px_0px_0px_#121212]"
+                        className="border border-[var(--nx-border)] bg-[var(--nx-bg-sub)] max-w-2xl mx-auto "
           >
             {/* Page header band */}
-            <header className="border-b-4 border-[#121212] px-8 py-6">
-              <p className="font-mono text-xs uppercase tracking-widest text-neutral-500">
+            <header className="border-b border-[var(--nx-border)] px-8 py-6">
+              <p className="text-xs uppercase  text-neutral-500">
                 WODOOH
               </p>
-              <h1 className="text-4xl font-bold tracking-tight mt-1">
+              <h1 className="text-4xl font-bold  mt-1">
                 Welcome
               </h1>
-              <p className="font-mono text-xs uppercase tracking-widest text-neutral-500 mt-2">
+              <p className="text-xs uppercase  text-neutral-500 mt-2">
                 Vol. 2026 · Spring Semester
               </p>
             </header>
@@ -438,13 +454,11 @@ export default function OnboardingPage() {
             <div className="px-8 py-8">
               {/* Large celebratory checkmark */}
               <div
-                style={ZERO_RADIUS}
-                className="border-4 border-[#1040C0] bg-[#EEF2FF] flex flex-col items-center justify-center py-10 mb-8 shadow-[6px_6px_0px_0px_#121212]"
+                                className="border border-[var(--nx-accent)] bg-[var(--nx-accent-soft)] flex flex-col items-center justify-center py-10 mb-8 "
                 role="status"
               >
                 <div
-                  style={ZERO_RADIUS}
-                  className="w-20 h-20 border-4 border-[#1040C0] bg-[#DBEAFE] flex items-center justify-center mb-4"
+                                    className="w-20 h-20 border border-[var(--nx-accent)] bg-[var(--nx-accent-soft)] flex items-center justify-center mb-4"
                   aria-hidden="true"
                 >
                   <svg
@@ -463,34 +477,33 @@ export default function OnboardingPage() {
                     />
                   </svg>
                 </div>
-                <p className="font-bold uppercase tracking-widest text-xs text-[#1040C0] mb-2">
+                <p className="font-bold uppercase  text-xs text-[var(--nx-accent)] mb-2">
                   Registration Complete
                 </p>
-                <p className="text-xl font-bold text-[#1040C0] text-center">
+                <p className="text-xl font-bold text-[var(--nx-accent)] text-center">
                   Welcome, {submitSuccess.fullName}
                 </p>
-                <p className="text-sm text-[#1040C0] mt-2 text-center">
+                <p className="text-sm text-[var(--nx-accent)] mt-2 text-center">
                   You can now participate in lectures.
                 </p>
               </div>
 
               {/* Confirmation ID — prominent display */}
               <div
-                style={ZERO_RADIUS}
-                className="border-4 border-[#121212] bg-[#121212] text-[#F0F0F0] px-6 py-4 flex items-center justify-between mb-8"
+                                className="border border-[var(--nx-border)] bg-[var(--nx-fg)] text-white px-6 py-4 flex items-center justify-between mb-8"
               >
-                <span className="text-xs uppercase tracking-widest text-neutral-400">
+                <span className="text-xs uppercase  text-neutral-400">
                   Confirmation ID
                 </span>
-                <span className="font-mono text-xl font-bold tracking-wider">
+                <span className="font-mono text-xl font-bold ">
                   {submitSuccess.studentId}
                 </span>
               </div>
 
               {/* Details review table */}
-              <dl className="border-collapse border-4 border-[#121212] divide-y-4 divide-[#121212] mb-8">
+              <dl className="border-collapse border border-[var(--nx-border)] divide-y divide-[var(--nx-fg)] mb-8">
                 <div className="flex">
-                  <dt className="font-bold uppercase tracking-widest text-xs text-neutral-600 w-44 px-4 py-3 border-r-4 border-[#121212] bg-[#E8E8E8]">
+                  <dt className="font-bold uppercase  text-xs text-neutral-600 w-44 px-4 py-3 border-r border-[var(--nx-border)] bg-[var(--nx-bg-sub)]">
                     Full Name
                   </dt>
                   <dd className="text-sm px-4 py-3 flex-1">
@@ -498,13 +511,12 @@ export default function OnboardingPage() {
                   </dd>
                 </div>
                 <div className="flex">
-                  <dt className="font-bold uppercase tracking-widest text-xs text-neutral-600 w-44 px-4 py-3 border-r-4 border-[#121212] bg-[#E8E8E8]">
+                  <dt className="font-bold uppercase  text-xs text-neutral-600 w-44 px-4 py-3 border-r border-[var(--nx-border)] bg-[var(--nx-bg-sub)]">
                     Account Status
                   </dt>
                   <dd className="px-4 py-3 flex-1">
                     <span
-                      style={ZERO_RADIUS}
-                      className="font-mono uppercase font-black text-xs px-2 py-0.5 border-[3px] border-[#F0C020] bg-[#FFFAE0] text-[#121212]"
+                                            className="uppercase font-semibold text-xs px-2 py-0.5 border-[3px] border-[var(--nx-warning)] bg-[var(--nx-warning-soft)] text-[var(--nx-fg)]"
                       role="status"
                     >
                       Pending Verification
@@ -520,11 +532,10 @@ export default function OnboardingPage() {
                 enrollment data.
               </p>
 
-              <div className="flex justify-end pt-6 border-t-4 border-[#121212]">
+              <div className="flex justify-end pt-6 border-t border-[var(--nx-border)]">
                 <button
                   type="button"
-                  style={ZERO_RADIUS}
-                  className={PRIMARY_BTN}
+                                    className={PRIMARY_BTN}
                   onClick={() => router.push("/login")}
                   id="onboarding-go-to-login"
                 >
@@ -540,26 +551,25 @@ export default function OnboardingPage() {
 
   // ── Main render ────────────────────────────────────────────
   return (
-    <div className="bauhaus-dot-grid min-h-screen">
+    <div style={{minHeight:"100vh",background:"var(--nx-bg)",color:"var(--nx-fg)",fontFamily:"Inter,system-ui,sans-serif"}}>
       <main className="min-h-screen px-4 py-8">
         {/* Editorial strip */}
-        <p className="font-mono text-xs text-neutral-400 max-w-2xl mx-auto pb-6 uppercase tracking-widest">
+        <p className="text-xs text-neutral-400 max-w-2xl mx-auto pb-6 uppercase ">
           WODOOH · Office of the Registrar · Spring 2026
         </p>
 
         <section
-          style={ZERO_RADIUS}
-          className="border-4 border-[#121212] bg-[#F0F0F0] max-w-2xl mx-auto shadow-[8px_8px_0px_0px_#121212]"
+                    className="border border-[var(--nx-border)] bg-[var(--nx-bg-sub)] max-w-2xl mx-auto "
         >
           {/* ── Page header band ─────────────────────────────── */}
-          <header className="border-b-4 border-[#121212] px-8 py-6">
-            <p className="font-mono text-xs uppercase tracking-widest text-neutral-500">
+          <header className="border-b border-[var(--nx-border)] px-8 py-6">
+            <p className="text-xs uppercase  text-neutral-500">
               WODOOH
             </p>
-            <h1 className="text-4xl font-bold tracking-tight mt-1">
+            <h1 className="text-4xl font-bold  mt-1">
               Student Onboarding
             </h1>
-            <p className="font-mono text-xs uppercase tracking-widest text-neutral-500 mt-2">
+            <p className="text-xs uppercase  text-neutral-500 mt-2">
               Vol. 2026 · Spring Semester
             </p>
           </header>
@@ -571,13 +581,12 @@ export default function OnboardingPage() {
             {/* ── Submission Error ───────────────────────────── */}
             {submitError && (
               <div
-                style={ZERO_RADIUS}
-                className="border-4 border-[#D02020] bg-[#FEE2E2] text-[#D02020] p-4 mb-6 flex items-start gap-3 shadow-[4px_4px_0px_0px_#D02020]"
+                                className="border border-[var(--nx-danger)] bg-[var(--nx-danger-soft)] text-[var(--nx-danger)] p-4 mb-6 flex items-start gap-3 "
                 role="alert"
                 id="onboarding-error-message"
               >
                 <span
-                  className="font-mono text-xs uppercase tracking-widest font-bold shrink-0"
+                  className="text-xs uppercase  font-bold shrink-0"
                   aria-hidden="true"
                 >
                   Error
@@ -623,9 +632,8 @@ export default function OnboardingPage() {
                       onBlur={() => setNameTouched(true)}
                       autoFocus
                       dir="auto"
-                      style={ZERO_RADIUS}
-                      className={`${INPUT_CLASSES} focus-visible:ring-0 ${
-                        nameError ? "border-[#D02020]" : ""
+                                            className={`${INPUT_CLASSES} focus-visible:ring-0 ${
+                        nameError ? "border-[var(--nx-danger)]" : ""
                       }`}
                       aria-describedby={nameError ? "name-error" : undefined}
                       aria-invalid={!!nameError}
@@ -633,10 +641,10 @@ export default function OnboardingPage() {
                     {nameError && (
                       <p
                         id="name-error"
-                        className="text-xs text-[#D02020] mt-2 uppercase tracking-wide font-bold"
+                        className="text-xs text-[var(--nx-danger)] mt-2 uppercase  font-bold"
                         role="alert"
                       >
-                        <span className="font-black">Error:</span> {nameError}
+                        <span className="font-semibold">Error:</span> {nameError}
                       </p>
                     )}
                   </div>
@@ -664,9 +672,8 @@ export default function OnboardingPage() {
                           checkDuplicate(studentId);
                         }
                       }}
-                      style={ZERO_RADIUS}
-                      className={`${INPUT_CLASSES} ${
-                        studentIdError ? "border-[#D02020]" : ""
+                                            className={`${INPUT_CLASSES} ${
+                        studentIdError ? "border-[var(--nx-danger)]" : ""
                       }`}
                       aria-describedby={
                         studentIdError ? "student-id-error" : undefined
@@ -674,28 +681,27 @@ export default function OnboardingPage() {
                       aria-invalid={!!studentIdError}
                     />
                     {checkingDuplicate && (
-                      <p className="font-mono text-xs text-neutral-500 mt-2 uppercase tracking-widest">
+                      <p className="text-xs text-neutral-500 mt-2 uppercase ">
                         Checking availability…
                       </p>
                     )}
                     {studentIdError && (
                       <p
                         id="student-id-error"
-                        className="text-xs text-[#D02020] mt-2 uppercase tracking-wide font-bold"
+                        className="text-xs text-[var(--nx-danger)] mt-2 uppercase  font-bold"
                         role="alert"
                       >
-                        <span className="font-black">Error:</span>{" "}
+                        <span className="font-semibold">Error:</span>{" "}
                         {studentIdError}
                       </p>
                     )}
                   </div>
                 </fieldset>
 
-                <div className="flex justify-between items-center pt-4 border-t-4 border-[#121212]">
+                <div className="flex justify-between items-center pt-4 border-t border-[var(--nx-border)]">
                   <button
                     type="button"
-                    style={ZERO_RADIUS}
-                    className={GHOST_BTN}
+                                        className={GHOST_BTN}
                     onClick={() => router.push("/login")}
                     id="onboarding-back-to-login"
                   >
@@ -703,8 +709,7 @@ export default function OnboardingPage() {
                   </button>
                   <button
                     type="submit"
-                    style={ZERO_RADIUS}
-                    className={PRIMARY_BTN}
+                                        className={PRIMARY_BTN}
                     disabled={!isStep1Valid}
                     id="onboarding-next-step-1"
                   >
@@ -745,8 +750,7 @@ export default function OnboardingPage() {
                       value={selectedCollege}
                       onChange={(e) => handleCollegeChange(e.target.value)}
                       disabled={loadingColleges}
-                      style={ZERO_RADIUS}
-                      className={SELECT_CLASSES}
+                                            className={SELECT_CLASSES}
                     >
                       <option value="">
                         {loadingColleges
@@ -776,8 +780,7 @@ export default function OnboardingPage() {
                       disabled={
                         !selectedCollege || loadingDepartments || noDepartments
                       }
-                      style={ZERO_RADIUS}
-                      className={SELECT_CLASSES}
+                                            className={SELECT_CLASSES}
                     >
                       <option value="">
                         {loadingDepartments
@@ -799,11 +802,10 @@ export default function OnboardingPage() {
                     </select>
                     {noDepartments && (
                       <div
-                        style={ZERO_RADIUS}
-                        className="border-4 border-[#F0C020] bg-[#FFFAE0] text-[#121212] p-4 mt-3 flex items-start gap-3 shadow-[4px_4px_0px_0px_#121212]"
+                                                className="border border-[var(--nx-warning)] bg-[var(--nx-warning-soft)] text-[var(--nx-fg)] p-4 mt-3 flex items-start gap-3 "
                         role="alert"
                       >
-                        <span className="font-mono text-xs uppercase tracking-widest font-black shrink-0">
+                        <span className="text-xs uppercase  font-semibold shrink-0">
                           Notice
                         </span>
                         <p className="text-sm leading-relaxed flex-1">
@@ -820,7 +822,7 @@ export default function OnboardingPage() {
 
                   {/* Courses */}
                   {selectedDepartment && loadingCourses && (
-                    <p className="font-mono text-xs uppercase tracking-widest text-neutral-500 py-4">
+                    <p className="text-xs uppercase  text-neutral-500 py-4">
                       Loading courses…
                     </p>
                   )}
@@ -854,11 +856,10 @@ export default function OnboardingPage() {
                             return (
                               <li
                                 key={course.courseID}
-                                style={ZERO_RADIUS}
-                                className={`hard-shadow-hover transition-all duration-150 ${
+                                                                className={`hard-shadow-hover transition-all duration-150 ${
                                   isSelected
-                                    ? "border-4 border-[#1040C0] shadow-[4px_4px_0px_0px_#1040C0] bg-[#EEF2FF]"
-                                    : "border-4 border-[#121212] bg-[#F0F0F0]"
+                                    ? "border border-[var(--nx-accent)] bg-[var(--nx-accent-soft)]"
+                                    : "border border-[var(--nx-border)] bg-[var(--nx-bg-sub)]"
                                 }`}
                               >
                                 <button
@@ -868,16 +869,14 @@ export default function OnboardingPage() {
                                   }
                                   id={`course-toggle-${course.courseID}`}
                                   aria-pressed={isSelected}
-                                  style={ZERO_RADIUS}
-                                  className="w-full text-left p-4 flex items-start gap-3 min-h-[44px] hover:bg-neutral-100 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1040C0] focus-visible:ring-offset-2"
+                                                                    className="w-full text-left p-4 flex items-start gap-3 min-h-[44px] hover:bg-neutral-100 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nx-accent)] focus-visible:ring-offset-2"
                                 >
                                   {/* Checkbox indicator */}
                                   <span
-                                    style={ZERO_RADIUS}
-                                    className={`w-5 h-5 border-4 border-[#121212] shrink-0 mt-0.5 flex items-center justify-center ${
+                                                                        className={`w-5 h-5 border border-[var(--nx-border)] shrink-0 mt-0.5 flex items-center justify-center ${
                                       isSelected
-                                        ? "bg-[#1040C0] border-[#1040C0] text-white"
-                                        : "bg-[#F0F0F0]"
+                                        ? "bg-[var(--nx-accent)] border-[var(--nx-accent)] text-white"
+                                        : "bg-[var(--nx-bg-sub)]"
                                     }`}
                                     aria-hidden="true"
                                   >
@@ -909,7 +908,7 @@ export default function OnboardingPage() {
 
                                 {/* Section dropdown (cascading) */}
                                 {isSelected && (
-                                  <div className="border-t-4 border-[#1040C0] p-4 bg-[#EEF2FF]">
+                                  <div className="border-t border-[var(--nx-accent)] p-4 bg-[var(--nx-accent-soft)]">
                                     <label
                                       htmlFor={`section-select-${course.courseID}`}
                                       className={LABEL_CLASSES}
@@ -920,7 +919,7 @@ export default function OnboardingPage() {
                                       </span>
                                     </label>
                                     {isLoadingSections ? (
-                                      <p className="font-mono text-xs uppercase tracking-widest text-neutral-500 py-2">
+                                      <p className="text-xs uppercase  text-neutral-500 py-2">
                                         Loading sections…
                                       </p>
                                     ) : sections.length > 0 ? (
@@ -933,8 +932,7 @@ export default function OnboardingPage() {
                                             e.target.value
                                           )
                                         }
-                                        style={ZERO_RADIUS}
-                                        className={SELECT_CLASSES}
+                                                                                className={SELECT_CLASSES}
                                       >
                                         <option value="">Select section</option>
                                         {sections.map((sec) => (
@@ -949,10 +947,10 @@ export default function OnboardingPage() {
                                       </select>
                                     ) : (
                                       <p
-                                        className="text-xs text-[#D02020] mt-1 uppercase tracking-wide font-bold"
+                                        className="text-xs text-[var(--nx-danger)] mt-1 uppercase  font-bold"
                                         role="alert"
                                       >
-                                        <span className="font-black">
+                                        <span className="font-semibold">
                                           Notice:
                                         </span>{" "}
                                         No sections available for this course.
@@ -968,11 +966,10 @@ export default function OnboardingPage() {
                     )}
                 </fieldset>
 
-                <div className="flex justify-between items-center pt-4 border-t-4 border-[#121212]">
+                <div className="flex justify-between items-center pt-4 border-t border-[var(--nx-border)]">
                   <button
                     type="button"
-                    style={ZERO_RADIUS}
-                    className={GHOST_BTN}
+                                        className={GHOST_BTN}
                     onClick={() => setCurrentStep(1)}
                     id="onboarding-prev-step-2"
                   >
@@ -980,8 +977,7 @@ export default function OnboardingPage() {
                   </button>
                   <button
                     type="submit"
-                    style={ZERO_RADIUS}
-                    className={PRIMARY_BTN}
+                                        className={PRIMARY_BTN}
                     disabled={!isStep2Valid}
                     id="onboarding-next-step-2"
                   >
@@ -1008,12 +1004,12 @@ export default function OnboardingPage() {
 
                 {/* Personal */}
                 <section className="mb-6">
-                  <h3 className="font-bold uppercase tracking-widest text-xs text-neutral-600 border-b-4 border-[#121212] pb-2 mb-3">
+                  <h3 className="font-bold uppercase  text-xs text-neutral-600 border-b border-[var(--nx-border)] pb-2 mb-3">
                     Personal Information
                   </h3>
-                  <dl className="border-collapse border-4 border-[#121212] divide-y-4 divide-[#121212]">
+                  <dl className="border-collapse border border-[var(--nx-border)] divide-y divide-[var(--nx-fg)]">
                     <div className="flex">
-                      <dt className="font-bold uppercase tracking-widest text-xs text-neutral-600 w-44 px-4 py-3 border-r-4 border-[#121212] bg-[#E8E8E8]">
+                      <dt className="font-bold uppercase  text-xs text-neutral-600 w-44 px-4 py-3 border-r border-[var(--nx-border)] bg-[var(--nx-bg-sub)]">
                         Full Name
                       </dt>
                       <dd className="text-sm px-4 py-3 flex-1">
@@ -1021,7 +1017,7 @@ export default function OnboardingPage() {
                       </dd>
                     </div>
                     <div className="flex">
-                      <dt className="font-bold uppercase tracking-widest text-xs text-neutral-600 w-44 px-4 py-3 border-r-4 border-[#121212] bg-[#E8E8E8]">
+                      <dt className="font-bold uppercase  text-xs text-neutral-600 w-44 px-4 py-3 border-r border-[var(--nx-border)] bg-[var(--nx-bg-sub)]">
                         Student ID
                       </dt>
                       <dd className="font-mono text-sm px-4 py-3 flex-1">
@@ -1033,12 +1029,12 @@ export default function OnboardingPage() {
 
                 {/* Academic */}
                 <section className="mb-6">
-                  <h3 className="font-bold uppercase tracking-widest text-xs text-neutral-600 border-b-4 border-[#121212] pb-2 mb-3">
+                  <h3 className="font-bold uppercase  text-xs text-neutral-600 border-b border-[var(--nx-border)] pb-2 mb-3">
                     Academic Information
                   </h3>
-                  <dl className="border-collapse border-4 border-[#121212] divide-y-4 divide-[#121212]">
+                  <dl className="border-collapse border border-[var(--nx-border)] divide-y divide-[var(--nx-fg)]">
                     <div className="flex">
-                      <dt className="font-bold uppercase tracking-widest text-xs text-neutral-600 w-44 px-4 py-3 border-r-4 border-[#121212] bg-[#E8E8E8]">
+                      <dt className="font-bold uppercase  text-xs text-neutral-600 w-44 px-4 py-3 border-r border-[var(--nx-border)] bg-[var(--nx-bg-sub)]">
                         College
                       </dt>
                       <dd className="text-sm px-4 py-3 flex-1">
@@ -1046,7 +1042,7 @@ export default function OnboardingPage() {
                       </dd>
                     </div>
                     <div className="flex">
-                      <dt className="font-bold uppercase tracking-widest text-xs text-neutral-600 w-44 px-4 py-3 border-r-4 border-[#121212] bg-[#E8E8E8]">
+                      <dt className="font-bold uppercase  text-xs text-neutral-600 w-44 px-4 py-3 border-r border-[var(--nx-border)] bg-[var(--nx-bg-sub)]">
                         Department
                       </dt>
                       <dd className="text-sm px-4 py-3 flex-1">
@@ -1058,33 +1054,32 @@ export default function OnboardingPage() {
 
                 {/* Courses */}
                 <section className="mb-8">
-                  <h3 className="font-bold uppercase tracking-widest text-xs text-neutral-600 border-b-4 border-[#121212] pb-2 mb-3 flex items-baseline justify-between">
+                  <h3 className="font-bold uppercase  text-xs text-neutral-600 border-b border-[var(--nx-border)] pb-2 mb-3 flex items-baseline justify-between">
                     <span>Selected Courses</span>
                     <span className="font-mono text-xs">
                       {String(courseSelections.length).padStart(2, "0")} TOTAL
                     </span>
                   </h3>
                   <table
-                    style={ZERO_RADIUS}
-                    className="w-full border-collapse border-4 border-[#121212] font-mono text-sm"
+                                        className="w-full border-collapse border border-[var(--nx-border)] font-mono text-sm"
                   >
                     <thead>
-                      <tr className="bg-[#121212] text-[#F0F0F0]">
+                      <tr className="bg-[var(--nx-fg)] text-white">
                         <th
                           scope="col"
-                          className="border-2 border-[#333] px-3 py-2 text-left text-xs uppercase tracking-widest font-bold"
+                          className="border-2 border-[var(--nx-border)] px-3 py-2 text-left text-xs uppercase  font-bold"
                         >
                           Code
                         </th>
                         <th
                           scope="col"
-                          className="border-2 border-[#333] px-3 py-2 text-left text-xs uppercase tracking-widest font-bold"
+                          className="border-2 border-[var(--nx-border)] px-3 py-2 text-left text-xs uppercase  font-bold"
                         >
                           Course
                         </th>
                         <th
                           scope="col"
-                          className="border-2 border-[#333] px-3 py-2 text-left text-xs uppercase tracking-widest font-bold"
+                          className="border-2 border-[var(--nx-border)] px-3 py-2 text-left text-xs uppercase  font-bold"
                         >
                           Section
                         </th>
@@ -1099,17 +1094,17 @@ export default function OnboardingPage() {
                             key={cs.courseId}
                             className="hover:bg-neutral-100 transition-colors duration-150"
                           >
-                            <td className="border-2 border-[#E5E5E0] px-3 py-2 align-top">
+                            <td className="border-2 border-[var(--nx-border)] px-3 py-2 align-top">
                               {course ? (
                                 <CourseCodeChip code={course.courseCode} />
                               ) : (
                                 <span className="font-mono">{cs.courseId}</span>
                               )}
                             </td>
-                            <td className="border-2 border-[#E5E5E0] px-3 py-2">
+                            <td className="border-2 border-[var(--nx-border)] px-3 py-2">
                               {course?.courseName ?? cs.courseId}
                             </td>
-                            <td className="border-2 border-[#E5E5E0] px-3 py-2 font-mono">
+                            <td className="border-2 border-[var(--nx-border)] px-3 py-2 font-mono">
                               {section
                                 ? `${section.sectionNumber} · ${section.instructorName}`
                                 : cs.sectionId}
@@ -1121,11 +1116,10 @@ export default function OnboardingPage() {
                   </table>
                 </section>
 
-                <div className="flex justify-between items-center pt-4 border-t-4 border-[#121212]">
+                <div className="flex justify-between items-center pt-4 border-t border-[var(--nx-border)]">
                   <button
                     type="button"
-                    style={ZERO_RADIUS}
-                    className={GHOST_BTN}
+                                        className={GHOST_BTN}
                     onClick={() => setCurrentStep(2)}
                     disabled={isSubmitting}
                     id="onboarding-prev-step-3"
@@ -1134,8 +1128,7 @@ export default function OnboardingPage() {
                   </button>
                   <button
                     type="submit"
-                    style={ZERO_RADIUS}
-                    className={PRIMARY_BTN}
+                                        className={PRIMARY_BTN}
                     disabled={isSubmitting}
                     id="onboarding-submit"
                   >
@@ -1146,11 +1139,11 @@ export default function OnboardingPage() {
             )}
 
             {/* Footer */}
-            <p className="text-xs uppercase tracking-widest text-neutral-500 mt-8 pt-4 border-t-4 border-[#121212] text-center">
+            <p className="text-xs uppercase  text-neutral-500 mt-8 pt-4 border-t border-[var(--nx-border)] text-center">
               Already have an account?{" "}
               <a
                 href="/login"
-                className="text-[#1040C0] font-bold hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1040C0] focus-visible:ring-offset-2"
+                className="text-[var(--nx-accent)] font-bold hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nx-accent)] focus-visible:ring-offset-2"
               >
                 Sign in
               </a>

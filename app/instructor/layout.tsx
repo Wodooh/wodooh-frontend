@@ -6,7 +6,6 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth/auth-provider";
 import "../nexus.css";
 
-// ── Icons ────────────────────────────────────────────────
 const I = {
   Dashboard: ({ size = 15 }: { size?: number }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
@@ -16,37 +15,34 @@ const I = {
       <rect x="3" y="16" width="7" height="5" rx="1.5" />
     </svg>
   ),
-  Users: ({ size = 15 }: { size?: number }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-      <circle cx="9" cy="7" r="4" />
-      <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-    </svg>
-  ),
-  Departments: ({ size = 15 }: { size?: number }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 21h18" />
-      <path d="M5 21V7l7-4 7 4v14" />
-      <path d="M9 9h.01M9 13h.01M9 17h.01M15 9h.01M15 13h.01M15 17h.01" />
-    </svg>
-  ),
   Courses: ({ size = 15 }: { size?: number }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
       <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
       <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z" />
     </svg>
   ),
-  System: ({ size = 15 }: { size?: number }) => (
+  Sessions: ({ size = 15 }: { size?: number }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="2" y="3" width="20" height="14" rx="2" />
-      <path d="M8 21h8M12 17v4" />
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 2" />
     </svg>
   ),
-  Settings: ({ size = 15 }: { size?: number }) => (
+  GradeBook: ({ size = 15 }: { size?: number }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="3" />
-      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z" />
+      <rect x="4" y="3" width="16" height="18" rx="2" />
+      <path d="M8 7h8M8 12h8M8 17h5" />
+    </svg>
+  ),
+  Reports: ({ size = 15 }: { size?: number }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 3v18h18" />
+      <path d="M7 14l4-4 4 4 5-7" />
+    </svg>
+  ),
+  Announcements: ({ size = 15 }: { size?: number }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 11v2a2 2 0 0 0 2 2h3l5 4V5L8 9H5a2 2 0 0 0-2 2Z" />
+      <path d="M19 7c1.5 1.4 1.5 8.6 0 10" />
     </svg>
   ),
   Sun: ({ size = 15 }: { size?: number }) => (
@@ -70,15 +66,15 @@ const I = {
 };
 
 const NAV: { key: string; label: string; href: string; icon: React.FC<{ size?: number }> }[] = [
-  { key: "dashboard",   label: "Dashboard",   href: "/admin/dashboard",   icon: I.Dashboard },
-  { key: "users",       label: "Users",       href: "/admin/users",       icon: I.Users },
-  { key: "departments", label: "Departments", href: "/admin/departments", icon: I.Departments },
-  { key: "courses",     label: "Courses",     href: "/admin/courses",     icon: I.Courses },
-  { key: "system",      label: "System",      href: "/admin/system",      icon: I.System },
-  { key: "settings",    label: "Settings",    href: "/admin/settings",    icon: I.Settings },
+  { key: "dashboard",     label: "Dashboard",     href: "/instructor/dashboard",     icon: I.Dashboard },
+  { key: "courses",       label: "My Courses",    href: "/instructor/courses",       icon: I.Courses },
+  { key: "sessions",      label: "Sessions",      href: "/instructor/sessions",      icon: I.Sessions },
+  { key: "gradebook",     label: "Grade Book",    href: "/instructor/gradebook",     icon: I.GradeBook },
+  { key: "announcements", label: "Announcements", href: "/instructor/announcements", icon: I.Announcements },
+  { key: "reports",       label: "Reports",       href: "/instructor/reports",       icon: I.Reports },
 ];
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+export default function InstructorLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const { user, isAuthenticated, loading, logout } = useAuth();
@@ -97,11 +93,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   useEffect(() => {
     if (loading) return;
     if (!isAuthenticated) { router.replace("/login"); return; }
-    if (user && user.role !== "admin") {
+    if (user && user.role !== "instructor") {
       router.replace(
-        user.role === "instructor" ? "/instructor/dashboard"
+        user.role === "admin"    ? "/admin/dashboard"
         : user.role === "chairman" ? "/chairman/dashboard"
-        : "/student/dashboard"
+        : user.role === "student" ? "/student/dashboard"
+        : "/login"
       );
     }
   }, [loading, isAuthenticated, user, router]);
@@ -112,10 +109,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     localStorage.setItem("wodooh.theme", t);
   };
 
-  if (loading || !isAuthenticated || !user || user.role !== "admin") {
+  if (loading || !isAuthenticated || !user || user.role !== "instructor") {
     return (
       <div className="nx-shell" style={{ gridTemplateColumns: "1fr" }}>
-        <div className="nx-loading"><span className="nx-spin" /> Loading admin…</div>
+        <div className="nx-loading"><span className="nx-spin" /> Loading…</div>
       </div>
     );
   }
@@ -131,15 +128,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <div className="nx-shell">
       <aside className="nx-sidebar">
-        <Link href="/admin/dashboard" className="nx-sidebar-brand" style={{ textDecoration: "none" }}>
+        <Link href="/instructor/dashboard" className="nx-sidebar-brand" style={{ textDecoration: "none" }}>
           <div className="nx-sidebar-logo">W</div>
           <div className="nx-sidebar-brand-text">
-            WODOOH<span className="nx-sidebar-brand-sub">Admin</span>
+            WODOOH<span className="nx-sidebar-brand-sub">Faculty</span>
           </div>
         </Link>
 
         <div className="nx-sidebar-section-label">Workspace</div>
-        <nav className="nx-sidebar-nav">
+        <nav className="nx-sidebar-nav" role="navigation" aria-label="Faculty Portal Navigation">
           {NAV.map(item => {
             const Icon = item.icon;
             return (
@@ -156,7 +153,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </nav>
 
         <div className="nx-sidebar-footer">
-          <div className="nx-sidebar-avatar">{initials || "A"}</div>
+          <div className="nx-sidebar-avatar">{initials || "F"}</div>
           <div className="nx-sidebar-user">
             <div className="nx-sidebar-user-name">{user.name}</div>
             <div className="nx-sidebar-user-email">{user.email}</div>

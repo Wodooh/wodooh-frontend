@@ -4,66 +4,16 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* ─── Bauhaus Design System ───────────────────────────────── */
-/* Role-aware accent — set body.student | body.faculty | body.chairman | body.admin */
+/* ─── Role-aware accent cascade ──────────────────────────── */
+/* Read by Nexus components via var(--accent). RoleBodyClass sets body.<role>. */
 body.student  { --accent: #1040C0; --accent-hover: #0B2E8A; }
 body.faculty  { --accent: #F0C020; --accent-hover: #C8A010; }
 body.chairman { --accent: #D02020; --accent-hover: #A81010; }
 body.admin    { --accent: #121212; --accent-hover: #000000; }
 body          { --accent: #121212; --accent-hover: #000000; }
 
-/* ─── Bauhaus utility classes ─────────────────────────────── */
-
-.bauhaus-shadow-sm  { box-shadow: 4px 4px 0 0 #121212; }
-.bauhaus-shadow-md  { box-shadow: 8px 8px 0 0 #121212; }
-.bauhaus-shadow-lg  { box-shadow: 12px 12px 0 0 #121212; }
-
-.bauhaus-press {
-  transition: transform 120ms ease-out, box-shadow 120ms ease-out;
-  box-shadow: 8px 8px 0 0 #121212;
-}
-.bauhaus-press:hover  { box-shadow: 10px 10px 0 0 #121212; transform: translate(-2px, -2px); }
-.bauhaus-press:active { box-shadow: 2px 2px 0 0 #121212;   transform: translate(6px, 6px); }
-
-.bauhaus-dot-grid {
-  background-color: #F0F0F0;
-  background-image: radial-gradient(circle, rgba(18,18,18,0.18) 1px, transparent 1px);
-  background-size: 20px 20px;
-  background-position: 10px 10px;
-}
-
-.bauhaus-dot-grid-dark {
-  background-color: #121212;
-  background-image: radial-gradient(circle, rgba(255,255,255,0.12) 1px, transparent 1px);
-  background-size: 20px 20px;
-  background-position: 10px 10px;
-}
-
-.bauhaus-block-blue   { background-color: #1040C0; color: #FFFFFF; }
-.bauhaus-block-red    { background-color: #D02020; color: #FFFFFF; }
-.bauhaus-block-yellow { background-color: #F0C020; color: #121212; }
-.bauhaus-block-black  { background-color: #121212; color: #FFFFFF; }
-.bauhaus-block-white  { background-color: #FFFFFF; color: #121212; }
-
-/* ─── Legacy aliases (Northfield → Bauhaus) ──────────────── */
-.font-nf-serif,
-.font-nf-sans,
-.font-nf-condensed { font-family: 'Outfit', 'Helvetica Neue', Arial, sans-serif; }
-.font-nf-mono      { font-family: 'Outfit', 'Courier New', monospace; }
-
-.nf-dot-grid {
-  background-color: #F0F0F0;
-  background-image: radial-gradient(circle, rgba(18,18,18,0.18) 1px, transparent 1px);
-  background-size: 20px 20px;
-  background-position: 10px 10px;
-}
-
-.nf-avatar-placeholder {
-  background-image: radial-gradient(#121212 1px, transparent 1px);
-  background-size: 16px 16px;
-  opacity: 0.06;
-}
-
+/* Two legacy utilities still referenced by the onboarding wizard and the
+   admin user-detail page. Remove once those surfaces are fully ported. */
 .academic-texture { position: relative; }
 .academic-texture::before {
   content: '';
@@ -144,7 +94,7 @@ body          { --accent: #121212; --accent-hover: #000000; }
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: 'Outfit', 'Helvetica Neue', Arial, sans-serif;
+  --font-sans: 'Inter', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif;
   --font-mono: var(--font-geist-mono);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -225,7 +175,7 @@ body          { --accent: #121212; --accent-hover: #000000; }
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: 'Outfit', 'Helvetica Neue', Arial, sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -256,173 +206,6 @@ body {
   from { opacity: 0; transform: translateY(-6px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-
-/* ─── Dashboard pages ────────────────────────────────────── */
-.dashboard-page {
-  position: relative;
-  min-height: 100vh;
-  background: #F0F0F0;
-  overflow: hidden;
-}
-
-.dashboard-loader {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  background: #F0F0F0;
-}
-
-.dashboard-header {
-  position: relative;
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 32px;
-  background: #FFFFFF;
-  border-bottom: 4px solid #121212;
-}
-
-.dashboard-header-brand { display: flex; align-items: center; gap: 12px; }
-
-.dashboard-header-title {
-  font-size: 16px;
-  font-weight: 900;
-  color: #121212;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.dashboard-role-badge {
-  font-size: 10px;
-  font-weight: 800;
-  padding: 3px 10px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  border: 2px solid currentColor;
-}
-
-.dashboard-role-instructor { color: #121212; border-color: #F0C020; background: #F0C020; }
-.dashboard-role-chairman   { color: #FFFFFF; border-color: #D02020; background: #D02020; }
-
-.dashboard-header-user { display: flex; align-items: center; gap: 12px; }
-
-.dashboard-avatar {
-  width: 40px;
-  height: 40px;
-  background: #121212;
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-  font-weight: 900;
-  border: 3px solid #121212;
-}
-.dashboard-avatar-instructor { background: #F0C020; color: #121212; }
-.dashboard-avatar-chairman   { background: #D02020; color: #FFFFFF; }
-
-.dashboard-user-info { display: flex; flex-direction: column; }
-
-.dashboard-user-name {
-  font-size: 12px;
-  font-weight: 800;
-  color: #121212;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
-.dashboard-user-role { font-size: 11px; color: #808080; font-weight: 500; }
-
-.dashboard-logout-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 7px 14px;
-  margin-left: 8px;
-  background: none;
-  border: 2px solid #D0D0D0;
-  color: #505050;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  font-family: 'Outfit', sans-serif;
-}
-.dashboard-logout-btn:hover {
-  color: #D02020;
-  border-color: #D02020;
-  background: #FFF0F0;
-  box-shadow: 3px 3px 0 0 #D02020;
-}
-
-.dashboard-main {
-  position: relative;
-  z-index: 1;
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 40px 32px;
-}
-
-.dashboard-welcome-card {
-  padding: 32px;
-  background: #FFFFFF;
-  border: 4px solid #121212;
-  box-shadow: 8px 8px 0 0 #121212;
-  margin-bottom: 32px;
-  animation: cardAppear 0.4s ease-out forwards;
-  opacity: 0;
-  transform: translateY(12px);
-}
-
-.dashboard-welcome-title {
-  font-size: 28px;
-  font-weight: 900;
-  color: #121212;
-  margin: 0 0 8px;
-  letter-spacing: -0.02em;
-  text-transform: uppercase;
-}
-
-.dashboard-welcome-text { font-size: 14px; color: #505050; margin: 0; line-height: 1.6; font-weight: 500; }
-
-.dashboard-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 24px;
-}
-
-.dashboard-stat-card {
-  padding: 24px;
-  background: #FFFFFF;
-  border: 4px solid #121212;
-  box-shadow: 6px 6px 0 0 #121212;
-  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
-  animation: cardAppear 0.4s ease-out forwards;
-  opacity: 0;
-  transform: translateY(12px);
-}
-.dashboard-stat-card:nth-child(1) { animation-delay: 0.05s; }
-.dashboard-stat-card:nth-child(2) { animation-delay: 0.10s; }
-.dashboard-stat-card:nth-child(3) { animation-delay: 0.15s; }
-.dashboard-stat-card:hover { transform: translate(-3px, -3px); box-shadow: 9px 9px 0 0 #121212; }
-
-.dashboard-stat-icon { font-size: 24px; margin-bottom: 12px; }
-
-.dashboard-stat-card h3 {
-  font-size: 10px;
-  font-weight: 700;
-  color: #808080;
-  margin: 0 0 8px;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-}
-
-.dashboard-stat-value  { font-size: 40px; font-weight: 900; color: #121212; margin: 0; letter-spacing: -0.03em; }
-.dashboard-stat-label  { font-size: 12px; color: #808080; margin: 4px 0 0; font-weight: 500; }
 
 /* ─── Onboarding page ────────────────────────────────────── */
 .onboarding-page {
@@ -599,7 +382,7 @@ body {
   font-weight: 500;
   color: #121212;
   outline: none;
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Inter', system-ui, sans-serif;
   line-height: 1;
 }
 .onboarding-input-wrapper input::placeholder { color: #A0A0A0; font-weight: 400; }
@@ -631,7 +414,7 @@ body {
   font-size: 14px;
   font-weight: 500;
   color: #121212;
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Inter', system-ui, sans-serif;
   cursor: pointer;
   appearance: none;
   -webkit-appearance: none;
@@ -679,7 +462,7 @@ body {
   border: none;
   cursor: pointer;
   text-align: left;
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Inter', system-ui, sans-serif;
 }
 
 .onboarding-checkbox {
@@ -779,7 +562,7 @@ body {
   text-transform: uppercase;
   border: 3px solid #121212;
   cursor: pointer;
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Inter', system-ui, sans-serif;
   transition: transform var(--transition-fast), box-shadow var(--transition-fast);
   white-space: nowrap;
 }
@@ -947,80 +730,6 @@ body {
   font-weight: 600;
 }
 .instructor-flag-badge svg { flex-shrink: 0; margin-top: 1px; }
-
-/* ─── Instructor Dashboard ────────────────────────────────── */
-.instructor-pending-banner {
-  display: flex;
-  align-items: flex-start;
-  gap: 16px;
-  padding: 20px 24px;
-  background: #FFFAE0;
-  border: 4px solid #F0C020;
-  box-shadow: 6px 6px 0 0 #F0C020;
-  margin-bottom: 28px;
-  animation: cardAppear 0.4s ease-out forwards;
-  opacity: 0;
-  transform: translateY(12px);
-}
-.instructor-pending-banner-icon { flex-shrink: 0; color: #121212; margin-top: 2px; }
-.instructor-pending-banner-body { flex: 1; min-width: 0; }
-
-.instructor-pending-banner-title {
-  font-size: 15px;
-  font-weight: 900;
-  color: #121212;
-  margin-bottom: 6px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-.instructor-pending-banner-text { font-size: 13px; color: #505050; line-height: 1.6; margin: 0 0 14px; font-weight: 500; }
-
-.instructor-pending-features { display: flex; flex-wrap: wrap; gap: 8px; }
-.instructor-pending-feature-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 4px 10px;
-  background: #FFFFFF;
-  border: 2px solid #121212;
-  font-size: 10px;
-  font-weight: 700;
-  color: #121212;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
-.instructor-pending-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 3px 10px;
-  background: #FFFAE0;
-  border: 2px solid #F0C020;
-  font-size: 10px;
-  font-weight: 800;
-  color: #121212;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-.instructor-locked-card   { position: relative; overflow: hidden; }
-.instructor-locked-overlay {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  background: rgba(240,240,240,0.88);
-  color: #808080;
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  z-index: 2;
-}
 
 /* ─── Responsive ─────────────────────────────────────────── */
 @media (max-width: 768px) {
