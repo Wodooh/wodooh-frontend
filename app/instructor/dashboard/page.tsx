@@ -27,71 +27,58 @@ export default function InstructorDashboardPage() {
       <div className="nx-page-head">
         <div>
           <h1 className="nx-page-title">Dashboard</h1>
-          <p className="nx-page-sub">{today} · Welcome back, {user?.name?.split(" ")[0] ?? "Instructor"}</p>
+          <p className="nx-page-sub">
+            {today} · Welcome back, {user?.name?.split(" ")[0] ?? "Instructor"}
+            <span className="nx-version-pill" style={{ marginLeft: 10 }}>Demo data</span>
+          </p>
         </div>
       </div>
 
       <div className="nx-kpi-strip">
-        <KPI label="Active courses" value="—" />
         <KPI label="Today's classes" value={String(TODAYS_CLASSES.length)} />
         <KPI label="Pending questions" value={String(PENDING_QUESTIONS.length)} />
-        <KPI label="Open sessions" value="—" />
       </div>
 
-      <div className="nx-grid-2">
-        <div className="nx-card">
-          <div className="nx-card-head">
-            <div>
-              <h3 className="nx-card-title">Today's classes</h3>
-              <p className="nx-card-sub">Scheduled sessions for {today}</p>
-            </div>
+      <div className="nx-card">
+        <div className="nx-card-head">
+          <div>
+            <h3 className="nx-card-title">Today&apos;s classes</h3>
+            <p className="nx-card-sub">Scheduled sessions for {today}</p>
           </div>
-          {TODAYS_CLASSES.length === 0 ? (
-            <div className="nx-empty">
-              <div className="nx-empty-title">No classes today</div>
-              <div className="nx-empty-sub">Enjoy the day off — your next session is tomorrow.</div>
-            </div>
-          ) : (
-            <div className="nx-tbl-wrap">
-              <table className="nx-tbl">
-                <thead>
-                  <tr>
-                    <th scope="col">Course</th>
-                    <th scope="col">Time</th>
-                    <th scope="col">Room</th>
-                    <th scope="col" style={{ textAlign: "right" }}>Actions</th>
+        </div>
+        {TODAYS_CLASSES.length === 0 ? (
+          <div className="nx-empty">
+            <div className="nx-empty-title">No classes today</div>
+            <div className="nx-empty-sub">Enjoy the day off — your next session is tomorrow.</div>
+          </div>
+        ) : (
+          <div className="nx-tbl-wrap">
+            <table className="nx-tbl">
+              <thead>
+                <tr>
+                  <th scope="col">Course</th>
+                  <th scope="col">Time</th>
+                  <th scope="col">Room</th>
+                  <th scope="col" style={{ textAlign: "right" }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {TODAYS_CLASSES.map(c => (
+                  <tr key={c.code}>
+                    <td>
+                      <div className="nx-user-cell-name">{c.code} · {c.name}</div>
+                    </td>
+                    <td className="nx-tbl-mono">{c.time}</td>
+                    <td className="nx-tbl-mono">{c.room}</td>
+                    <td style={{ textAlign: "right" }}>
+                      <button className="nx-btn nx-btn-ghost">Start session</button>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {TODAYS_CLASSES.map(c => (
-                    <tr key={c.code}>
-                      <td>
-                        <div className="nx-user-cell-name">{c.code} · {c.name}</div>
-                      </td>
-                      <td className="nx-tbl-mono">{c.time}</td>
-                      <td className="nx-tbl-mono">{c.room}</td>
-                      <td style={{ textAlign: "right" }}>
-                        <button className="nx-btn nx-btn-ghost">Start session</button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-
-        <div className="nx-card">
-          <div className="nx-card-head">
-            <h3 className="nx-card-title">Quick actions</h3>
+                ))}
+              </tbody>
+            </table>
           </div>
-          <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 8 }}>
-            <a className="nx-btn nx-btn-ghost" href="/instructor/courses">My courses</a>
-            <a className="nx-btn nx-btn-ghost" href="/instructor/sessions">Sessions</a>
-            <a className="nx-btn nx-btn-ghost" href="/instructor/gradebook">Grade book</a>
-            <a className="nx-btn nx-btn-ghost" href="/instructor/announcements">Compose announcement</a>
-          </div>
-        </div>
+        )}
       </div>
 
       <div className="nx-card">

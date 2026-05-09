@@ -199,12 +199,14 @@
 
 .nx-sidebar-avatar {
   width: 28px; height: 28px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--nx-accent), var(--nx-accent-hover));
-  color: white;
+  border-radius: 6px;
+  background: var(--nx-bg-elev);
+  border: 1px solid var(--nx-border);
+  color: var(--nx-fg);
   display: grid; place-items: center;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 600;
+  letter-spacing: 0.02em;
 }
 
 .nx-sidebar-user {
@@ -458,11 +460,14 @@
 
 .nx-avatar {
   width: 28px; height: 28px;
-  border-radius: 50%;
+  border-radius: 6px;
+  background: var(--nx-bg-elev);
+  border: 1px solid var(--nx-border);
+  color: var(--nx-fg);
   display: grid; place-items: center;
   font-size: 11px;
   font-weight: 600;
-  color: white;
+  letter-spacing: 0.02em;
   flex-shrink: 0;
 }
 

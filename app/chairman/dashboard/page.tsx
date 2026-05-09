@@ -66,7 +66,10 @@ export default function ChairmanDashboardPage() {
       <div className="nx-page-head">
         <div>
           <h1 className="nx-page-title">Overview</h1>
-          <p className="nx-page-sub">{today} · {user?.name ?? "Department"} · Spring 2026</p>
+          <p className="nx-page-sub">
+            {today} · {user?.name ?? "Department"} · Spring 2026
+            <span className="nx-version-pill" style={{ marginLeft: 10 }}>Demo data</span>
+          </p>
         </div>
       </div>
 
@@ -80,55 +83,40 @@ export default function ChairmanDashboardPage() {
         ))}
       </div>
 
-      <div className="nx-grid-2">
-        <div className="nx-card">
-          <div className="nx-card-head">
-            <div>
-              <h3 className="nx-card-title">Approval queue</h3>
-              <p className="nx-card-sub">Requests awaiting your decision</p>
-            </div>
-            <span className="nx-filter-bar-count">{APPROVAL_QUEUE.length} pending</span>
+      <div className="nx-card">
+        <div className="nx-card-head">
+          <div>
+            <h3 className="nx-card-title">Approval queue</h3>
+            <p className="nx-card-sub">Requests awaiting your decision</p>
           </div>
-          <div className="nx-tbl-wrap">
-            <table className="nx-tbl">
-              <thead>
-                <tr>
-                  <th scope="col">Request</th>
-                  <th scope="col">Submitter</th>
-                  <th scope="col">Submitted</th>
-                  <th scope="col" style={{ textAlign: "right" }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {APPROVAL_QUEUE.map(r => (
-                  <tr key={r.id}>
-                    <td>
-                      <div className="nx-user-cell-name">{r.title}</div>
-                      <div className="nx-user-cell-email">{r.id} · {r.type}</div>
-                    </td>
-                    <td>{r.submitter}</td>
-                    <td className="nx-tbl-mono">{r.submitted}</td>
-                    <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
-                      <button className="nx-btn nx-btn-ghost">Review</button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <span className="nx-filter-bar-count">{APPROVAL_QUEUE.length} pending</span>
         </div>
-
-        <div className="nx-card">
-          <div className="nx-card-head">
-            <h3 className="nx-card-title">Quick links</h3>
-          </div>
-          <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 8 }}>
-            <a className="nx-btn nx-btn-ghost" href="/chairman/departments">Departments</a>
-            <a className="nx-btn nx-btn-ghost" href="/chairman/faculty">Faculty</a>
-            <a className="nx-btn nx-btn-ghost" href="/chairman/students">Students</a>
-            <a className="nx-btn nx-btn-ghost" href="/chairman/reports">Reports</a>
-            <a className="nx-btn nx-btn-ghost" href="/chairman/policy">Policy archive</a>
-          </div>
+        <div className="nx-tbl-wrap">
+          <table className="nx-tbl">
+            <thead>
+              <tr>
+                <th scope="col">Request</th>
+                <th scope="col">Submitter</th>
+                <th scope="col">Submitted</th>
+                <th scope="col" style={{ textAlign: "right" }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {APPROVAL_QUEUE.map(r => (
+                <tr key={r.id}>
+                  <td>
+                    <div className="nx-user-cell-name">{r.title}</div>
+                    <div className="nx-user-cell-email">{r.id} · {r.type}</div>
+                  </td>
+                  <td>{r.submitter}</td>
+                  <td className="nx-tbl-mono">{r.submitted}</td>
+                  <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
+                    <button className="nx-btn nx-btn-ghost">Review</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
 

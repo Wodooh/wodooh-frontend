@@ -11,13 +11,6 @@ const ROLE_LABEL: Record<UserRole, string> = {
   student: "Students",
 };
 
-function avatarColor(name: string | undefined) {
-  const seed = name ?? "?";
-  let h = 0;
-  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
-  return `hsl(${h % 360}, 60%, 45%)`;
-}
-
 function initials(name: string | undefined) {
   if (!name) return "?";
   return name.split(" ").filter(Boolean).map(p => p[0]).join("").slice(0, 2).toUpperCase() || "?";
@@ -69,77 +62,51 @@ export default function AdminDashboardPage() {
         </div>
       )}
 
-      <div className="nx-grid-2">
-        {/* Recent users */}
-        <div className="nx-card">
-          <div className="nx-card-head">
-            <div>
-              <h3 className="nx-card-title">Recent signups</h3>
-              <p className="nx-card-sub">Latest users added to the platform</p>
-            </div>
-          </div>
-          {loading ? (
-            <div className="nx-loading"><span className="nx-spin" /> Loading…</div>
-          ) : recent.length === 0 ? (
-            <div className="nx-empty">
-              <div className="nx-empty-title">No users yet</div>
-              <div className="nx-empty-sub">When users sign up, they&apos;ll show here.</div>
-            </div>
-          ) : (
-            <div className="nx-tbl-wrap">
-              <table className="nx-tbl">
-                <thead>
-                  <tr>
-                    <th>User</th>
-                    <th>Role</th>
-                    <th>Joined</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recent.map(u => (
-                    <tr key={u._id}>
-                      <td>
-                        <div className="nx-user-cell">
-                          <div className="nx-avatar" style={{ background: avatarColor(u.name) }}>{initials(u.name)}</div>
-                          <div>
-                            <div className="nx-user-cell-name">{u.name}</div>
-                            <div className="nx-user-cell-email">{u.email}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td><RoleBadge role={u.role} /></td>
-                      <td className="nx-tbl-mono">{u.createdAt ? new Date(u.createdAt).toLocaleDateString() : "—"}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-
-        {/* Quick actions */}
-        <div className="nx-card">
-          <div className="nx-card-head">
-            <h3 className="nx-card-title">Quick actions</h3>
-          </div>
-          <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 8 }}>
-            <a className="nx-btn nx-btn-ghost" href="/admin/users">Manage users</a>
-            <a className="nx-btn nx-btn-ghost" href="/admin/departments">Browse departments</a>
-            <a className="nx-btn nx-btn-ghost" href="/admin/courses">Browse courses</a>
-            <a className="nx-btn nx-btn-ghost" href="/admin/system">System health</a>
-          </div>
-        </div>
-      </div>
-
       <div className="nx-card">
         <div className="nx-card-head">
-          <h3 className="nx-card-title">Audit log</h3>
-          <p className="nx-card-sub">Admin activity across the platform</p>
+          <div>
+            <h3 className="nx-card-title">Recent signups</h3>
+            <p className="nx-card-sub">Latest users added to the platform</p>
+          </div>
+          <a className="nx-btn nx-btn-ghost" href="/admin/users">View all users</a>
         </div>
-        <div className="nx-empty">
-          <div className="nx-empty-title">No audit data yet</div>
-          <div className="nx-empty-sub">Audit log requires backend support and will populate once the System endpoint ships.</div>
-        </div>
+        {loading ? (
+          <div className="nx-loading"><span className="nx-spin" /> Loading…</div>
+        ) : recent.length === 0 ? (
+          <div className="nx-empty">
+            <div className="nx-empty-title">No users yet</div>
+            <div className="nx-empty-sub">When users sign up, they&apos;ll show here.</div>
+          </div>
+        ) : (
+          <div className="nx-tbl-wrap">
+            <table className="nx-tbl">
+              <thead>
+                <tr>
+                  <th>User</th>
+                  <th>Role</th>
+                  <th>Joined</th>
+                </tr>
+              </thead>
+              <tbody>
+                {recent.map(u => (
+                  <tr key={u._id}>
+                    <td>
+                      <div className="nx-user-cell">
+                        <div className="nx-avatar">{initials(u.name)}</div>
+                        <div>
+                          <div className="nx-user-cell-name">{u.name}</div>
+                          <div className="nx-user-cell-email">{u.email}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td><RoleBadge role={u.role} /></td>
+                    <td className="nx-tbl-mono">{u.createdAt ? new Date(u.createdAt).toLocaleDateString() : "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </>
   );
