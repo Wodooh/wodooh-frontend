@@ -11,13 +11,6 @@ const ROLE_LABEL: Record<UserRole, string> = {
   student: "Students",
 };
 
-function avatarColor(name: string | undefined) {
-  const seed = name ?? "?";
-  let h = 0;
-  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
-  return `hsl(${h % 360}, 60%, 45%)`;
-}
-
 function initials(name: string | undefined) {
   if (!name) return "?";
   return name.split(" ").filter(Boolean).map(p => p[0]).join("").slice(0, 2).toUpperCase() || "?";
@@ -100,7 +93,7 @@ export default function AdminDashboardPage() {
                     <tr key={u._id}>
                       <td>
                         <div className="nx-user-cell">
-                          <div className="nx-avatar" style={{ background: avatarColor(u.name) }}>{initials(u.name)}</div>
+                          <div className="nx-avatar">{initials(u.name)}</div>
                           <div>
                             <div className="nx-user-cell-name">{u.name}</div>
                             <div className="nx-user-cell-email">{u.email}</div>
