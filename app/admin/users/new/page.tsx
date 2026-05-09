@@ -156,7 +156,7 @@ export default function NewUserPage() {
             ) : (
               <p
                 id="email-hint"
-                className="text-xs text-[#808080] font-bold mt-1"
+                className="text-xs text-[var(--nx-fg-muted)] mt-1"
               >
                 Stored in lowercase per backend convention.
               </p>
@@ -181,10 +181,9 @@ export default function NewUserPage() {
                   </option>
                 ))}
               </select>
-              {/* Custom dropdown indicator */}
               <span
                 aria-hidden="true"
-                className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#121212] font-bold"
+                className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[var(--nx-fg-muted)]"
               >
                 ▾
               </span>
