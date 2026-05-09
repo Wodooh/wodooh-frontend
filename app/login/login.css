@@ -1,702 +1,239 @@
 /* ─────────────────────────────────────────────────────────
- * BRUTALIST LOGIN — divergent auth shell (intentional Nexus exception
- * documented in DESIGN.md "Auth shell" carve-out). Tokens here (--bl-*)
- * do NOT mirror --nx-*; they live as a contained institutional palette
- * inside .bl-shell. Outside this surface, never use --bl-* — go through
- * --nx-* / var(--accent) like every other route.
+ * Login — Nexus auth shell.
+ * Visual tokens come from app/nexus.css (--nx-*). This file only
+ * adds page-level layout (centered card, topbar, footer) and a
+ * couple of login-specific helpers (logo tile, larger input wrap).
+ * No --nl-* / --bl-* / hex literals.
  * ──────────────────────────────────────────────────────── */
 
-@import url('https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@400;500;600;700;800&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
-
-[data-nx-theme="light"] .bl-shell {
-  --bl-bg: #EFEAE2;
-  --bl-surface: #E8E2D6;
-  --bl-fg: #0E0E0C;
-  --bl-fg-muted: #5C554A;
-  --bl-fg-faint: #8D8579;
-  --bl-rule: #0E0E0C;
-  --bl-rule-soft: #C9C2B5;
-  --bl-accent: #C8102E;
-  --bl-accent-hover: #9A0B22;
-  --bl-on-accent: #EFEAE2;
-  --bl-grain-blend: multiply;
-  --bl-grain-opacity: 0.06;
-}
-
-[data-nx-theme="dark"] .bl-shell {
-  --bl-bg: #0E0E0C;
-  --bl-surface: #181816;
-  --bl-fg: #EFEAE2;
-  --bl-fg-muted: #A8A296;
-  --bl-fg-faint: #6E6A60;
-  --bl-rule: #EFEAE2;
-  --bl-rule-soft: #2C2A26;
-  --bl-accent: #FF4500;
-  --bl-accent-hover: #FF6A2B;
-  --bl-on-accent: #0E0E0C;
-  --bl-grain-blend: screen;
-  --bl-grain-opacity: 0.10;
-}
-
-/* ── Shell ─────────────────────────────────────────────── */
-
-.bl-shell {
-  font-family: 'Public Sans', system-ui, sans-serif;
-  background: var(--bl-bg);
-  color: var(--bl-fg);
+.nx-login-shell {
   min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  overflow-x: hidden;
+  background: var(--nx-bg);
+  color: var(--nx-fg);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
+  display: flex;
+  flex-direction: column;
 }
 
-.bl-shell::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 100;
-  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.7 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  opacity: var(--bl-grain-opacity);
-  mix-blend-mode: var(--bl-grain-blend);
-}
-
-/* ── Top metadata strip ───────────────────────────────── */
-
-.bl-strip {
-  position: relative;
-  z-index: 2;
-  border-bottom: 1px solid var(--bl-rule);
-  padding: 14px 32px;
+.nx-login-topbar {
+  height: 56px;
+  padding: 0 16px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  font-family: 'IBM Plex Mono', ui-monospace, monospace;
-  font-size: 10.5px;
-  text-transform: uppercase;
-  letter-spacing: 0.16em;
-  color: var(--bl-fg);
-  background: var(--bl-bg);
+  justify-content: flex-end;
 }
 
-.bl-strip-left, .bl-strip-right {
-  display: flex;
-  gap: 22px;
-  align-items: center;
-}
-
-.bl-strip-marker {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  background: var(--bl-accent);
-  flex-shrink: 0;
-}
-
-.bl-strip-divider {
-  width: 1px;
-  height: 12px;
-  background: var(--bl-rule);
-  opacity: 0.4;
-}
-
-.bl-theme-toggle {
-  background: transparent;
-  border: 1px solid var(--bl-rule);
-  color: var(--bl-fg);
-  font-family: 'IBM Plex Mono', ui-monospace, monospace;
-  font-size: 10.5px;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  padding: 5px 10px;
-  cursor: pointer;
-  transition: background 120ms, color 120ms;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.bl-theme-toggle:hover {
-  background: var(--bl-fg);
-  color: var(--bl-bg);
-}
-
-.bl-theme-toggle .bl-theme-toggle-dot {
-  width: 6px;
-  height: 6px;
-  background: currentColor;
-  display: inline-block;
-}
-
-/* ── Two-col layout ───────────────────────────────────── */
-
-.bl-shell-grid {
+.nx-login-main {
   flex: 1;
-  display: grid;
-  grid-template-columns: 44% 56%;
-  position: relative;
-  z-index: 1;
-}
-
-@media (max-width: 960px) {
-  .bl-shell-grid { grid-template-columns: 1fr; }
-}
-
-/* ── Brand panel ──────────────────────────────────────── */
-
-.bl-brand {
-  border-right: 1px solid var(--bl-rule);
-  padding: 56px 56px 32px;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  position: relative;
-  min-height: 640px;
-  background:
-    repeating-linear-gradient(135deg, transparent 0 36px, color-mix(in oklab, var(--bl-rule) 4%, transparent) 36px 37px);
-}
-
-@media (max-width: 960px) {
-  .bl-brand {
-    border-right: 0;
-    border-bottom: 1px solid var(--bl-rule);
-    min-height: auto;
-    padding: 36px 28px;
-  }
-}
-
-.bl-corner-tag {
-  position: absolute;
-  top: 16px;
-  right: 24px;
-  font-family: 'IBM Plex Mono', ui-monospace, monospace;
-  font-size: 10px;
-  letter-spacing: 0.18em;
-  color: var(--bl-fg-faint);
-  text-transform: uppercase;
-}
-
-.bl-wordmark {
-  display: flex;
-  flex-direction: column;
-  margin-top: 32px;
-}
-
-.bl-wordmark-meta {
-  font-family: 'IBM Plex Mono', ui-monospace, monospace;
-  font-size: 10.5px;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: var(--bl-fg-muted);
-  margin: 0 0 18px;
-  display: flex;
   align-items: center;
-  gap: 10px;
+  justify-content: center;
+  padding: 24px 16px;
 }
 
-.bl-wordmark-meta::before {
-  content: '';
-  width: 28px;
-  height: 1px;
-  background: var(--bl-rule);
+.nx-login-card {
+  width: 100%;
+  max-width: 380px;
+  background: var(--nx-bg-elev);
+  border: 1px solid var(--nx-border);
+  border-radius: 8px;
+  box-shadow: var(--nx-shadow-sm);
 }
 
-.bl-wordmark-latin {
-  font-family: 'Archivo Narrow', sans-serif;
-  font-weight: 800;
-  font-size: clamp(64px, 11vw, 144px);
-  line-height: 0.86;
-  letter-spacing: -0.04em;
-  text-transform: uppercase;
-  margin: 0;
-  color: var(--bl-fg);
+.nx-login-head {
+  padding: 32px 28px 8px;
+  text-align: center;
 }
 
-.bl-wordmark-arabic {
-  font-family: 'IBM Plex Sans Arabic', system-ui, sans-serif;
+.nx-login-logo {
+  width: 44px;
+  height: 44px;
+  margin: 0 auto;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--nx-accent), var(--nx-accent-hover));
+  color: #ffffff;
+  display: grid;
+  place-items: center;
   font-weight: 700;
-  font-size: clamp(46px, 8vw, 104px);
-  line-height: 1;
+  font-size: 20px;
   letter-spacing: -0.02em;
-  margin: 6px 0 0;
-  color: var(--bl-fg);
-  direction: rtl;
 }
 
-.bl-wordmark-divider {
-  margin: 32px 0 24px;
-  border: 0;
-  height: 1px;
-  background: var(--bl-rule);
-  width: 100%;
-  transform-origin: left;
-}
-
-.bl-tagline {
-  font-family: 'IBM Plex Mono', ui-monospace, monospace;
-  font-size: 11px;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: var(--bl-fg);
-  line-height: 1.7;
-  max-width: 360px;
-  font-weight: 500;
-}
-
-.bl-tagline-accent {
-  color: var(--bl-accent);
-}
-
-.bl-brand-foot {
-  font-family: 'IBM Plex Mono', ui-monospace, monospace;
-  font-size: 10.5px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--bl-fg-muted);
-  display: flex;
-  justify-content: space-between;
-  border-top: 1px solid var(--bl-rule);
-  padding-top: 16px;
-  margin-top: 40px;
-}
-
-.bl-brand-foot strong {
-  color: var(--bl-fg);
+.nx-login-title {
+  font-size: 18px;
   font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 16px 0 4px;
+  color: var(--nx-fg);
 }
 
-/* ── Form panel ──────────────────────────────────────── */
-
-.bl-form-panel {
-  padding: 56px 64px 32px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  min-height: 640px;
-  background: var(--bl-bg);
-}
-
-@media (max-width: 960px) {
-  .bl-form-panel { padding: 32px 28px; min-height: auto; }
-}
-
-.bl-form-head {
-  margin-bottom: 36px;
-  padding-bottom: 24px;
-  border-bottom: 1px solid var(--bl-rule);
-}
-
-.bl-form-eyebrow {
-  font-family: 'IBM Plex Mono', ui-monospace, monospace;
-  font-size: 10.5px;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: var(--bl-fg-muted);
-  margin: 0 0 10px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.bl-form-eyebrow::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: var(--bl-rule-soft);
-}
-
-.bl-form-title {
-  font-family: 'Archivo Narrow', sans-serif;
-  font-weight: 800;
-  font-size: 56px;
-  line-height: 0.92;
-  letter-spacing: -0.03em;
-  text-transform: uppercase;
-  margin: 0 0 12px;
-  color: var(--bl-fg);
-}
-
-.bl-form-subtitle {
-  font-family: 'Public Sans', sans-serif;
-  font-size: 14px;
-  color: var(--bl-fg-muted);
+.nx-login-sub {
+  font-size: 13px;
+  color: var(--nx-fg-muted);
   margin: 0;
-  line-height: 1.55;
-  max-width: 460px;
-}
-
-/* ── Form fields ─────────────────────────────────────── */
-
-.bl-form {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-.bl-field {
-  display: grid;
-  grid-template-columns: 64px 1fr;
-  gap: 18px;
-  align-items: start;
-}
-
-@media (max-width: 480px) {
-  .bl-field { grid-template-columns: 48px 1fr; gap: 12px; }
-}
-
-.bl-field-num {
-  font-family: 'Archivo Narrow', sans-serif;
-  font-weight: 800;
-  font-size: 44px;
-  line-height: 1;
-  letter-spacing: -0.04em;
-  color: var(--bl-fg);
-  padding-top: 22px;
-  user-select: none;
-}
-
-.bl-field-body {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-width: 0;
-}
-
-.bl-field-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.bl-field-label {
-  font-family: 'IBM Plex Mono', ui-monospace, monospace;
-  font-size: 10.5px;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: var(--bl-fg);
-  font-weight: 500;
-}
-
-.bl-field-link {
-  font-family: 'IBM Plex Mono', ui-monospace, monospace;
-  font-size: 10.5px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--bl-fg-muted);
-  text-decoration: none;
-  background: transparent;
-  border: 0;
-  cursor: pointer;
-  padding: 0;
-  border-bottom: 1px solid var(--bl-rule-soft);
-  padding-bottom: 1px;
-  transition: color 120ms, border-color 120ms;
-}
-
-.bl-field-link:hover {
-  color: var(--bl-accent);
-  border-bottom-color: var(--bl-accent);
-}
-
-.bl-input-wrap {
-  position: relative;
-  border-bottom: 1px solid var(--bl-rule);
-  display: flex;
-  align-items: center;
-  transition: border-color 120ms, padding-bottom 120ms;
-  padding-bottom: 0;
-}
-
-.bl-input-wrap:focus-within {
-  border-bottom-width: 2px;
-  padding-bottom: 0;
-}
-
-.bl-input-wrap.has-error {
-  border-bottom-color: var(--bl-accent);
-  border-bottom-width: 2px;
-}
-
-.bl-input {
-  width: 100%;
-  background: transparent;
-  border: 0;
-  padding: 14px 0;
-  font-family: 'Public Sans', sans-serif;
-  font-size: 17px;
-  letter-spacing: -0.005em;
-  color: var(--bl-fg);
-  outline: 0;
-  font-weight: 500;
-}
-
-.bl-input::placeholder {
-  color: var(--bl-fg-faint);
-  font-weight: 400;
-}
-
-.bl-pw-toggle {
-  background: transparent;
-  border: 0;
-  color: var(--bl-fg-muted);
-  cursor: pointer;
-  padding: 6px 0 6px 12px;
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
-}
-
-.bl-pw-toggle:hover { color: var(--bl-fg); }
-
-.bl-field-helper {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-family: 'IBM Plex Mono', ui-monospace, monospace;
-  font-size: 10.5px;
-  color: var(--bl-fg-muted);
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  margin-top: 2px;
-}
-
-.bl-field-error {
-  color: var(--bl-accent);
-}
-
-/* ── Error banner ────────────────────────────────────── */
-
-.bl-error {
-  border: 1px solid var(--bl-accent);
-  background: var(--bl-bg);
-  color: var(--bl-fg);
-  padding: 12px 14px;
-  font-family: 'IBM Plex Mono', ui-monospace, monospace;
-  font-size: 11px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  display: flex;
-  gap: 12px;
-  align-items: flex-start;
   line-height: 1.5;
 }
 
-.bl-error::before {
-  content: '!';
-  flex: 0 0 22px;
-  display: grid;
-  place-items: center;
-  width: 22px;
-  height: 22px;
-  background: var(--bl-accent);
-  color: var(--bl-on-accent);
-  font-weight: 800;
-  font-family: 'Archivo Narrow', sans-serif;
-  font-size: 14px;
-  letter-spacing: 0;
-}
-
-/* ── Submit row ──────────────────────────────────────── */
-
-.bl-submit-row {
-  display: grid;
-  grid-template-columns: 64px 1fr;
-  gap: 18px;
-  align-items: stretch;
-  border-top: 1px solid var(--bl-rule);
-  padding-top: 24px;
-  margin-top: 8px;
-}
-
-@media (max-width: 480px) {
-  .bl-submit-row { grid-template-columns: 48px 1fr; gap: 12px; }
-}
-
-.bl-submit-num {
-  font-family: 'IBM Plex Mono', ui-monospace, monospace;
-  font-size: 10.5px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--bl-fg-muted);
-  align-self: end;
-  padding-bottom: 22px;
-}
-
-.bl-submit {
-  background: var(--bl-fg);
-  color: var(--bl-bg);
-  border: 1px solid var(--bl-fg);
-  font-family: 'Archivo Narrow', sans-serif;
-  font-weight: 800;
-  font-size: 20px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  padding: 18px 24px;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  width: 100%;
-  transition: background 120ms, color 120ms, border-color 120ms;
-}
-
-.bl-submit:hover:not(:disabled) {
-  background: var(--bl-accent);
-  border-color: var(--bl-accent);
-  color: var(--bl-on-accent);
-}
-
-.bl-submit-arrow {
-  font-family: 'Archivo Narrow', sans-serif;
-  font-weight: 400;
-  font-size: 26px;
-  line-height: 1;
-  display: inline-block;
-  transition: transform 160ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.bl-submit:hover:not(:disabled) .bl-submit-arrow {
-  transform: translateX(8px);
-}
-
-.bl-submit:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
-/* ── Footer ──────────────────────────────────────────── */
-
-.bl-form-foot {
-  border-top: 1px solid var(--bl-rule);
-  padding-top: 20px;
-  margin-top: 32px;
-  font-family: 'IBM Plex Mono', ui-monospace, monospace;
-  font-size: 10.5px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--bl-fg-muted);
+.nx-login-form {
+  padding: 20px 28px 24px;
   display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: 14px;
 }
 
-.bl-form-foot a,
-.bl-form-foot button {
-  color: var(--bl-fg);
-  text-decoration: none;
-  background: transparent;
-  border: 0;
-  cursor: pointer;
-  font: inherit;
-  letter-spacing: inherit;
-  text-transform: inherit;
-  padding: 0 0 1px;
-  border-bottom: 1px solid var(--bl-rule);
-  transition: color 120ms, border-color 120ms;
+.nx-login-field-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.nx-login-field {
+  display: flex;
+  flex-direction: column;
+}
+
+.nx-login-field > .nx-field-label {
+  display: block;
+  margin-bottom: 6px;
+}
+
+.nx-login-helper {
+  font-size: 12px;
+  color: var(--nx-fg-muted);
+  margin-top: 6px;
   display: inline-flex;
   align-items: center;
   gap: 6px;
 }
 
-.bl-form-foot a:hover,
-.bl-form-foot button:hover {
-  color: var(--bl-accent);
-  border-bottom-color: var(--bl-accent);
+.nx-login-helper.is-error {
+  color: var(--nx-danger);
 }
 
-/* ── Spinner ─────────────────────────────────────────── */
-
-.bl-spin {
-  display: inline-block;
-  width: 14px;
-  height: 14px;
-  border: 1.5px solid currentColor;
-  border-right-color: transparent;
-  border-radius: 50%;
-  animation: bl-spin 0.6s linear infinite;
-  vertical-align: middle;
+.nx-login-link {
+  background: transparent;
+  border: 0;
+  color: var(--nx-accent);
+  cursor: pointer;
+  font-size: 12.5px;
+  font-family: inherit;
+  font-weight: 500;
+  padding: 0;
+  text-decoration: none;
 }
 
-@keyframes bl-spin { to { transform: rotate(360deg); } }
+.nx-login-link:hover { text-decoration: underline; }
 
-/* ── Forgot success ───────────────────────────────────── */
-
-.bl-success {
-  border: 1px solid var(--bl-rule);
-  background: var(--bl-surface);
-  padding: 18px 20px;
-  font-family: 'Public Sans', sans-serif;
-  font-size: 14px;
-  line-height: 1.6;
-  color: var(--bl-fg);
-  margin-bottom: 16px;
+.nx-login-error {
+  border: 1px solid color-mix(in oklab, var(--nx-danger) 35%, transparent);
+  background: var(--nx-danger-soft);
+  color: var(--nx-danger);
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
 }
 
-.bl-success-eyebrow {
-  font-family: 'IBM Plex Mono', ui-monospace, monospace;
-  font-size: 10.5px;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: var(--bl-accent);
-  margin: 0 0 10px;
+[data-nx-theme="dark"] .nx-login-error {
+  color: #ffb4b4;
+}
+
+/* Login-specific input wrap: same as .nx-input-wrap but taller for
+ * better readability on a primary entry surface. */
+.nx-login-input-wrap {
   display: flex;
   align-items: center;
   gap: 8px;
+  height: 40px;
+  padding: 0 12px;
+  background: var(--nx-bg-elev);
+  border: 1px solid var(--nx-border-strong);
+  border-radius: 6px;
+  transition: border-color 80ms, box-shadow 80ms;
 }
 
-.bl-success-eyebrow::before {
-  content: '';
-  width: 8px;
-  height: 8px;
-  background: var(--bl-accent);
+.nx-login-input-wrap:focus-within {
+  border-color: var(--nx-accent);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--nx-accent) 22%, transparent);
 }
 
-.bl-success strong { color: var(--bl-fg); font-weight: 600; }
-
-/* ── Animations ─────────────────────────────────────── */
-
-@keyframes bl-rise {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+.nx-login-input-wrap.has-error {
+  border-color: var(--nx-danger);
 }
 
-@keyframes bl-slide-left {
-  from { opacity: 0; transform: translateX(-16px); }
-  to { opacity: 1; transform: translateX(0); }
+.nx-login-input-wrap.has-error:focus-within {
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--nx-danger) 22%, transparent);
 }
 
-@keyframes bl-slide-right {
-  from { opacity: 0; transform: translateX(16px); }
-  to { opacity: 1; transform: translateX(0); }
+.nx-login-input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--nx-fg);
+  font-size: 14px;
+  font-family: inherit;
+  height: 100%;
 }
 
-@keyframes bl-rule-draw {
-  from { transform: scaleX(0); }
-  to { transform: scaleX(1); }
+.nx-login-input::placeholder { color: var(--nx-fg-faint); }
+
+.nx-login-pw-toggle {
+  background: transparent;
+  border: 0;
+  color: var(--nx-fg-muted);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
 }
 
-.bl-strip { animation: bl-rise 0.32s ease-out both; }
-.bl-brand { animation: bl-slide-left 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
-.bl-form-panel { animation: bl-slide-right 0.5s 0.06s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.nx-login-pw-toggle:hover { color: var(--nx-fg); }
 
-.bl-wordmark-divider { animation: bl-rule-draw 0.6s 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; }
-
-.bl-form-head { animation: bl-rise 0.45s 0.18s ease-out both; }
-.bl-field { animation: bl-rise 0.4s ease-out both; }
-.bl-field:nth-of-type(1) { animation-delay: 0.24s; }
-.bl-field:nth-of-type(2) { animation-delay: 0.32s; }
-.bl-submit-row { animation: bl-rise 0.4s 0.42s ease-out both; }
-.bl-form-foot { animation: bl-rise 0.4s 0.5s ease-out both; }
-
-@media (prefers-reduced-motion: reduce) {
-  .bl-shell *, .bl-shell *::before, .bl-shell *::after {
-    animation-duration: 0.01ms !important;
-    transition-duration: 0.01ms !important;
-  }
+.nx-login-submit {
+  height: 40px;
+  width: 100%;
+  font-size: 14px;
+  margin-top: 4px;
 }
+
+.nx-login-meta {
+  margin: 16px 0 0;
+  font-size: 13px;
+  color: var(--nx-fg-muted);
+  text-align: center;
+}
+
+.nx-login-meta a {
+  color: var(--nx-accent);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.nx-login-meta a:hover { text-decoration: underline; }
+
+.nx-login-foot {
+  padding: 20px 24px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--nx-fg-faint);
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.nx-login-foot a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.nx-login-foot a:hover { color: var(--nx-fg-muted); }
