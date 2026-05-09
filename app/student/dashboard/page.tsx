@@ -20,13 +20,6 @@ export default function StudentDashboardPage() {
         </div>
       </div>
 
-      <div className="nx-kpi-strip">
-        <KPI label="My courses" />
-        <KPI label="Active sessions" />
-        <KPI label="Pending questions" />
-        <KPI label="Announcements" />
-      </div>
-
       <div className="nx-card">
         <div className="nx-card-head">
           <div>
@@ -42,8 +35,10 @@ export default function StudentDashboardPage() {
 
       <div className="nx-card">
         <div className="nx-card-head">
-          <h3 className="nx-card-title">Recent announcements</h3>
-          <p className="nx-card-sub">Updates from your instructors</p>
+          <div>
+            <h3 className="nx-card-title">Recent announcements</h3>
+            <p className="nx-card-sub">Updates from your instructors</p>
+          </div>
         </div>
         <div className="nx-empty">
           <div className="nx-empty-title">No announcements yet</div>
@@ -51,14 +46,5 @@ export default function StudentDashboardPage() {
         </div>
       </div>
     </>
-  );
-}
-
-function KPI({ label }: { label: string }) {
-  return (
-    <div className="nx-kpi">
-      <p className="nx-kpi-label">{label}</p>
-      <div className="nx-kpi-value">—</div>
-    </div>
   );
 }

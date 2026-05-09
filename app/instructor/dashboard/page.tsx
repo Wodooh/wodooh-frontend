@@ -27,15 +27,16 @@ export default function InstructorDashboardPage() {
       <div className="nx-page-head">
         <div>
           <h1 className="nx-page-title">Dashboard</h1>
-          <p className="nx-page-sub">{today} · Welcome back, {user?.name?.split(" ")[0] ?? "Instructor"}</p>
+          <p className="nx-page-sub">
+            {today} · Welcome back, {user?.name?.split(" ")[0] ?? "Instructor"}
+            <span className="nx-version-pill" style={{ marginLeft: 10 }}>Demo data</span>
+          </p>
         </div>
       </div>
 
       <div className="nx-kpi-strip">
-        <KPI label="Active courses" value="—" />
         <KPI label="Today's classes" value={String(TODAYS_CLASSES.length)} />
         <KPI label="Pending questions" value={String(PENDING_QUESTIONS.length)} />
-        <KPI label="Open sessions" value="—" />
       </div>
 
       <div className="nx-card">

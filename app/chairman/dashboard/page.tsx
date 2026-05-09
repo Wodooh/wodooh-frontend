@@ -66,7 +66,10 @@ export default function ChairmanDashboardPage() {
       <div className="nx-page-head">
         <div>
           <h1 className="nx-page-title">Overview</h1>
-          <p className="nx-page-sub">{today} · {user?.name ?? "Department"} · Spring 2026</p>
+          <p className="nx-page-sub">
+            {today} · {user?.name ?? "Department"} · Spring 2026
+            <span className="nx-version-pill" style={{ marginLeft: 10 }}>Demo data</span>
+          </p>
         </div>
       </div>
 

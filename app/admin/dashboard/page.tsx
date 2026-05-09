@@ -108,17 +108,6 @@ export default function AdminDashboardPage() {
           </div>
         )}
       </div>
-
-      <div className="nx-card">
-        <div className="nx-card-head">
-          <h3 className="nx-card-title">Audit log</h3>
-          <p className="nx-card-sub">Admin activity across the platform</p>
-        </div>
-        <div className="nx-empty">
-          <div className="nx-empty-title">No audit data yet</div>
-          <div className="nx-empty-sub">Audit log requires backend support and will populate once the System endpoint ships.</div>
-        </div>
-      </div>
     </>
   );
 }
