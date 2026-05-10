@@ -62,7 +62,9 @@ export const useAuth = () => {
     setError(null);
 
     try {
-      // Normalize email and name to lowercase (backend stores in lowercase)
+      // Normalize email and name to lowercase (backend stores in lowercase).
+      // `data.role` (optional, "student" | "instructor") flows through ...data
+      // so the backend can promote new accounts to instructor at signup time.
       const normalizedData = {
         ...data,
         email: data.email.toLowerCase(),

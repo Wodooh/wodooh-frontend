@@ -1,0 +1,369 @@
+/* ─────────────────────────────────────────────────────────
+ * Onboarding — extends the Nexus auth shell (login.css).
+ * Reuses .nx-login-* primitives but widens the card to fit
+ * a multi-step form, and adds a stepper + course-list look.
+ * No --nl-* / --bl-* / hex literals.
+ * ──────────────────────────────────────────────────────── */
+
+/* Local accent override per role. The card sets --nx-accent for its own
+ * subtree (and the surrounding shell's atmospheric gradient) so the entire
+ * page color-shifts when switching between Student and Instructor. */
+.nx-onboarding-card {
+  width: 100%;
+  max-width: 520px;
+  background: var(--nx-bg-elev);
+  border: 1px solid var(--nx-border);
+  border-radius: 8px;
+  transition: box-shadow 280ms ease, border-color 280ms ease;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 18px 40px -12px color-mix(in oklab, var(--nx-accent) 22%, rgba(15, 18, 35, 0.10));
+}
+
+[data-nx-theme="dark"] .nx-onboarding-card {
+  border-color: color-mix(in oklab, var(--nx-border) 75%, var(--nx-fg));
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.4),
+    0 24px 48px -16px color-mix(in oklab, var(--nx-accent) 35%, rgba(0, 0, 0, 0.6));
+}
+
+/* The instructor accent is inferred from --nx-warning to give the role a
+ * visibly distinct hue without inventing a token outside Nexus. */
+.nx-login-shell[data-onboarding-role="instructor"] {
+  --nx-accent: var(--nx-warning);
+  --nx-accent-hover: color-mix(in oklab, var(--nx-warning) 80%, var(--nx-fg));
+  --nx-accent-soft: var(--nx-warning-soft);
+}
+
+/* The whole card animates accent-driven values (logo, focus rings, course
+ * highlight, buttons) on role switch. */
+.nx-onboarding-card,
+.nx-onboarding-card * {
+  transition-property: background-color, border-color, color, box-shadow;
+  transition-duration: 240ms;
+  transition-timing-function: cubic-bezier(.2, .8, .2, 1);
+}
+
+/* ── Role toggle (segmented pill) ───────────────────── */
+
+.nx-role-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  position: relative;
+  margin: 16px 28px 4px;
+  padding: 4px;
+  background: var(--nx-bg-hover);
+  border: 1px solid var(--nx-border);
+  border-radius: 999px;
+  gap: 0;
+}
+
+.nx-role-toggle-thumb {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 4px;
+  width: calc(50% - 4px);
+  border-radius: 999px;
+  background: var(--nx-bg-elev);
+  border: 1px solid var(--nx-accent);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06),
+    0 0 0 3px color-mix(in oklab, var(--nx-accent) 14%, transparent);
+  transition: transform 320ms cubic-bezier(.2, .8, .2, 1),
+    border-color 240ms ease;
+  z-index: 0;
+}
+
+.nx-role-toggle-thumb.is-instructor {
+  transform: translateX(100%);
+}
+
+.nx-role-toggle-btn {
+  position: relative;
+  z-index: 1;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--nx-fg-muted);
+  border-radius: 999px;
+  transition: color 220ms ease;
+}
+
+.nx-role-toggle-btn.is-active { color: var(--nx-accent); }
+.nx-role-toggle-btn:hover { color: var(--nx-fg); }
+.nx-role-toggle-btn.is-active:hover { color: var(--nx-accent); }
+
+/* ── Cross-fade for the card content when role flips ── */
+
+.nx-role-content {
+  animation: nx-role-fade 360ms cubic-bezier(.2, .8, .2, 1) both;
+}
+
+@keyframes nx-role-fade {
+  from { opacity: 0; transform: translateY(6px); filter: blur(2px); }
+  to   { opacity: 1; transform: none;            filter: none; }
+}
+
+.nx-onboarding-body {
+  padding: 4px 28px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ── Stepper ─────────────────────────────────────────── */
+
+.nx-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 18px 28px 4px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--nx-border);
+}
+
+.nx-stepper-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.nx-stepper-line {
+  flex: 1;
+  height: 1px;
+  background: var(--nx-border);
+}
+
+.nx-stepper-line.is-done {
+  background: var(--nx-accent);
+}
+
+.nx-stepper-dot {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid var(--nx-border-strong);
+  background: var(--nx-bg-elev);
+  color: var(--nx-fg-muted);
+  flex-shrink: 0;
+}
+
+.nx-stepper-dot.is-active {
+  background: var(--nx-accent);
+  border-color: var(--nx-accent);
+  color: #ffffff;
+}
+
+.nx-stepper-dot.is-done {
+  background: color-mix(in oklab, var(--nx-accent) 18%, var(--nx-bg-elev));
+  border-color: var(--nx-accent);
+  color: var(--nx-accent);
+}
+
+.nx-stepper-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--nx-fg-muted);
+  letter-spacing: 0.01em;
+}
+
+.nx-stepper-label.is-active { color: var(--nx-accent); }
+.nx-stepper-label.is-done { color: var(--nx-fg); }
+
+/* ── Step header ────────────────────────────────────── */
+
+.nx-step-eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--nx-fg-subtle);
+  margin: 0 0 4px;
+}
+
+.nx-step-title {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0 0 4px;
+  color: var(--nx-fg);
+}
+
+.nx-step-sub {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--nx-fg-muted);
+  margin: 0 0 10px;
+}
+
+/* ── Course list (selectable cards) ─────────────────── */
+
+.nx-course-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.nx-course-item {
+  border: 1px solid var(--nx-border);
+  background: var(--nx-bg-elev);
+  border-radius: 6px;
+  transition: border-color 80ms, background 80ms;
+}
+
+.nx-course-item.is-selected {
+  border-color: var(--nx-accent);
+  background: color-mix(in oklab, var(--nx-accent) 6%, var(--nx-bg-elev));
+}
+
+.nx-course-toggle {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  color: var(--nx-fg);
+  font-family: inherit;
+  border-radius: 6px;
+}
+
+.nx-course-toggle:hover {
+  background: var(--nx-bg-hover);
+}
+
+.nx-course-checkbox {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  border: 1px solid var(--nx-border-strong);
+  background: var(--nx-bg);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  color: #ffffff;
+}
+
+.nx-course-item.is-selected .nx-course-checkbox {
+  background: var(--nx-accent);
+  border-color: var(--nx-accent);
+}
+
+.nx-course-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.nx-course-code {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--nx-bg-hover);
+  color: var(--nx-fg-muted);
+  letter-spacing: 0.02em;
+}
+
+.nx-course-item.is-selected .nx-course-code {
+  background: color-mix(in oklab, var(--nx-accent) 16%, transparent);
+  color: var(--nx-accent);
+}
+
+.nx-course-name {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--nx-fg);
+}
+
+.nx-course-section {
+  padding: 0 12px 12px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* ── Review tables ──────────────────────────────────── */
+
+.nx-review-section + .nx-review-section { margin-top: 14px; }
+
+.nx-review-heading {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--nx-fg-subtle);
+  margin: 0 0 6px;
+}
+
+.nx-review-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--nx-border);
+  font-size: 13px;
+}
+
+.nx-review-row:last-child { border-bottom: 0; }
+
+.nx-review-key {
+  color: var(--nx-fg-muted);
+  flex: 0 0 auto;
+}
+
+.nx-review-val {
+  color: var(--nx-fg);
+  text-align: right;
+  font-weight: 500;
+  word-break: break-word;
+}
+
+/* ── Step nav (prev / next row) ─────────────────────── */
+
+.nx-step-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+/* ── Success state ──────────────────────────────────── */
+
+.nx-success-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--nx-accent) 16%, var(--nx-bg-elev));
+  border: 1px solid var(--nx-accent);
+  color: var(--nx-accent);
+  display: grid;
+  place-items: center;
+  margin: 0 auto;
+}
