@@ -85,6 +85,66 @@ function useTheme() {
   return { theme, setTheme };
 }
 
+// ── Dev quick-login ──────────────────────────────────────
+
+const DEV_ROLES = [
+  { role: "student",    email: "student@gmail.com",    label: "Student" },
+  { role: "instructor", email: "instructor@gmail.com", label: "Instructor" },
+  { role: "chairman",   email: "chairman@gmail.com",   label: "Chairman" },
+  { role: "admin",      email: "admin@wodooh.com",     label: "Admin" },
+] as const;
+
+const PersonIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="8" r="4" />
+    <path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8" />
+  </svg>
+);
+
+function DevRoleButtons({
+  login,
+  onSuccess,
+}: {
+  login: (creds: LoginCredentials) => Promise<void>;
+  onSuccess: (role: string) => void;
+}) {
+  const [active, setActive] = useState<string | null>(null);
+
+  const loginAs = async (email: string, role: string) => {
+    if (active) return;
+    setActive(role);
+    try {
+      await login({ email, password: "Password123" });
+      onSuccess(role);
+    } catch { /* ignore */ } finally {
+      setActive(null);
+    }
+  };
+
+  return (
+    <div className="nx-dev-section">
+      <div className="nx-dev-divider">Dev · Sign in as</div>
+      <div className="nx-dev-grid">
+        {DEV_ROLES.map(({ role, email, label }) => (
+          <button
+            key={role}
+            type="button"
+            className="nx-dev-btn"
+            disabled={active !== null}
+            onClick={() => loginAs(email, role)}
+            title={email}
+          >
+            <span className="nx-dev-icon">
+              {active === role ? <span className="nx-spin" /> : <PersonIcon />}
+            </span>
+            <span className="nx-dev-label">{label}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ── Sign in ─────────────────────────────────────────────
 
 function SignInForm({ onForgot }: { onForgot: () => void }) {
@@ -225,6 +285,13 @@ function SignInForm({ onForgot }: { onForgot: () => void }) {
         >
           {loading ? <><span className="nx-spin" /> Signing in…</> : "Sign in"}
         </button>
+
+        {process.env.NODE_ENV === "development" && (
+          <DevRoleButtons
+            login={login}
+            onSuccess={(role) => router.replace(dashboardPathForRole(role))}
+          />
+        )}
       </form>
     </div>
   );
