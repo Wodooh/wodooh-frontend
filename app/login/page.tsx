@@ -88,10 +88,10 @@ function useTheme() {
 // ── Dev quick-login ──────────────────────────────────────
 
 const DEV_ROLES = [
-  { role: "student",    email: "student@gmail.com",    label: "Student" },
-  { role: "instructor", email: "instructor@gmail.com", label: "Instructor" },
-  { role: "chairman",   email: "chairman@gmail.com",   label: "Chairman" },
-  { role: "admin",      email: "admin@wodooh.com",     label: "Admin" },
+  { role: "student",    email: "student@wodooh.com",    label: "Student" },
+  { role: "instructor", email: "instructor@wodooh.com", label: "Instructor" },
+  { role: "chairman",   email: "chairman@wodooh.com",   label: "Chairman" },
+  { role: "admin",      email: "admin@wodooh.com",      label: "Admin" },
 ] as const;
 
 const PersonIcon = () => (
@@ -103,11 +103,10 @@ const PersonIcon = () => (
 
 function DevRoleButtons({
   login,
-  onSuccess,
 }: {
   login: (creds: LoginCredentials) => Promise<void>;
-  onSuccess: (role: string) => void;
 }) {
+  const router = useRouter();
   const [active, setActive] = useState<string | null>(null);
 
   const loginAs = async (email: string, role: string) => {
@@ -115,7 +114,7 @@ function DevRoleButtons({
     setActive(role);
     try {
       await login({ email, password: "Password123" });
-      onSuccess(role);
+      router.replace(dashboardPathForRole(role));
     } catch { /* ignore */ } finally {
       setActive(null);
     }
@@ -287,10 +286,7 @@ function SignInForm({ onForgot }: { onForgot: () => void }) {
         </button>
 
         {process.env.NODE_ENV === "development" && (
-          <DevRoleButtons
-            login={login}
-            onSuccess={(role) => router.replace(dashboardPathForRole(role))}
-          />
+          <DevRoleButtons login={login} />
         )}
       </form>
     </div>
