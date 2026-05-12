@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { BulkImportDialog } from "@/components/admin/bulk-import-dialog";
 
 type TabId = "general" | "permissions" | "integrations" | "security" | "appearance";
 
@@ -224,8 +225,11 @@ function Permissions() {
 
 // ── Integrations ───────────────────────────────────
 function Integrations({ onToast }: { onToast: (msg: string, kind?: "success" | "info" | "error") => void }) {
+  const [importOpen, setImportOpen] = useState(false);
+
   return (
     <div className="nx-card">
+      <BulkImportDialog open={importOpen} onOpenChange={setImportOpen} onToast={onToast} />
       <div style={{ padding: "4px 20px" }}>
         <SettingRow
           label="Sync endpoint"
@@ -238,11 +242,11 @@ function Integrations({ onToast }: { onToast: (msg: string, kind?: "success" | "
           }
         />
         <SettingRow
-          label="Bulk CSV import"
-          desc="Upload a spreadsheet to create or update multiple users at once."
+          label="Bulk import"
+          desc="Upload CSV or JSON files to create multiple users, departments, or courses at once."
           control={
-            <button className="nx-btn nx-btn-ghost" onClick={() => onToast("Bulk CSV import is in beta. Contact support to enable.", "info")}>
-              <Upload /> Import users
+            <button className="nx-btn nx-btn-ghost" onClick={() => setImportOpen(true)}>
+              <Upload /> Bulk import
             </button>
           }
         />

@@ -92,6 +92,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     setThemeState(resolved);
     document.documentElement.dataset.nxTheme = resolved;
     document.documentElement.dataset.nxDensity = "compact";
+    document.documentElement.classList.toggle("dark", resolved === "dark");
   }, []);
 
   useEffect(() => {
@@ -109,6 +110,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const setTheme = (t: "light" | "dark") => {
     setThemeState(t);
     document.documentElement.dataset.nxTheme = t;
+    document.documentElement.classList.toggle("dark", t === "dark");
     localStorage.setItem("wodooh.theme", t);
   };
 
@@ -165,7 +167,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
       </aside>
 
-      <main className="nx-main">
+      <main className="nx-main" id="nx-main">
         <div className="nx-topbar">
           <div className="nx-topbar-crumbs">{NAV.find(n => n.key === activeKey)?.label}</div>
           <div className="nx-topbar-actions">
