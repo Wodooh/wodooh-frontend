@@ -220,9 +220,29 @@ export default function AdminDepartmentsPage() {
               <h3 className="nx-modal-title">Delete department</h3>
             </div>
             <div className="nx-modal-body">
-              <p style={{ color: "var(--nx-fg-muted)", margin: 0 }}>
-                Delete <strong style={{ color: "var(--nx-fg)" }}>{deleteTarget.name}</strong>? This cannot be undone.
+              <p style={{ margin: "0 0 12px" }}>
+                Are you sure you want to delete <strong style={{ color: "var(--nx-fg)" }}>{deleteTarget.name}</strong>?
               </p>
+              <div style={{
+                background: "color-mix(in srgb, var(--nx-danger) 8%, transparent)",
+                border: "1px solid color-mix(in srgb, var(--nx-danger) 30%, transparent)",
+                borderRadius: 8,
+                padding: "10px 14px",
+                display: "flex",
+                flexDirection: "column",
+                gap: 6,
+              }}>
+                <p style={{ margin: 0, fontWeight: 600, fontSize: 13, color: "var(--nx-danger)" }}>
+                  This will permanently delete:
+                </p>
+                <ul style={{ margin: 0, paddingLeft: 18, color: "var(--nx-fg-muted)", fontSize: 13 }}>
+                  <li>All courses belonging to this department</li>
+                  <li>All instructor assignments for those courses</li>
+                </ul>
+                <p style={{ margin: 0, fontSize: 12, color: "var(--nx-fg-muted)", marginTop: 2 }}>
+                  This action cannot be undone.
+                </p>
+              </div>
             </div>
             <div className="nx-modal-foot">
               <button className="nx-btn nx-btn-ghost" disabled={saving} onClick={() => setDeleteTarget(null)}>Cancel</button>
