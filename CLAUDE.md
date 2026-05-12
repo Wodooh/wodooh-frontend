@@ -104,6 +104,9 @@ lib/
 | POST | `/admin/courses` | `useCourses().createCourse()` |
 | PATCH | `/admin/courses/:id` | `useCourses().updateCourse()` |
 | DELETE | `/admin/courses/:id` | `useCourses().deleteCourse()` |
+| GET | `/admin/courses/:id/sections` | `useSections(courseId)` |
+| POST | `/admin/courses/:id/sections` | `useSections(courseId).createSection()` |
+| DELETE | `/admin/courses/:id/sections/:sectionId` | `useSections(courseId).deleteSection()` |
 | GET | `/admin/audit-log` | `lib/api/endpoints.ts:AUDIT_LOG` (no hook yet) |
 
 ## Hook Patterns
