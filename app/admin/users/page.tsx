@@ -3,7 +3,9 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useUsers } from "@/lib/hooks/use-users";
 import { useUpdateRole } from "@/lib/hooks/use-update-role";
+import { useCreateAdminUser } from "@/lib/hooks/use-admin-users";
 import type { UserRole, UserSafe } from "@/lib/types/user.types";
+import type { CreateUserRequest } from "@/lib/types/admin-user.types";
 import { useAuth } from "@/lib/auth/auth-provider";
 
 const ROLES: UserRole[] = ["admin", "instructor", "chairman", "student"];
@@ -50,8 +52,44 @@ export default function AdminUsersPage() {
 
   const { users, pagination, loading, error, refetch } = useUsers(params);
   const { updateRole, loading: updating } = useUpdateRole();
+  const { create: createUser, loading: creating } = useCreateAdminUser();
 
   const [modal, setModal] = useState<{ user: UserSafe; newRole: UserRole } | null>(null);
+
+  const EMPTY_NEW_USER: CreateUserRequest = { email: "", displayName: "", role: "student" };
+  const [addOpen, setAddOpen] = useState(false);
+  const [newUser, setNewUser] = useState<CreateUserRequest>(EMPTY_NEW_USER);
+  const [addFieldErrors, setAddFieldErrors] = useState<{ email?: string; displayName?: string }>({});
+  const [setupLink, setSetupLink] = useState<string | null>(null);
+
+  const openAdd = () => { setNewUser(EMPTY_NEW_USER); setAddFieldErrors({}); setSetupLink(null); setAddOpen(true); };
+  const closeAdd = () => { if (creating) return; setAddOpen(false); setSetupLink(null); };
+
+  const submitAdd = async () => {
+    const fe: { email?: string; displayName?: string } = {};
+    if (!newUser.email.trim()) fe.email = "Email is required.";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newUser.email.trim())) fe.email = "Enter a valid email.";
+    if (!newUser.displayName.trim()) fe.displayName = "Name is required.";
+    if (Object.keys(fe).length) { setAddFieldErrors(fe); return; }
+
+    try {
+      const res = await createUser({
+        email: newUser.email.trim().toLowerCase(),
+        displayName: newUser.displayName.trim().toLowerCase(),
+        role: newUser.role,
+      });
+      if (!res.setup.emailSent && res.setup.link) {
+        setSetupLink(res.setup.link);
+      } else {
+        setToast({ kind: "success", msg: `${newUser.displayName.trim()} added — setup email sent.` });
+        closeAdd();
+      }
+      refetch();
+    } catch (e: unknown) {
+      const err = e as { message?: string };
+      setToast({ kind: "error", msg: err?.message || "Failed to create user." });
+    }
+  };
 
   const onChangeRole = (u: UserSafe) => setModal({ user: u, newRole: u.role });
 
@@ -85,6 +123,23 @@ export default function AdminUsersPage() {
         <div>
           <h1 className="nx-page-title">Users</h1>
           <p className="nx-page-sub">{total} users · manage roles and access</p>
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button className="nx-btn nx-btn-ghost" onClick={() => refetch()} disabled={loading} title="Refresh">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+              <path d="M21 3v5h-5" />
+              <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+              <path d="M8 16H3v5" />
+            </svg>
+            Refresh
+          </button>
+          <button className="nx-btn nx-btn-primary" onClick={openAdd}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+            Add user
+          </button>
         </div>
       </div>
 
@@ -236,6 +291,86 @@ export default function AdminUsersPage() {
               >
                 {updating ? <><span className="nx-spin" /> Saving…</> : "Save"}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add user modal */}
+      {addOpen && (
+        <div className="nx-modal-backdrop" onClick={closeAdd}>
+          <div className="nx-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="nx-modal-head">
+              <h3 className="nx-modal-title">{setupLink ? "User created" : "Add user"}</h3>
+            </div>
+
+            {setupLink ? (
+              <div className="nx-modal-body">
+                <p style={{ fontSize: 13, color: "var(--nx-fg-muted)", marginBottom: 8 }}>
+                  Email could not be sent. Share this setup link with the user:
+                </p>
+                <div style={{ background: "var(--nx-bg-hover)", borderRadius: 6, padding: "8px 10px", wordBreak: "break-all", fontSize: 12, fontFamily: "monospace", color: "var(--nx-fg)" }}>
+                  {setupLink}
+                </div>
+                <button
+                  className="nx-btn nx-btn-ghost"
+                  style={{ marginTop: 8, fontSize: 12 }}
+                  onClick={() => { navigator.clipboard.writeText(setupLink); setToast({ kind: "success", msg: "Link copied." }); }}
+                >
+                  Copy link
+                </button>
+              </div>
+            ) : (
+              <div className="nx-modal-body">
+                <div>
+                  <span className="nx-field-label">Full name</span>
+                  <input
+                    className={`nx-input${addFieldErrors.displayName ? " nx-input-error" : ""}`}
+                    style={{ width: "100%" }}
+                    placeholder="e.g. Jane Smith"
+                    value={newUser.displayName}
+                    onChange={(e) => { setNewUser(u => ({ ...u, displayName: e.target.value })); setAddFieldErrors(f => ({ ...f, displayName: undefined })); }}
+                    disabled={creating}
+                  />
+                  {addFieldErrors.displayName && <div className="nx-field-error">{addFieldErrors.displayName}</div>}
+                </div>
+                <div>
+                  <span className="nx-field-label">Email</span>
+                  <input
+                    className={`nx-input${addFieldErrors.email ? " nx-input-error" : ""}`}
+                    style={{ width: "100%" }}
+                    placeholder="e.g. jane@university.edu"
+                    type="email"
+                    value={newUser.email}
+                    onChange={(e) => { setNewUser(u => ({ ...u, email: e.target.value })); setAddFieldErrors(f => ({ ...f, email: undefined })); }}
+                    disabled={creating}
+                  />
+                  {addFieldErrors.email && <div className="nx-field-error">{addFieldErrors.email}</div>}
+                </div>
+                <div>
+                  <span className="nx-field-label">Role</span>
+                  <select
+                    className="nx-select"
+                    style={{ width: "100%" }}
+                    value={newUser.role}
+                    onChange={(e) => setNewUser(u => ({ ...u, role: e.target.value as UserRole }))}
+                    disabled={creating}
+                  >
+                    {ROLES.map(r => <option key={r} value={r}>{r[0].toUpperCase() + r.slice(1)}</option>)}
+                  </select>
+                </div>
+              </div>
+            )}
+
+            <div className="nx-modal-foot">
+              <button className="nx-btn nx-btn-ghost" disabled={creating} onClick={closeAdd}>
+                {setupLink ? "Done" : "Cancel"}
+              </button>
+              {!setupLink && (
+                <button className="nx-btn nx-btn-primary" disabled={creating} onClick={submitAdd}>
+                  {creating ? <><span className="nx-spin" /> Creating…</> : "Create user"}
+                </button>
+              )}
             </div>
           </div>
         </div>

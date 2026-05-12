@@ -184,7 +184,7 @@ function SignInForm({ onForgot }: { onForgot: () => void }) {
       };
       await login(credentials);
 
-      const token = localStorage.getItem("wodooh.token");
+      const token = localStorage.getItem("wodooh_auth_token");
       let role: string | undefined;
       if (token) {
         try {
