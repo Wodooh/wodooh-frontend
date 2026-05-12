@@ -23,7 +23,7 @@ This frontend connects to Wodooh Backend API (Express.js + MongoDB + JWT).
 - **JWT Token Expiration**: 1 hour
 - **Roles**: `admin`, `instructor`, `student`, `chairman`
 - **Data Storage**: All text data stored in lowercase (emails, names)
-- **Default Admin**: `admin@wodooh.com` / `Password123`
+- **Seeded Accounts** (all use `Password123`): `admin@wodooh.com` (admin), `instructor@wodooh.com` (instructor), `student@wodooh.com` (student), `chairman@wodooh.com` (chairman)
 
 ### API Client Structure
 
@@ -200,8 +200,16 @@ NEXT_PUBLIC_TOKEN_REFRESH_THRESHOLD_MS=300000
 
 ## Default Credentials
 
-- **Admin Email**: `admin@wodooh.com`
-- **Admin Password**: `Password123`
+All seeded accounts use **`Password123`** as the password.
+
+| Role | Email |
+|------|-------|
+| admin | `admin@wodooh.com` |
+| instructor | `instructor@wodooh.com` |
+| student | `student@wodooh.com` |
+| chairman | `chairman@wodooh.com` |
+
+In **development mode**, the login page shows a "Dev · Sign in as" panel — one-click buttons that log in with the seeded account for each role and redirect to that role's dashboard.
 
 ## Design System
 
