@@ -34,6 +34,7 @@ export const API_ENDPOINTS = {
   ADMIN_COURSE: (id: string) => `/admin/courses/${id}`,
   ADMIN_COURSE_SECTIONS: (courseId: string) => `/admin/courses/${courseId}/sections`,
   ADMIN_COURSE_SECTION: (courseId: string, sectionId: string) => `/admin/courses/${courseId}/sections/${sectionId}`,
+  ADMIN_COURSE_SECTION_NEXT_ID: (courseId: string) => `/admin/courses/${courseId}/sections/next-id`,
 
   // Admin - Audit Log
   AUDIT_LOG: '/admin/audit-log',

@@ -4,15 +4,12 @@ import React, { useState, useEffect } from "react";
 import { useCourses } from "@/lib/hooks/use-courses";
 import { useDepartments } from "@/lib/hooks/use-departments";
 import { useSections } from "@/lib/hooks/use-sections";
+import { useUsers } from "@/lib/hooks/use-users";
+import apiClient from "@/lib/api/client";
+import API_ENDPOINTS from "@/lib/api/endpoints";
 import type { Course, CreateCourseRequest, Section } from "@/lib/types/course.types";
 
 const EMPTY_COURSE: CreateCourseRequest = { name: "", code: "", description: "", departmentId: "", credits: undefined };
-
-// dept sorted by createdAt index (0-based) → first digit = index + 1
-// e.g. dept[0] → 10001–19999, dept[1] → 20001–29999
-function genSectionId(deptIndex: number): number {
-  return (deptIndex + 1) * 10000 + Math.floor(Math.random() * 9999) + 1;
-}
 
 // ─── Capacity bar ─────────────────────────────────────────────────────────
 function CapBar({ enrolled, capacity }: { enrolled: number; capacity: number }) {
@@ -33,19 +30,49 @@ function SectionsPanel({
   course,
   deptIndex,
   onToast,
+  onSectionsLoaded,
 }: {
   course: Course;
   deptIndex: number;
   onToast: (t: { kind: "success" | "error"; msg: string }) => void;
+  onSectionsLoaded?: (count: number) => void;
 }) {
-  const { sections, loading, error, createSection, deleteSection } = useSections(course._id);
+  const { sections, loading, error, createSection, updateSection, deleteSection } = useSections(course._id);
+  const { users: instructors } = useUsers({ role: "instructor", limit: 200 });
   const [addOpen, setAddOpen] = useState(false);
+  const [previewId, setPreviewId] = useState<number | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
   const [capacity, setCapacity] = useState("");
+  const [instructorId, setInstructorId] = useState("");
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Section | null>(null);
+  const [editTarget, setEditTarget] = useState<Section | null>(null);
+  const [editCapacity, setEditCapacity] = useState("");
+  const [editInstructorId, setEditInstructorId] = useState("");
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
 
-  const openAdd = () => { setCapacity(""); setFormError(null); setAddOpen(true); };
+  useEffect(() => {
+    if (!loading) onSectionsLoaded?.(sections.length);
+  }, [sections.length, loading]);  // eslint-disable-line react-hooks/exhaustive-deps
+
+  const openAdd = async () => {
+    setCapacity("");
+    setInstructorId("");
+    setFormError(null);
+    setPreviewId(null);
+    setAddOpen(true);
+    setPreviewLoading(true);
+    try {
+      const res = await apiClient.get<{ nextId: number }>(API_ENDPOINTS.ADMIN_COURSE_SECTION_NEXT_ID(course._id));
+      if (res.status === "success" && res.data) setPreviewId(res.data.nextId);
+    } catch {
+      // preview unavailable — still let user submit, backend will assign
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
   const closeAdd = () => { if (!saving) setAddOpen(false); };
 
   const submitAdd = async (e: React.FormEvent) => {
@@ -55,7 +82,7 @@ function SectionsPanel({
     setSaving(true);
     setFormError(null);
     try {
-      const sec = await createSection({ sectionId: genSectionId(deptIndex), capacity: cap });
+      const sec = await createSection({ sectionId: previewId ?? undefined, capacity: cap, instructorId: instructorId || undefined });
       setAddOpen(false);
       onToast({ kind: "success", msg: `Section ${sec.sectionId} added.` });
     } catch (err: unknown) {
@@ -79,6 +106,37 @@ function SectionsPanel({
     }
   };
 
+  const openEdit = (sec: Section) => {
+    setEditTarget(sec);
+    setEditCapacity(String(sec.capacity));
+    setEditInstructorId(
+      sec.instructorId
+        ? typeof sec.instructorId === "object"
+          ? sec.instructorId._id
+          : sec.instructorId
+        : ""
+    );
+    setEditError(null);
+  };
+
+  const submitEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editTarget) return;
+    const cap = Number(editCapacity);
+    if (!editCapacity || cap < 1) { setEditError("Capacity must be at least 1."); return; }
+    setEditSaving(true);
+    setEditError(null);
+    try {
+      await updateSection(editTarget._id, { capacity: cap, instructorId: editInstructorId || undefined });
+      onToast({ kind: "success", msg: `Section ${editTarget.sectionId} updated.` });
+      setEditTarget(null);
+    } catch (err: unknown) {
+      setEditError((err as Error)?.message || "Failed to update section.");
+    } finally {
+      setEditSaving(false);
+    }
+  };
+
   return (
     <>
       <div style={{
@@ -91,7 +149,7 @@ function SectionsPanel({
             <span className="nx-spin" />Loading sections…
           </div>
         ) : error ? (
-          <div style={{ padding: "14px 0", fontSize: 13, color: "var(--nx-danger)" }}>{error}</div>
+          <div style={{ padding: "10px 0 4px", fontSize: 13, color: "var(--nx-danger)" }}>{error}</div>
         ) : (
           <>
             {sections.length === 0 && (
@@ -119,45 +177,60 @@ function SectionsPanel({
                   color: sec.instructorId ? "var(--nx-fg)" : "var(--nx-fg-subtle)",
                   fontStyle: sec.instructorId ? "normal" : "italic",
                 }}>
-                  {sec.instructorId ? sec.instructorId : "No instructor assigned"}
+                  {sec.instructorId
+                    ? typeof sec.instructorId === "object"
+                      ? sec.instructorId.name.split(" ").map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")
+                      : "Assigned"
+                    : "No instructor assigned"}
                 </span>
                 <CapBar enrolled={sec.enrolledCount ?? 0} capacity={sec.capacity} />
-                <button
-                  className="nx-btn nx-btn-ghost"
-                  style={{ fontSize: 12, color: "var(--nx-danger)" }}
-                  onClick={() => setDeleteTarget(sec)}
-                >
-                  Delete
-                </button>
+                <div style={{ display: "flex", gap: 4 }}>
+                  <button
+                    className="nx-btn nx-btn-ghost"
+                    style={{ fontSize: 12 }}
+                    onClick={() => openEdit(sec)}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    className="nx-btn nx-btn-ghost"
+                    style={{ fontSize: 12, color: "var(--nx-danger)" }}
+                    onClick={() => setDeleteTarget(sec)}
+                  >
+                    Delete
+                  </button>
+                </div>
               </div>
             ))}
-
-            {/* Add section row */}
-            <div
-              role="button"
-              tabIndex={0}
-              onClick={openAdd}
-              onKeyDown={e => { if (e.key === "Enter" || e.key === " ") openAdd(); }}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 6,
-                marginTop: 8,
-                padding: "10px 12px",
-                border: "1px dashed var(--nx-border-strong)",
-                borderRadius: 6,
-                color: "var(--nx-fg-muted)",
-                fontSize: 12.5,
-                cursor: "pointer",
-                userSelect: "none",
-              }}
-              onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.background = "var(--nx-bg-hover)"; (e.currentTarget as HTMLDivElement).style.color = "var(--nx-fg)"; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.background = ""; (e.currentTarget as HTMLDivElement).style.color = "var(--nx-fg-muted)"; }}
-            >
-              + Add section
-            </div>
           </>
+        )}
+
+        {/* Add section — always visible so user can add even before backend endpoint exists */}
+        {!loading && (
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={openAdd}
+            onKeyDown={e => { if (e.key === "Enter" || e.key === " ") openAdd(); }}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 6,
+              marginTop: 8,
+              padding: "10px 12px",
+              border: "1px dashed var(--nx-border-strong)",
+              borderRadius: 6,
+              color: "var(--nx-fg-muted)",
+              fontSize: 12.5,
+              cursor: "pointer",
+              userSelect: "none",
+            }}
+            onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.background = "var(--nx-bg-hover)"; (e.currentTarget as HTMLDivElement).style.color = "var(--nx-fg)"; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.background = ""; (e.currentTarget as HTMLDivElement).style.color = "var(--nx-fg-muted)"; }}
+          >
+            + Add section
+          </div>
         )}
       </div>
 
@@ -171,11 +244,45 @@ function SectionsPanel({
             <form onSubmit={submitAdd}>
               <div className="nx-modal-body">
                 {formError && <div className="nx-login-error" role="alert"><span>{formError}</span></div>}
-                <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0" }}>
-                  <span className="nx-field-label" style={{ margin: 0, flexShrink: 0 }}>Section ID</span>
-                  <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 13, color: "var(--nx-fg-muted)" }}>
-                    auto-assigned · dept range {deptIndex + 1}xxxx
-                  </span>
+                <div>
+                  <span className="nx-field-label">Section ID</span>
+                  <div style={{
+                    fontFamily: "'JetBrains Mono', monospace",
+                    fontSize: 18,
+                    fontWeight: 600,
+                    color: previewId ? "var(--nx-fg)" : "var(--nx-fg-subtle)",
+                    padding: "8px 12px",
+                    background: "var(--nx-bg-sub)",
+                    border: "1px solid var(--nx-border)",
+                    borderRadius: 6,
+                    letterSpacing: "0.08em",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                  }}>
+                    {previewLoading
+                      ? <><span className="nx-spin" style={{ fontSize: 13 }} /> calculating…</>
+                      : previewId ?? "—"}
+                  </div>
+                  <p style={{ fontSize: 11.5, color: "var(--nx-fg-subtle)", margin: "4px 0 0" }}>
+                    Sequential · guaranteed unique · dept slot {deptIndex + 1}
+                  </p>
+                </div>
+                <div>
+                  <span className="nx-field-label">Instructor</span>
+                  <select
+                    className="nx-select"
+                    style={{ width: "100%" }}
+                    value={instructorId}
+                    onChange={e => setInstructorId(e.target.value)}
+                  >
+                    <option value="">— Unassigned —</option>
+                    {instructors.map(u => (
+                      <option key={u._id} value={u._id}>
+                        {u.name.split(" ").map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <span className="nx-field-label">Capacity *</span>
@@ -228,6 +335,60 @@ function SectionsPanel({
           </div>
         </div>
       )}
+
+      {/* Edit section modal */}
+      {editTarget && (
+        <div className="nx-modal-backdrop" onClick={() => !editSaving && setEditTarget(null)}>
+          <div className="nx-modal" onClick={e => e.stopPropagation()}>
+            <div className="nx-modal-head">
+              <h3 className="nx-modal-title">
+                Edit section{" "}
+                <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 14 }}>{editTarget.sectionId}</span>
+              </h3>
+            </div>
+            <form onSubmit={submitEdit}>
+              <div className="nx-modal-body">
+                {editError && <div className="nx-login-error" role="alert"><span>{editError}</span></div>}
+                <div>
+                  <span className="nx-field-label">Instructor</span>
+                  <select
+                    className="nx-select"
+                    style={{ width: "100%" }}
+                    value={editInstructorId}
+                    onChange={e => setEditInstructorId(e.target.value)}
+                  >
+                    <option value="">— Unassigned —</option>
+                    {instructors.map(u => (
+                      <option key={u._id} value={u._id}>
+                        {u.name.split(" ").map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <span className="nx-field-label">Capacity *</span>
+                  <input
+                    className="nx-input"
+                    style={{ width: "100%", boxSizing: "border-box" }}
+                    type="number"
+                    min={1}
+                    value={editCapacity}
+                    onChange={e => setEditCapacity(e.target.value)}
+                    placeholder="e.g. 40"
+                    autoFocus
+                  />
+                </div>
+              </div>
+              <div className="nx-modal-foot">
+                <button type="button" className="nx-btn nx-btn-ghost" disabled={editSaving} onClick={() => setEditTarget(null)}>Cancel</button>
+                <button type="submit" className="nx-btn nx-btn-primary" disabled={editSaving}>
+                  {editSaving ? <><span className="nx-spin" /> Saving…</> : "Save changes"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </>
   );
 }
@@ -245,6 +406,7 @@ export default function AdminCoursesPage() {
   const [formError, setFormError] = useState<string | null>(null);
   const [toast, setToast] = useState<{ kind: "success" | "error"; msg: string } | null>(null);
   const [openIds, setOpenIds] = useState<Set<string>>(new Set());
+  const [sectionCounts, setSectionCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
     if (!toast) return;
@@ -388,7 +550,7 @@ export default function AdminCoursesPage() {
                     <div>
                       <div style={{ fontSize: 13.5, fontWeight: 500 }}>{course.name}</div>
                       <div style={{ fontSize: 11.5, color: "var(--nx-fg-subtle)", marginTop: 1 }}>
-                        {deptName(course.departmentId)}{course.credits ? ` · ${course.credits} cr` : ""}
+                        {deptName(course.departmentId)}{course.credits != null ? ` · ${course.credits} credit` : ""}{sectionCounts[course._id] != null ? ` · ${sectionCounts[course._id]} section${sectionCounts[course._id] !== 1 ? "s" : ""}` : ""}
                       </div>
                     </div>
 
@@ -401,7 +563,12 @@ export default function AdminCoursesPage() {
 
                   {/* Sections panel — only mounted when open */}
                   {isOpen && (
-                    <SectionsPanel course={course} deptIndex={di} onToast={setToast} />
+                    <SectionsPanel
+                      course={course}
+                      deptIndex={di}
+                      onToast={setToast}
+                      onSectionsLoaded={count => setSectionCounts(prev => ({ ...prev, [course._id]: count }))}
+                    />
                   )}
                 </div>
               );

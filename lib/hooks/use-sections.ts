@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import apiClient from '../api/client';
 import API_ENDPOINTS from '../api/endpoints';
-import type { Section, CreateSectionRequest } from '../types/course.types';
+import { ApiErrorHandler } from '../api/error-handler';
+import type { Section, CreateSectionRequest, UpdateSectionRequest } from '../types/course.types';
 
 export function useSections(courseId: string) {
   const [sections, setSections] = useState<Section[]>([]);
@@ -28,6 +29,11 @@ export function useSections(courseId: string) {
       })
       .catch(err => {
         if (cancelled) return;
+        // 404 means the backend endpoint doesn't exist yet or course has no sections — treat as empty
+        if (err instanceof ApiErrorHandler && err.code === 'NOT_FOUND') {
+          setSections([]);
+          return;
+        }
         setError(err?.message || 'Failed to fetch sections');
         setSections([]);
       })
@@ -47,11 +53,18 @@ export function useSections(courseId: string) {
     return res.data;
   }, [courseId]);
 
+  const updateSection = useCallback(async (sectionDbId: string, data: UpdateSectionRequest): Promise<Section> => {
+    const res = await apiClient.patch<Section>(API_ENDPOINTS.ADMIN_COURSE_SECTION(courseId, sectionDbId), data);
+    if (res.status !== 'success' || !res.data) throw new Error(res.message || 'Failed to update section');
+    setTick(t => t + 1);
+    return res.data;
+  }, [courseId]);
+
   const deleteSection = useCallback(async (sectionDbId: string): Promise<void> => {
     const res = await apiClient.delete(API_ENDPOINTS.ADMIN_COURSE_SECTION(courseId, sectionDbId));
     if (res.status !== 'success') throw new Error(res.message || 'Failed to delete section');
     setTick(t => t + 1);
   }, [courseId]);
 
-  return { sections, loading, error, refetch, createSection, deleteSection };
+  return { sections, loading, error, refetch, createSection, updateSection, deleteSection };
 }
