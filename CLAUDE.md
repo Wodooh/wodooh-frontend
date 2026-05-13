@@ -94,6 +94,7 @@ lib/
 | GET | `/health` | `useHealth()` |
 | POST | `/auth/signup` | `useAuth().signup()` |
 | POST | `/auth/login` | `useAuth().login()` |
+| GET | `/auth/me` | `useAuthMe()` — also called by `AuthProvider` on app init to refresh the role from the server (closes the stale-role-after-demotion gap) |
 | GET | `/admin/users` | `useUsers()` |
 | PATCH | `/admin/users/:userId/role` | `useUpdateRole()` |
 | GET | `/admin/departments` | `useDepartments()` |
