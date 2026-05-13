@@ -55,44 +55,93 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [state, setState] = useState<AuthState>(initialState);
 
   /**
-   * Initialize auth state from stored token
+   * Initialize auth state from stored token. Hydrate immediately from the JWT
+   * payload so the UI doesn't flash, then verify against `/auth/me` so a role
+   * change or user deletion that happened after the token was minted is
+   * picked up on next page load.
    */
   useEffect(() => {
-    const initAuth = () => {
+    let cancelled = false;
+
+    const initAuth = async () => {
       const token = getToken();
+      const userData = token && isTokenValid() ? getUserFromToken() : null;
 
-      if (token && isTokenValid()) {
-        const userData = getUserFromToken();
-
-        if (userData) {
-          apiClient.setToken(token);
+      if (!token || !userData) {
+        clearAuth();
+        apiClient.setToken(null);
+        if (!cancelled) {
           setState({
-            user: {
-              _id: userData.userId,
-              email: userData.email,
-              name: userData.name,
-              role: userData.role as UserRole,
-            },
-            token,
-            isAuthenticated: true,
+            user: null,
+            token: null,
+            isAuthenticated: false,
             loading: false,
           });
-          return;
         }
+        return;
       }
 
-      // Invalid or no token
-      clearAuth();
-      apiClient.setToken(null);
-      setState({
-        user: null,
-        token: null,
-        isAuthenticated: false,
-        loading: false,
-      });
+      apiClient.setToken(token);
+      if (!cancelled) {
+        setState({
+          user: {
+            _id: userData.userId,
+            email: userData.email,
+            name: userData.name,
+            role: userData.role as UserRole,
+          },
+          token,
+          isAuthenticated: true,
+          loading: false,
+        });
+      }
+
+      try {
+        const res = await apiClient.get<{
+          user: { _id: string; email: string; name: string; role: UserRole };
+        }>(API_ENDPOINTS.AUTH_ME);
+        if (cancelled) return;
+        if (res.status === 'success' && res.data?.user) {
+          const fresh = res.data.user;
+          setState(prev =>
+            prev.token === token
+              ? {
+                  ...prev,
+                  user: {
+                    _id: fresh._id,
+                    email: fresh.email,
+                    name: fresh.name,
+                    role: fresh.role,
+                  },
+                }
+              : prev,
+          );
+        }
+      } catch (err: unknown) {
+        if (cancelled) return;
+        // 403 = JWT verify failed server-side (expired or signed with the wrong secret).
+        // 404 = backend's `/auth/me` couldn't find the user — they were deleted.
+        // 401 shouldn't happen here (we set the token) but treat it the same.
+        // Network errors / 503 are kept on JWT-decoded state — don't log the
+        // user out for a transient backend issue.
+        const status = (err as { status?: number })?.status;
+        if (status === 401 || status === 403 || status === 404) {
+          clearAuth();
+          apiClient.setToken(null);
+          setState({
+            user: null,
+            token: null,
+            isAuthenticated: false,
+            loading: false,
+          });
+        }
+      }
     };
 
     initAuth();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   /**
