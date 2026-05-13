@@ -160,8 +160,22 @@ function LoginPage() {
 - **Local Port**: 5001
 - **JWT Token Expiration**: 1 hour
 - **Roles**: `admin`, `instructor`, `student`, `chairman`
-- **Default Admin**: `admin@wodooh.com` / `Password123`
 - **CORS**: Enabled for `localhost:3000` and `wodooh.vercel.app`
+
+### Seeded Dev Accounts
+
+All seeded accounts use **`Password123`** as the password.
+
+| Role | Email |
+|------|-------|
+| admin | `admin@wodooh.com` |
+| instructor | `instructor@wodooh.com` |
+| student | `student@wodooh.com` |
+| chairman | `chairman@wodooh.com` |
+
+### Dev Quick Login
+
+In **development mode** (`npm run dev`), the login page shows a "Dev · Sign in as" panel with one-click buttons for each role. Clicking a button logs in with the corresponding seeded account above and redirects to that role's dashboard immediately — no form filling needed.
 
 ### Available Endpoints
 
