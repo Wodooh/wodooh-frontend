@@ -97,6 +97,10 @@ lib/
 | GET | `/auth/me` | `useAuthMe()` — also called by `AuthProvider` on app init to refresh the role from the server (closes the stale-role-after-demotion gap) |
 | GET | `/admin/users` | `useUsers()` |
 | PATCH | `/admin/users/:userId/role` | `useUpdateRole()` |
+| GET | `/admin/colleges` | `useColleges()` |
+| POST | `/admin/colleges` | `useColleges().createCollege()` |
+| PATCH | `/admin/colleges/:id` | `useColleges().updateCollege()` |
+| DELETE | `/admin/colleges/:id` | `useColleges().deleteCollege()` |
 | GET | `/admin/departments` | `useDepartments()` |
 | POST | `/admin/departments` | `useDepartments().createDepartment()` |
 | PATCH | `/admin/departments/:id` | `useDepartments().updateDepartment()` |

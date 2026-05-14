@@ -24,6 +24,12 @@ const I = {
       <path d="M16 3.13a4 4 0 0 1 0 7.75" />
     </svg>
   ),
+  Colleges: ({ size = 15 }: { size?: number }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 10 12 5 2 10l10 5 10-5Z" />
+      <path d="M6 12v5c3 3 9 3 12 0v-5" />
+    </svg>
+  ),
   Departments: ({ size = 15 }: { size?: number }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
       <path d="M3 21h18" />
@@ -72,6 +78,7 @@ const I = {
 const NAV: { key: string; label: string; href: string; icon: React.FC<{ size?: number }> }[] = [
   { key: "dashboard",   label: "Dashboard",   href: "/admin/dashboard",   icon: I.Dashboard },
   { key: "users",       label: "Users",       href: "/admin/users",       icon: I.Users },
+  { key: "colleges",    label: "Colleges",    href: "/admin/colleges",    icon: I.Colleges },
   { key: "departments", label: "Departments", href: "/admin/departments", icon: I.Departments },
   { key: "courses",     label: "Courses",     href: "/admin/courses",     icon: I.Courses },
   { key: "system",      label: "System",      href: "/admin/system",      icon: I.System },

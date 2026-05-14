@@ -4,6 +4,7 @@ export interface Department {
   code: string;
   description?: string;
   color?: string;
+  collegeId?: string | null;
   headOfDepartment?: string;
   createdAt: string;
   updatedAt: string;
@@ -14,6 +15,7 @@ export interface CreateDepartmentRequest {
   code: string;
   description?: string;
   color?: string;
+  collegeId?: string | null;
   headOfDepartment?: string;
 }
 

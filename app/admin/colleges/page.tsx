@@ -1,29 +1,22 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useDepartments } from "@/lib/hooks/use-departments";
 import { useColleges } from "@/lib/hooks/use-colleges";
-import type { Department, CreateDepartmentRequest } from "@/lib/types/department.types";
+import type { College, CreateCollegeRequest } from "@/lib/types/college.types";
 
 const PRESET_COLORS = [
   "#6366f1", "#10b981", "#f59e0b", "#ef4444",
   "#3b82f6", "#a855f7", "#ec4899", "#14b8a6",
 ];
 
-const EMPTY_FORM: CreateDepartmentRequest = { name: "", code: "", description: "", color: "#6366f1", collegeId: null };
+const EMPTY_FORM: CreateCollegeRequest = { name: "", code: "", description: "", color: "#6366f1" };
 
-export default function AdminDepartmentsPage() {
-  const { departments, loading, error, refetch, createDepartment, updateDepartment, deleteDepartment } = useDepartments();
-  const { colleges } = useColleges();
-  const collegeNameById = React.useMemo(() => {
-    const m = new Map<string, string>();
-    colleges.forEach(c => m.set(c._id, c.name));
-    return m;
-  }, [colleges]);
+export default function AdminCollegesPage() {
+  const { colleges, loading, error, refetch, createCollege, updateCollege, deleteCollege } = useColleges();
 
-  const [modal, setModal] = useState<{ mode: "create" | "edit"; item?: Department } | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<Department | null>(null);
-  const [form, setForm] = useState<CreateDepartmentRequest>(EMPTY_FORM);
+  const [modal, setModal] = useState<{ mode: "create" | "edit"; item?: College } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<College | null>(null);
+  const [form, setForm] = useState<CreateCollegeRequest>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [toast, setToast] = useState<{ kind: "success" | "error"; msg: string } | null>(null);
@@ -40,16 +33,10 @@ export default function AdminDepartmentsPage() {
     setModal({ mode: "create" });
   };
 
-  const openEdit = (dept: Department) => {
-    setForm({
-      name: dept.name,
-      code: dept.code,
-      description: dept.description ?? "",
-      color: dept.color ?? "#6366f1",
-      collegeId: dept.collegeId ?? null,
-    });
+  const openEdit = (col: College) => {
+    setForm({ name: col.name, code: col.code, description: col.description ?? "", color: col.color ?? "#6366f1" });
     setFormError(null);
-    setModal({ mode: "edit", item: dept });
+    setModal({ mode: "edit", item: col });
   };
 
   const closeModal = () => { if (!saving) setModal(null); };
@@ -61,10 +48,10 @@ export default function AdminDepartmentsPage() {
     setFormError(null);
     try {
       if (modal?.mode === "edit" && modal.item) {
-        await updateDepartment(modal.item._id, form);
+        await updateCollege(modal.item._id, form);
         setToast({ kind: "success", msg: `"${form.name}" updated.` });
       } else {
-        await createDepartment(form);
+        await createCollege(form);
         setToast({ kind: "success", msg: `"${form.name}" created.` });
       }
       setModal(null);
@@ -79,7 +66,7 @@ export default function AdminDepartmentsPage() {
     if (!deleteTarget) return;
     setSaving(true);
     try {
-      await deleteDepartment(deleteTarget._id);
+      await deleteCollege(deleteTarget._id);
       setToast({ kind: "success", msg: `"${deleteTarget.name}" deleted.` });
       setDeleteTarget(null);
     } catch (err: any) {
@@ -93,60 +80,56 @@ export default function AdminDepartmentsPage() {
     <>
       <div className="nx-page-head">
         <div>
-          <h1 className="nx-page-title">Departments</h1>
-          <p className="nx-page-sub">{departments.length} department{departments.length !== 1 ? "s" : ""}</p>
+          <h1 className="nx-page-title">Colleges</h1>
+          <p className="nx-page-sub">{colleges.length} college{colleges.length !== 1 ? "s" : ""}</p>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           <button className="nx-btn nx-btn-ghost" disabled={loading} onClick={refetch}>
             {loading ? <><span className="nx-spin" /> Checking…</> : "↻ Refresh"}
           </button>
-          <button className="nx-btn nx-btn-primary" onClick={openCreate}>+ New department</button>
+          <button className="nx-btn nx-btn-primary" onClick={openCreate}>+ New college</button>
         </div>
       </div>
 
       <div className="nx-card">
         {loading ? (
-          <div className="nx-loading"><span className="nx-spin" /> Loading departments…</div>
+          <div className="nx-loading"><span className="nx-spin" /> Loading colleges…</div>
         ) : error ? (
           <div className="nx-empty">
             <div className="nx-empty-title" style={{ color: "var(--nx-danger)" }}>Failed to load</div>
             <div className="nx-empty-sub">{error}</div>
           </div>
-        ) : departments.length === 0 ? (
+        ) : colleges.length === 0 ? (
           <div className="nx-empty">
-            <div className="nx-empty-title">No departments yet</div>
-            <div className="nx-empty-sub">Click "+ New department" to create the first one.</div>
+            <div className="nx-empty-title">No colleges yet</div>
+            <div className="nx-empty-sub">Click "+ New college" to create the first one.</div>
           </div>
         ) : (
           <div className="nx-tbl-wrap">
             <table className="nx-tbl">
               <thead>
                 <tr>
-                  <th style={{ width: "30%" }}>Name</th>
-                  <th style={{ width: "10%" }}>Code</th>
-                  <th style={{ width: "22%" }}>College</th>
-                  <th style={{ width: "22%" }}>Description</th>
-                  <th style={{ width: "16%", textAlign: "right" }}>Actions</th>
+                  <th style={{ width: "38%" }}>Name</th>
+                  <th style={{ width: "12%" }}>Code</th>
+                  <th style={{ width: "32%" }}>Description</th>
+                  <th style={{ width: "18%", textAlign: "right" }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {departments.map(dept => (
-                  <tr key={dept._id}>
+                {colleges.map(col => (
+                  <tr key={col._id}>
                     <td>
                       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        <span style={{ width: 10, height: 10, borderRadius: "50%", background: dept.color ?? "#6366f1", flexShrink: 0 }} />
-                        <span style={{ fontWeight: 500 }}>{dept.name}</span>
+                        <span style={{ width: 10, height: 10, borderRadius: "50%", background: col.color ?? "#6366f1", flexShrink: 0 }} />
+                        <span style={{ fontWeight: 500 }}>{col.name}</span>
                       </div>
                     </td>
-                    <td><span className="nx-tbl-mono">{dept.code}</span></td>
-                    <td style={{ color: "var(--nx-fg-muted)", fontSize: 13 }}>
-                      {dept.collegeId ? (collegeNameById.get(dept.collegeId) ?? "—") : "—"}
-                    </td>
-                    <td style={{ color: "var(--nx-fg-muted)", fontSize: 13 }}>{dept.description || "—"}</td>
+                    <td><span className="nx-tbl-mono">{col.code}</span></td>
+                    <td style={{ color: "var(--nx-fg-muted)", fontSize: 13 }}>{col.description || "—"}</td>
                     <td style={{ textAlign: "right" }}>
                       <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
-                        <button className="nx-btn nx-btn-ghost" onClick={() => openEdit(dept)}>Edit</button>
-                        <button className="nx-btn nx-btn-ghost" style={{ color: "var(--nx-danger)" }} onClick={() => setDeleteTarget(dept)}>Delete</button>
+                        <button className="nx-btn nx-btn-ghost" onClick={() => openEdit(col)}>Edit</button>
+                        <button className="nx-btn nx-btn-ghost" style={{ color: "var(--nx-danger)" }} onClick={() => setDeleteTarget(col)}>Delete</button>
                       </div>
                     </td>
                   </tr>
@@ -162,7 +145,7 @@ export default function AdminDepartmentsPage() {
         <div className="nx-modal-backdrop" onClick={closeModal}>
           <div className="nx-modal" onClick={e => e.stopPropagation()}>
             <div className="nx-modal-head">
-              <h3 className="nx-modal-title">{modal.mode === "create" ? "New department" : "Edit department"}</h3>
+              <h3 className="nx-modal-title">{modal.mode === "create" ? "New college" : "Edit college"}</h3>
             </div>
             <form onSubmit={submit}>
               <div className="nx-modal-body">
@@ -176,7 +159,7 @@ export default function AdminDepartmentsPage() {
                     style={{ width: "100%", boxSizing: "border-box" }}
                     value={form.name}
                     onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                    placeholder="e.g. Computer Science"
+                    placeholder="e.g. College of Engineering"
                     autoFocus
                   />
                 </div>
@@ -187,22 +170,8 @@ export default function AdminDepartmentsPage() {
                     style={{ width: "100%", boxSizing: "border-box" }}
                     value={form.code}
                     onChange={e => setForm(f => ({ ...f, code: e.target.value.toUpperCase() }))}
-                    placeholder="e.g. CS"
+                    placeholder="e.g. ENG"
                   />
-                </div>
-                <div>
-                  <span className="nx-field-label">College</span>
-                  <select
-                    className="nx-select"
-                    style={{ width: "100%" }}
-                    value={form.collegeId ?? ""}
-                    onChange={e => setForm(f => ({ ...f, collegeId: e.target.value || null }))}
-                  >
-                    <option value="">— Unassigned —</option>
-                    {colleges.map(c => (
-                      <option key={c._id} value={c._id}>{c.name}</option>
-                    ))}
-                  </select>
                 </div>
                 <div>
                   <span className="nx-field-label">Description</span>
@@ -248,7 +217,7 @@ export default function AdminDepartmentsPage() {
         <div className="nx-modal-backdrop" onClick={() => !saving && setDeleteTarget(null)}>
           <div className="nx-modal" onClick={e => e.stopPropagation()}>
             <div className="nx-modal-head">
-              <h3 className="nx-modal-title">Delete department</h3>
+              <h3 className="nx-modal-title">Delete college</h3>
             </div>
             <div className="nx-modal-body">
               <p style={{ margin: "0 0 12px" }}>
@@ -267,8 +236,9 @@ export default function AdminDepartmentsPage() {
                   This will permanently delete:
                 </p>
                 <ul style={{ margin: 0, paddingLeft: 18, color: "var(--nx-fg-muted)", fontSize: 13 }}>
-                  <li>All courses belonging to this department</li>
-                  <li>All instructor assignments for those courses</li>
+                  <li>All departments under this college</li>
+                  <li>All courses belonging to those departments</li>
+                  <li>All sections and instructor assignments for those courses</li>
                 </ul>
                 <p style={{ margin: 0, fontSize: 12, color: "var(--nx-fg-muted)", marginTop: 2 }}>
                   This action cannot be undone.
