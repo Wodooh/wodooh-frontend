@@ -1841,3 +1841,200 @@
   font-size: 11px; margin-top: 1px;
 }
 .nx-peak-spark { display: block; width: 64px; height: 22px; }
+
+/* ─────────────────────────────────────────────────────────────────── */
+/* Student live-session additions                                       */
+/* Reuses .nx-card / .nx-react-tile / .nx-qrow primitives from the     */
+/* instructor surface; the rules below cover student-only chrome.       */
+/* ─────────────────────────────────────────────────────────────────── */
+
+/* — Mute / pause banner above the live grid — */
+.nx-student-banner {
+  margin-bottom: var(--nx-stack);
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--accent) 8%, var(--nx-bg-elev));
+  border: 1px solid color-mix(in oklab, var(--accent) 35%, var(--nx-border));
+  font-size: 12px; color: var(--nx-fg);
+  line-height: 1.55;
+}
+.nx-student-banner b { font-weight: 600; }
+.nx-student-banner.is-warn {
+  background: color-mix(in oklab, var(--nx-danger-soft) 70%, var(--nx-bg-elev));
+  border-color: color-mix(in oklab, var(--nx-danger) 40%, var(--nx-border));
+  color: var(--nx-fg);
+}
+
+/* — "Where am I" strip below the slide stage (student variant of the
+ *   instructor follower strip) — */
+.nx-student-pos-strip {
+  padding: 10px 14px;
+  display: flex; align-items: center; gap: 14px;
+  border-top: 1px solid var(--nx-border); background: var(--nx-bg-sub);
+  flex-wrap: wrap;
+}
+.nx-student-pos-stat { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.nx-student-pos-num {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 14px; font-weight: 600; color: var(--nx-fg);
+}
+.nx-student-pos-lbl {
+  font-size: 10px; color: var(--nx-fg-muted);
+  text-transform: uppercase; letter-spacing: 0.06em; font-weight: 500;
+}
+.nx-student-pos-msg {
+  flex: 1; min-width: 140px;
+  font-size: 12px; color: var(--nx-fg-muted);
+}
+.nx-pos-msg.is-with   { color: var(--accent-hover); }
+.nx-pos-msg.is-behind { color: var(--nx-warning); }
+.nx-pos-msg.is-ahead  { color: var(--nx-success); }
+.nx-student-pos-toggle-lbl {
+  font-size: 11px; color: var(--nx-fg-muted); font-weight: 500;
+  text-transform: uppercase; letter-spacing: 0.06em;
+}
+
+/* — Inline link button (used inside pos-strip "catch up" callouts) — */
+.nx-link-btn {
+  background: transparent; border: 0; padding: 0;
+  color: var(--accent-hover); cursor: pointer;
+  font: inherit; text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.nx-link-btn:hover { color: var(--accent); }
+
+/* — Reaction tile, button variant (student-only: tiles are clickable) — */
+.nx-react-tile-btn {
+  border: 0; cursor: pointer; text-align: left;
+  font: inherit; color: inherit;
+  transition: background 80ms, transform 80ms;
+}
+.nx-react-tile-btn:hover:not(:disabled) {
+  background: color-mix(in oklab, var(--accent) 10%, var(--nx-bg-elev));
+}
+.nx-react-tile-btn[data-kind="not_clear"]:hover:not(:disabled) {
+  background: color-mix(in oklab, var(--nx-danger-soft) 80%, var(--nx-bg-elev));
+}
+.nx-react-tile-btn:active:not(:disabled) { transform: scale(0.985); }
+.nx-react-tile-btn.is-cooldown { opacity: 0.55; cursor: progress; }
+.nx-react-foot {
+  padding: 10px 14px;
+  border-top: 1px solid var(--nx-border);
+  background: var(--nx-bg-sub);
+  font-size: 11px; color: var(--nx-fg-muted); line-height: 1.55;
+}
+
+/* — Question composer — */
+.nx-composer { padding: 12px 14px 14px; }
+.nx-composer-textarea {
+  width: 100%; min-height: 84px; resize: vertical;
+  padding: 10px 12px; border-radius: 6px;
+  background: var(--nx-bg-elev);
+  border: 1px solid var(--nx-border-strong);
+  color: var(--nx-fg); font-family: inherit; font-size: 13px; line-height: 1.5;
+  outline: 0;
+  transition: border-color 80ms, box-shadow 80ms;
+}
+.nx-composer-textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 22%, transparent);
+}
+.nx-composer-textarea:disabled {
+  background: var(--nx-bg-sub); color: var(--nx-fg-muted);
+  cursor: not-allowed;
+}
+.nx-composer-foot {
+  margin-top: 10px;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  flex-wrap: wrap;
+}
+.nx-composer-counter {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px; color: var(--nx-fg-muted);
+}
+.nx-composer-counter.is-warn { color: var(--nx-warning); }
+.nx-composer-counter.is-err  { color: var(--nx-danger); font-weight: 600; }
+.nx-composer-status {
+  font-size: 11px; color: var(--nx-success); font-weight: 500;
+}
+.nx-composer-status.is-err { color: var(--nx-danger); }
+
+/* — Footer note under "Your questions" card — */
+.nx-mine-foot {
+  padding: 10px 14px;
+  border-top: 1px solid var(--nx-border);
+  background: var(--nx-bg-sub);
+  font-size: 11px; color: var(--nx-fg-muted); line-height: 1.55;
+}
+
+/* ─────────────────────────────────────────────────────────────────── */
+/* Student post-session review                                          */
+/* ─────────────────────────────────────────────────────────────────── */
+
+.nx-review-banner {
+  margin-bottom: var(--nx-stack);
+  padding: 14px 16px;
+  border-radius: 8px;
+  background: var(--nx-bg-elev);
+  border: 1px solid var(--nx-border);
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; flex-wrap: wrap;
+  box-shadow: var(--nx-shadow-sm);
+}
+.nx-review-banner-title {
+  font-size: 14px; font-weight: 600; color: var(--nx-fg);
+  margin: 0 0 2px;
+}
+.nx-review-banner-sub {
+  font-size: 12px; color: var(--nx-fg-muted); margin: 0;
+}
+.nx-review-summary {
+  display: flex; gap: 18px; flex-wrap: wrap;
+}
+.nx-review-summary-stat {
+  display: flex; flex-direction: column; gap: 1px;
+}
+.nx-review-summary-num {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 18px; font-weight: 600; color: var(--nx-fg);
+}
+.nx-review-summary-lbl {
+  font-size: 10px; color: var(--nx-fg-muted);
+  text-transform: uppercase; letter-spacing: 0.06em;
+}
+.nx-review-q {
+  display: flex; flex-direction: column; gap: 10px;
+  padding: 14px 16px; border-bottom: 1px solid var(--nx-border);
+}
+.nx-review-q:last-child { border-bottom: 0; }
+.nx-review-q-head {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+.nx-review-q-text {
+  margin: 0; font-size: 13px; color: var(--nx-fg); line-height: 1.55;
+}
+.nx-review-q-actions {
+  display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+}
+.nx-review-resolve-group {
+  display: inline-flex; padding: 2px;
+  background: var(--nx-bg-sub);
+  border: 1px solid var(--nx-border);
+  border-radius: 6px;
+}
+.nx-review-resolve-group button {
+  height: 26px; padding: 0 10px; border: 0; background: transparent;
+  color: var(--nx-fg-muted); font-size: 11px; cursor: pointer;
+  border-radius: 4px; font-family: inherit; font-weight: 500;
+  display: inline-flex; align-items: center; gap: 5px;
+}
+.nx-review-resolve-group button[data-active="resolved"] {
+  background: color-mix(in oklab, var(--nx-success) 18%, var(--nx-bg-elev));
+  color: var(--nx-success); font-weight: 600;
+  box-shadow: var(--nx-shadow-sm);
+}
+.nx-review-resolve-group button[data-active="unresolved"] {
+  background: color-mix(in oklab, var(--nx-danger) 18%, var(--nx-bg-elev));
+  color: var(--nx-danger); font-weight: 600;
+  box-shadow: var(--nx-shadow-sm);
+}
