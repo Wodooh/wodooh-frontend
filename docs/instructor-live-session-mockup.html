@@ -1,0 +1,1322 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>WODOOH — Instructor Live Session (mockup)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap">
+<style>
+  /* ── Nexus token surface ──────────────────────────────────────────── */
+  :root {
+    --nx-bg: #FAFAFA; --nx-bg-elev: #FFFFFF; --nx-bg-sub: #F5F5F4;
+    --nx-bg-hover: #F1F1EF; --nx-bg-active: #E9E9E6;
+    --nx-border: #E7E7E3; --nx-border-strong: #D6D6D2;
+    --nx-fg: #18181B; --nx-fg-muted: #62626A; --nx-fg-subtle: #98989F; --nx-fg-faint: #B8B8BE;
+    --nx-primary: #4F46E5;
+    --nx-success: #10B981; --nx-success-soft: #D1FAE5;
+    --nx-warning: #F59E0B; --nx-warning-soft: #FEF3C7;
+    --nx-danger:  #EF4444; --nx-danger-soft:  #FEE2E2;
+    --nx-on-primary: #FFFFFF;
+    --accent: #F0C020; --accent-hover: #C8A010; --accent-soft: #FFF6D6; --accent-ink: #6B4A00;
+    --nx-badge-admin-bg: #F3E8FF;  --nx-badge-admin-fg: #6B21A8;  --nx-badge-admin-dot: #A855F7;
+    --nx-badge-instructor-bg:#D1FAE5;--nx-badge-instructor-fg:#065F46;--nx-badge-instructor-dot:#10B981;
+    --nx-badge-chairman-bg:#FEE2E2; --nx-badge-chairman-fg:#991B1B; --nx-badge-chairman-dot:#EF4444;
+    --nx-badge-student-bg: #DBEAFE; --nx-badge-student-fg: #1E40AF; --nx-badge-student-dot: #3B82F6;
+    --nx-shadow-sm:    0 1px 2px rgba(0,0,0,.04);
+    --nx-shadow-md:    0 2px 6px rgba(0,0,0,.06);
+    --nx-shadow-modal: 0 20px 50px rgba(0,0,0,.25);
+    --nx-r-sm: 4px; --nx-r-md: 6px; --nx-r-lg: 8px; --nx-r-xl: 10px; --nx-r-full: 999px;
+    /* slide canvas surface (lecture-room paper feel; bg is calibrated to keep WCAG with --slide-ink) */
+    --slide-bg: #FBFAF6; --slide-ink: #1A1A1A; --slide-muted: #4F4F55; --slide-rule: #E1DDD0;
+  }
+  [data-nx-theme="dark"] {
+    --nx-bg: #0D1117; --nx-bg-elev: #161B22; --nx-bg-sub: #0D1117;
+    --nx-bg-hover: #1C2128; --nx-bg-active: #22272E;
+    --nx-border: #21262D; --nx-border-strong: #30363D;
+    --nx-fg: #C9D1D9; --nx-fg-muted: #8B949E; --nx-fg-subtle: #6E7681; --nx-fg-faint: #484F58;
+    --nx-primary: #818CF8;
+    --nx-success: #34D399; --nx-success-soft: #064E3B;
+    --nx-warning: #FBBF24; --nx-warning-soft: #451A03;
+    --nx-danger:  #F87171; --nx-danger-soft:  #450A0A;
+    --accent-soft: #3A2A05; --accent-ink: #FCE08A;
+    --nx-badge-admin-bg:#2E1065;--nx-badge-admin-fg:#DDD6FE;--nx-badge-admin-dot:#A78BFA;
+    --nx-badge-instructor-bg:#064E3B;--nx-badge-instructor-fg:#A7F3D0;--nx-badge-instructor-dot:#34D399;
+    --nx-badge-chairman-bg:#451A03;--nx-badge-chairman-fg:#FCD34D;--nx-badge-chairman-dot:#FBBF24;
+    --nx-badge-student-bg:#172554;--nx-badge-student-fg:#BFDBFE;--nx-badge-student-dot:#60A5FA;
+    --nx-shadow-sm: 0 1px 2px rgba(0,0,0,.30);
+    --nx-shadow-md: 0 2px 6px rgba(0,0,0,.40);
+    --slide-bg: #1B1F26; --slide-ink: #E8E8E2; --slide-muted: #9AA3AE; --slide-rule: #2D343C;
+  }
+  :root, [data-nx-density="compact"] { --nx-stack:12px; --nx-pad:14px; --nx-btn-h:28px; --nx-btn-h-lg:40px; --nx-fs:13px; --nx-fs-sm:12px; --nx-fs-xs:11px; }
+  [data-nx-density="balanced"]        { --nx-stack:16px; --nx-pad:18px; --nx-btn-h:30px; --nx-btn-h-lg:40px; --nx-fs:14px; --nx-fs-sm:13px; --nx-fs-xs:12px; }
+
+  /* ── base ─────────────────────────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: "Inter", system-ui, sans-serif;
+    font-feature-settings: 'cv11', 'ss01';
+    font-size: var(--nx-fs); line-height: 1.45;
+    color: var(--nx-fg); background: var(--nx-bg);
+    transition: background 80ms linear, color 80ms linear;
+    -webkit-font-smoothing: antialiased;
+  }
+  button { font-family: inherit; }
+  .mono { font-family: "JetBrains Mono", ui-monospace, monospace; font-feature-settings: "tnum" 1, "zero" 1; }
+
+  /* ── shell ────────────────────────────────────────────────────────── */
+  .nx-shell { display: grid; grid-template-columns: 56px 1fr; min-height: 100vh; }
+  .nx-sidebar {
+    background: var(--nx-bg-sub); border-right: 1px solid var(--nx-border);
+    display: flex; flex-direction: column; align-items: center;
+    padding: 14px 0; gap: 6px; position: sticky; top: 0; height: 100vh;
+  }
+  .nx-sidebar-brand {
+    width: 30px; height: 30px; border-radius: 7px;
+    background: linear-gradient(135deg, var(--nx-fg), var(--nx-fg-muted));
+    color: var(--nx-bg-elev); display: grid; place-items: center;
+    font-family: "JetBrains Mono", monospace; font-weight: 700; font-size: 13px;
+    letter-spacing: -0.02em; margin-bottom: 8px;
+  }
+  .nx-sidebar-icon {
+    width: 36px; height: 36px; border-radius: var(--nx-r-md);
+    color: var(--nx-fg-muted); background: transparent; border: 0; cursor: pointer;
+    display: grid; place-items: center;
+    transition: background 80ms linear, color 80ms linear;
+  }
+  .nx-sidebar-icon:hover { background: var(--nx-bg-hover); color: var(--nx-fg); }
+  .nx-sidebar-icon.is-active { background: var(--nx-bg-active); color: var(--nx-fg); }
+  .nx-sidebar-spacer { flex: 1; }
+
+  .nx-main { min-width: 0; }
+  .nx-topbar {
+    height: 56px; border-bottom: 1px solid var(--nx-border);
+    background: var(--nx-bg);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 24px; position: sticky; top: 0; z-index: 5;
+  }
+  .nx-crumb { display: flex; align-items: center; gap: 8px; color: var(--nx-fg-muted); font-size: var(--nx-fs-sm); }
+  .nx-crumb b { color: var(--nx-fg); font-weight: 600; }
+  .nx-crumb .sep { color: var(--nx-fg-faint); }
+  .nx-topbar-right { display: flex; align-items: center; gap: 10px; }
+
+  .nx-page { padding: 18px 24px 80px; max-width: 1560px; margin: 0 auto; }
+
+  /* ── preview caption ─────────────────────────────────────────────── */
+  .preview-caption {
+    border: 1px dashed var(--nx-border-strong); background: var(--nx-bg-sub);
+    border-radius: var(--nx-r-md); padding: 12px 14px; margin-bottom: 16px;
+    font-size: var(--nx-fs-xs); color: var(--nx-fg-muted); line-height: 1.55;
+  }
+  .preview-caption b { color: var(--nx-fg); font-weight: 600; }
+  .preview-caption code { font-family: "JetBrains Mono", monospace; font-size: 11px; color: var(--nx-fg); background: var(--nx-bg-elev); padding: 1px 5px; border-radius: var(--nx-r-sm); border: 1px solid var(--nx-border); }
+
+  /* ── segmented (topbar toggles, page nav etc) ───────────────────── */
+  .nx-segmented { display: inline-flex; padding: 2px; background: var(--nx-bg-sub); border: 1px solid var(--nx-border); border-radius: var(--nx-r-md); }
+  .nx-segmented-btn {
+    height: 26px; padding: 0 10px; border: 0; background: transparent;
+    color: var(--nx-fg-muted); font-size: var(--nx-fs-xs); font-weight: 500;
+    border-radius: var(--nx-r-sm); cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+    transition: background 80ms linear, color 80ms linear;
+  }
+  .nx-segmented-btn[data-active="true"] { background: var(--nx-bg-elev); color: var(--nx-fg); box-shadow: var(--nx-shadow-sm); }
+
+  /* ── Session header strip ────────────────────────────────────────── */
+  .session-strip {
+    background: var(--nx-bg-elev); border: 1px solid var(--nx-border);
+    border-radius: var(--nx-r-lg); padding: 12px 16px;
+    display: flex; align-items: center; gap: 18px;
+    box-shadow: var(--nx-shadow-sm);
+  }
+  .session-id { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .session-id .crumb-row { display: flex; align-items: center; gap: 8px; font-size: var(--nx-fs-xs); color: var(--nx-fg-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  .session-id h1 { margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.01em; color: var(--nx-fg); }
+  .session-id h1 .course-code { font-family: "JetBrains Mono", monospace; font-weight: 600; }
+  .session-meta { display: flex; align-items: center; gap: 16px; margin-left: auto; padding-right: 4px; }
+  .session-meta .meta-item { display: flex; flex-direction: column; gap: 1px; }
+  .session-meta .meta-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--nx-fg-subtle); font-weight: 500; }
+  .session-meta .meta-value { font-family: "JetBrains Mono", monospace; font-weight: 500; color: var(--nx-fg); font-size: 13px; font-feature-settings: "tnum" 1; }
+
+  .live-dot {
+    position: relative; display: inline-flex; align-items: center; gap: 7px;
+    background: var(--nx-danger-soft); color: var(--nx-badge-chairman-fg);
+    border-radius: var(--nx-r-full); padding: 3px 9px 3px 8px;
+    font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em;
+  }
+  .live-dot::before {
+    content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--nx-danger);
+    box-shadow: 0 0 0 0 rgba(239,68,68,0.55); animation: pulse 1.8s ease-out infinite;
+  }
+  @keyframes pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(239,68,68,0.55); }
+    70%  { box-shadow: 0 0 0 7px rgba(239,68,68,0); }
+    100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); }
+  }
+
+  .join-code {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--nx-bg-sub); border: 1px solid var(--nx-border);
+    border-radius: var(--nx-r-md); padding: 3px 4px 3px 9px;
+    font-family: "JetBrains Mono", monospace; font-size: 12px; font-weight: 500;
+    color: var(--nx-fg); letter-spacing: 0.04em;
+  }
+  .join-code .copy {
+    width: 20px; height: 20px; display: grid; place-items: center;
+    border: 0; background: transparent; color: var(--nx-fg-muted); cursor: pointer;
+    border-radius: var(--nx-r-sm); transition: background 80ms linear, color 80ms linear;
+  }
+  .join-code .copy:hover { background: var(--nx-bg-hover); color: var(--nx-fg); }
+
+  /* ── Buttons ─────────────────────────────────────────────────────── */
+  .nx-btn {
+    height: var(--nx-btn-h); padding: 0 12px; border-radius: var(--nx-r-md);
+    border: 1px solid var(--nx-border-strong); background: var(--nx-bg-elev);
+    color: var(--nx-fg); font-size: var(--nx-fs-sm); font-weight: 500; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
+    transition: background 80ms linear, border-color 80ms linear, color 80ms linear;
+  }
+  .nx-btn:hover { background: var(--nx-bg-hover); }
+  .nx-btn-primary {
+    background: var(--accent); color: var(--accent-ink); border-color: var(--accent);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.30), var(--nx-shadow-sm); font-weight: 600;
+  }
+  .nx-btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); color: #2C1E00; }
+  .nx-btn-danger {
+    background: var(--nx-danger); border-color: var(--nx-danger); color: #FFFFFF; font-weight: 600;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.20), var(--nx-shadow-sm);
+  }
+  .nx-btn-danger:hover { filter: brightness(.94); }
+  .nx-btn-danger-ghost { color: var(--nx-danger); }
+  .nx-btn-danger-ghost:hover { background: var(--nx-danger-soft); border-color: var(--nx-danger); }
+  .nx-btn-lg { height: var(--nx-btn-h-lg); padding: 0 18px; font-size: var(--nx-fs); }
+  .nx-icon-btn {
+    width: 32px; height: 32px; border-radius: var(--nx-r-md); display: grid; place-items: center;
+    border: 1px solid transparent; background: transparent; color: var(--nx-fg-muted); cursor: pointer;
+    transition: background 80ms linear, color 80ms linear;
+  }
+  .nx-icon-btn:hover { background: var(--nx-bg-hover); color: var(--nx-fg); }
+
+  /* ── Card ────────────────────────────────────────────────────────── */
+  .nx-card {
+    background: var(--nx-bg-elev); border: 1px solid var(--nx-border);
+    border-radius: var(--nx-r-lg); box-shadow: var(--nx-shadow-sm);
+  }
+  .nx-card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border-bottom: 1px solid var(--nx-border); }
+  .nx-card-title { margin: 0; font-size: var(--nx-fs); font-weight: 600; color: var(--nx-fg); letter-spacing: -0.005em; }
+  .nx-card-sub   { margin: 2px 0 0; font-size: var(--nx-fs-xs); color: var(--nx-fg-muted); }
+  .nx-filter-bar-count { font-family: "JetBrains Mono", monospace; font-size: var(--nx-fs-xs); color: var(--nx-fg-muted); }
+
+  /* ── Main live-grid: viewer + right rail ────────────────────────── */
+  .live-grid {
+    margin-top: var(--nx-stack);
+    display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: var(--nx-stack);
+  }
+  @media (max-width: 1180px) { .live-grid { grid-template-columns: 1fr; } }
+
+  /* ── Document viewer ────────────────────────────────────────────── */
+  .viewer-card { display: flex; flex-direction: column; min-width: 0; }
+
+  .doc-toolbar {
+    display: grid;
+    grid-template-columns: minmax(180px, 1fr) auto minmax(180px, 1fr);
+    align-items: center; gap: 12px;
+    padding: 10px 14px; border-bottom: 1px solid var(--nx-border);
+    background: var(--nx-bg-sub);
+  }
+  .doc-file { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .file-glyph {
+    width: 30px; height: 36px; flex-shrink: 0; position: relative;
+    border-radius: 3px 3px 5px 5px;
+    background: linear-gradient(180deg, #F5A623 0%, #D87E10 100%);
+    color: #FFFFFF; display: grid; place-items: center;
+    box-shadow: var(--nx-shadow-sm);
+    font-family: "JetBrains Mono", monospace; font-size: 9px; font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+  .file-glyph::after {
+    content: ""; position: absolute; top: 0; right: 0; width: 9px; height: 9px;
+    background: linear-gradient(135deg, transparent 50%, rgba(0,0,0,.15) 50%);
+    border-top-right-radius: 3px;
+  }
+  .file-meta { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .file-name { font-size: var(--nx-fs-sm); font-weight: 500; color: var(--nx-fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .file-sub { font-family: "JetBrains Mono", monospace; font-size: 11px; color: var(--nx-fg-muted); }
+
+  /* page nav center cluster */
+  .doc-pagenav { display: inline-flex; align-items: center; gap: 4px; }
+  .doc-pagenav .pg-input {
+    height: 26px; padding: 0 8px; min-width: 78px; text-align: center;
+    background: var(--nx-bg-elev); border: 1px solid var(--nx-border-strong);
+    border-radius: var(--nx-r-md);
+    font-family: "JetBrains Mono", monospace; font-size: 12px; color: var(--nx-fg);
+  }
+  .doc-pagenav .pg-input b { color: var(--nx-fg); font-weight: 600; }
+  .doc-pagenav .pg-input .sep { color: var(--nx-fg-subtle); margin: 0 2px; }
+
+  /* right side of toolbar: broadcast + zoom + view */
+  .doc-actions { display: inline-flex; align-items: center; gap: 8px; justify-content: flex-end; }
+  .broadcast-pill {
+    display: inline-flex; align-items: center; gap: 7px;
+    height: 26px; padding: 0 10px 0 8px;
+    border-radius: var(--nx-r-md);
+    background: var(--accent-soft); color: var(--accent-ink);
+    border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+    font-size: 11px; font-weight: 600;
+  }
+  .broadcast-pill .live-dot-mini {
+    width: 6px; height: 6px; border-radius: 50%; background: var(--accent);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 55%, transparent);
+    animation: pulse-accent 2.4s ease-out infinite;
+  }
+  @keyframes pulse-accent {
+    0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 55%, transparent); }
+    70%  { box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 0%, transparent); }
+    100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 0%, transparent); }
+  }
+  .zoom-cluster {
+    display: inline-flex; align-items: center; gap: 0;
+    background: var(--nx-bg-elev); border: 1px solid var(--nx-border-strong); border-radius: var(--nx-r-md);
+    height: 26px; overflow: hidden;
+  }
+  .zoom-cluster button { width: 26px; height: 24px; border: 0; background: transparent; color: var(--nx-fg-muted); cursor: pointer; }
+  .zoom-cluster button:hover { background: var(--nx-bg-hover); color: var(--nx-fg); }
+  .zoom-cluster .zoom-val { padding: 0 8px; font-family: "JetBrains Mono", monospace; font-size: 11px; color: var(--nx-fg); border-left: 1px solid var(--nx-border); border-right: 1px solid var(--nx-border); height: 24px; display: grid; place-items: center; }
+
+  /* ── Slide stage ────────────────────────────────────────────────── */
+  .slide-stage {
+    background:
+      radial-gradient(800px 320px at 50% 10%, color-mix(in srgb, var(--nx-fg) 3%, transparent), transparent 60%),
+      var(--nx-bg-sub);
+    padding: 28px;
+    display: grid; place-items: center;
+    min-height: 460px;
+  }
+  .slide {
+    width: 100%; max-width: 940px; aspect-ratio: 16 / 9;
+    background: var(--slide-bg); color: var(--slide-ink);
+    border-radius: var(--nx-r-md); position: relative;
+    box-shadow: 0 1px 0 var(--nx-border), 0 12px 32px rgba(0,0,0,.12), 0 2px 6px rgba(0,0,0,.06);
+    overflow: hidden;
+  }
+  [data-nx-theme="dark"] .slide { box-shadow: 0 1px 0 #000, 0 12px 32px rgba(0,0,0,.40), 0 2px 6px rgba(0,0,0,.30); }
+  .slide-inner {
+    padding: 36px 40px 32px;
+    display: grid; grid-template-columns: 1fr 0.85fr; gap: 28px;
+    height: 100%;
+  }
+  .slide-eyebrow {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--slide-muted); font-weight: 600;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .slide-eyebrow .pg { font-family: "JetBrains Mono", monospace; color: var(--slide-ink); }
+  .slide-eyebrow .rule { flex: 1; height: 1px; background: var(--slide-rule); }
+  .slide-title {
+    margin: 14px 0 6px; font-size: 30px; font-weight: 700; letter-spacing: -0.018em; line-height: 1.1; color: var(--slide-ink);
+  }
+  .slide-subtitle {
+    margin: 0 0 18px; font-size: 14px; color: var(--slide-muted); font-style: italic;
+    font-family: "JetBrains Mono", monospace; font-feature-settings: "tnum" 1;
+  }
+  .slide-bullets { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 12px; }
+  .slide-bullets li { font-size: 14px; line-height: 1.55; color: var(--slide-ink); display: grid; grid-template-columns: 18px 1fr; gap: 6px; }
+  .slide-bullets li::before {
+    content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--accent);
+    margin-top: 9px; margin-left: 4px;
+  }
+  .slide-bullets li em { font-style: normal; font-family: "JetBrains Mono", monospace; font-size: 13px; background: color-mix(in srgb, var(--accent) 16%, transparent); padding: 1px 5px; border-radius: 3px; }
+
+  .slide-aside { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+  .slide-caption { font-size: 11px; color: var(--slide-muted); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; }
+  .slide-tree { width: 100%; height: 220px; display: block; }
+  .slide-tree text { font-family: "JetBrains Mono", monospace; font-size: 9px; fill: var(--slide-muted); }
+  .slide-tree text.lbl { font-size: 10px; fill: var(--slide-ink); font-weight: 600; }
+  .slide-tree .node { fill: var(--slide-bg); stroke: var(--slide-ink); stroke-width: 1.2; }
+  .slide-tree .node-accent { fill: color-mix(in srgb, var(--accent) 18%, var(--slide-bg)); stroke: var(--accent); stroke-width: 1.4; }
+  .slide-tree .edge { stroke: var(--slide-muted); stroke-width: 1; fill: none; }
+
+  .slide-foot {
+    position: absolute; left: 40px; right: 40px; bottom: 18px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-top: 1px solid var(--slide-rule); padding-top: 10px;
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--slide-muted); font-weight: 500;
+  }
+  .slide-foot .pgnum { font-family: "JetBrains Mono", monospace; color: var(--slide-ink); letter-spacing: 0.02em; }
+
+  /* slide nav arrows overlaid on stage */
+  .slide-nav-arrow {
+    position: absolute; top: 50%; transform: translateY(-50%);
+    width: 38px; height: 38px; border-radius: 50%;
+    background: var(--nx-bg-elev); border: 1px solid var(--nx-border-strong);
+    color: var(--nx-fg); cursor: pointer; display: grid; place-items: center;
+    box-shadow: var(--nx-shadow-md); opacity: 0.92;
+    transition: transform 100ms ease-out, opacity 100ms linear;
+  }
+  .slide-nav-arrow:hover { opacity: 1; transform: translateY(-50%) scale(1.04); }
+  .slide-nav-arrow.left { left: 16px; }
+  .slide-nav-arrow.right { right: 16px; }
+
+  /* ── Follower bar (under slide stage) ───────────────────────────── */
+  .follow-strip {
+    padding: 10px 14px; display: flex; align-items: center; gap: 14px;
+    border-top: 1px solid var(--nx-border); background: var(--nx-bg-sub);
+  }
+  .follow-stat { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+  .follow-stat .num { font-family: "JetBrains Mono", monospace; font-size: 14px; font-weight: 600; color: var(--nx-fg); }
+  .follow-stat .lbl { font-size: 10px; color: var(--nx-fg-muted); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 500; }
+  .follow-bar {
+    flex: 1; height: 8px; min-width: 120px;
+    border-radius: var(--nx-r-full); overflow: hidden;
+    background: var(--nx-bg-elev); border: 1px solid var(--nx-border);
+    display: flex;
+  }
+  .follow-bar .seg { height: 100%; transition: width 200ms ease-out; }
+  .follow-bar .seg-with    { background: var(--accent); }
+  .follow-bar .seg-ahead   { background: color-mix(in srgb, var(--nx-success) 80%, transparent); }
+  .follow-bar .seg-behind  { background: color-mix(in srgb, var(--nx-warning) 80%, transparent); }
+  .follow-bar .seg-idle    { background: var(--nx-bg-active); }
+  .follow-legend { display: flex; gap: 12px; flex-wrap: wrap; }
+  .follow-legend .item { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: var(--nx-fg-muted); }
+  .follow-legend .sw { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
+
+  /* ── Thumbnail strip ──────────────────────────────────────────── */
+  .thumb-strip {
+    display: flex; gap: 8px; overflow-x: auto; padding: 10px 14px;
+    border-top: 1px solid var(--nx-border); background: var(--nx-bg-elev);
+    scrollbar-width: thin; scrollbar-color: var(--nx-border-strong) transparent;
+  }
+  .thumb {
+    flex-shrink: 0; width: 74px; height: 44px; border-radius: 4px;
+    background: var(--slide-bg); border: 1px solid var(--nx-border);
+    position: relative; cursor: pointer;
+    transition: transform 100ms ease-out, border-color 80ms linear;
+    overflow: hidden;
+  }
+  .thumb:hover { transform: translateY(-1px); border-color: var(--nx-border-strong); }
+  .thumb.is-current {
+    border: 2px solid var(--accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent);
+  }
+  .thumb .thumb-bar { height: 4px; background: color-mix(in srgb, var(--accent) 50%, var(--slide-rule)); margin: 4px 6px 0; border-radius: 1px; }
+  .thumb .thumb-line { height: 2px; background: var(--slide-rule); margin: 3px 6px 0; border-radius: 1px; }
+  .thumb .thumb-line.short { width: 60%; }
+  .thumb .thumb-num {
+    position: absolute; bottom: 2px; right: 4px;
+    font-family: "JetBrains Mono", monospace; font-size: 9px; color: var(--slide-muted);
+  }
+  .thumb.is-current .thumb-num { color: var(--accent-ink); font-weight: 600; }
+  .thumb.has-question::after {
+    content: ""; position: absolute; top: 3px; right: 3px;
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--nx-danger);
+    box-shadow: 0 0 0 1.5px var(--nx-bg-elev);
+  }
+
+  /* ── Right rail ──────────────────────────────────────────────── */
+  .now-rail { display: flex; flex-direction: column; gap: var(--nx-stack); position: relative; min-width: 0; }
+
+  /* live reactions widget */
+  .reactions-card { padding: 0; }
+  .reactions-head { padding: 12px 14px 8px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .reactions-eyebrow { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--nx-fg-subtle); font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
+  .reactions-eyebrow .live-mini { width: 6px; height: 6px; border-radius: 50%; background: var(--nx-danger); box-shadow: 0 0 0 3px color-mix(in srgb, var(--nx-danger) 25%, transparent); }
+  .reactions-meta { font-family: "JetBrains Mono", monospace; font-size: 11px; color: var(--nx-fg-muted); }
+
+  .reactions-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--nx-border); border-top: 1px solid var(--nx-border); }
+  .react-tile {
+    background: var(--nx-bg-elev); padding: 10px 12px;
+    display: flex; flex-direction: column; gap: 4px; position: relative; overflow: hidden;
+  }
+  .react-tile .lbl-row { display: flex; align-items: center; gap: 6px; }
+  .react-tile .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+  .react-tile .lbl { font-size: 11px; color: var(--nx-fg-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; }
+  .react-tile .val { font-family: "JetBrains Mono", monospace; font-size: 22px; font-weight: 600; color: var(--nx-fg); line-height: 1.05; letter-spacing: -0.01em; }
+  .react-tile .delta { font-family: "JetBrains Mono", monospace; font-size: 10px; color: var(--nx-fg-muted); }
+
+  .react-tile.is-fast  .dot { background: var(--nx-warning); }
+  .react-tile.is-slow  .dot { background: #C77B0F; }
+  .react-tile.is-und   .dot { background: var(--nx-success); }
+  .react-tile.is-nc    .dot { background: var(--nx-danger); }
+  .react-tile.is-nc    { background: linear-gradient(180deg, color-mix(in srgb, var(--nx-danger-soft) 65%, var(--nx-bg-elev)) 0%, var(--nx-bg-elev) 70%); }
+  .react-tile.is-nc .delta { color: var(--nx-danger); font-weight: 600; }
+
+  /* pop animation when a reaction count increments */
+  .react-tile.is-incr .val { animation: countPop 240ms cubic-bezier(0.16,1,0.3,1); }
+  @keyframes countPop {
+    0%   { transform: scale(1); color: var(--nx-fg); }
+    40%  { transform: scale(1.10); color: var(--accent-ink); }
+    100% { transform: scale(1); color: var(--nx-fg); }
+  }
+
+  /* — Question stream — */
+  .stream-toolbar {
+    display: flex; align-items: center; gap: 8px; padding: 10px 14px;
+    border-bottom: 1px solid var(--nx-border); background: var(--nx-bg-sub);
+  }
+  .nx-input-wrap {
+    flex: 1; display: flex; align-items: center; gap: 8px;
+    height: var(--nx-btn-h); padding: 0 10px;
+    background: var(--nx-bg-elev); border: 1px solid var(--nx-border-strong);
+    border-radius: var(--nx-r-md);
+    transition: box-shadow 80ms linear, border-color 80ms linear;
+  }
+  .nx-input-wrap:focus-within { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); border-color: var(--accent); }
+  .nx-input { border: 0; background: transparent; flex: 1; outline: 0; color: var(--nx-fg); font-size: var(--nx-fs-sm); min-width: 0; }
+  .nx-input::placeholder { color: var(--nx-fg-subtle); }
+  .nx-tabs { display: inline-flex; gap: 2px; }
+  .nx-tab {
+    height: var(--nx-btn-h); padding: 0 8px; border: 0; background: transparent;
+    color: var(--nx-fg-muted); font-size: 11px; cursor: pointer;
+    border-radius: var(--nx-r-sm); display: inline-flex; align-items: center; gap: 5px;
+    transition: background 80ms linear, color 80ms linear;
+  }
+  .nx-tab[data-active="true"] { color: var(--nx-fg); background: var(--nx-bg-elev); border: 1px solid var(--nx-border); }
+  .nx-tab .count { font-family: "JetBrains Mono", monospace; font-size: 10px; color: var(--nx-fg-muted); }
+
+  .stream-list { display: flex; flex-direction: column; max-height: 520px; overflow-y: auto; }
+  .qrow {
+    display: flex; flex-direction: column; gap: 8px;
+    padding: 12px 14px; border-bottom: 1px solid var(--nx-border);
+    transition: background 80ms linear;
+  }
+  .qrow:last-child { border-bottom: 0; }
+  .qrow:hover { background: var(--nx-bg-hover); }
+  .qrow--new { animation: slideIn 220ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+  .qrow.is-opened { background: color-mix(in srgb, var(--accent-soft) 70%, var(--nx-bg-elev)); border-left: 3px solid var(--accent); padding-left: 11px; }
+  @keyframes slideIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+
+  .qrow-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .anon-chip {
+    font-family: "JetBrains Mono", monospace; font-size: 11px;
+    color: var(--nx-fg); background: var(--nx-bg-sub);
+    border: 1px solid var(--nx-border); border-radius: var(--nx-r-full);
+    padding: 2px 9px 2px 7px; display: inline-flex; align-items: center; gap: 5px;
+  }
+  .anon-chip .glyph { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .anon-chip .glyph[data-hue="0"]   { background: #FECACA; }
+  .anon-chip .glyph[data-hue="40"]  { background: #FDE68A; }
+  .anon-chip .glyph[data-hue="160"] { background: #A7F3D0; }
+  .anon-chip .glyph[data-hue="220"] { background: #BFDBFE; }
+  .anon-chip .glyph[data-hue="280"] { background: #DDD6FE; }
+  .anon-chip .glyph[data-hue="320"] { background: #FBCFE8; }
+  .anon-chip .glyph[data-hue="120"] { background: #BBF7D0; }
+
+  .qrow-meta { font-family: "JetBrains Mono", monospace; font-size: 10px; color: var(--nx-fg-subtle); }
+  .qrow-meta a { color: var(--accent-ink); text-decoration: none; cursor: pointer; }
+  .qrow-meta a:hover { text-decoration: underline; }
+
+  .qrow-text { margin: 0; font-size: var(--nx-fs-sm); color: var(--nx-fg); line-height: 1.5;
+    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+
+  .qrow-actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .qrow-actions .nx-btn { height: 24px; padding: 0 9px; font-size: 11px; }
+
+  .nx-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    height: 19px; padding: 0 7px 0 6px; border-radius: var(--nx-r-full);
+    font-size: 10px; font-weight: 500;
+  }
+  .nx-badge-dot { width: 5px; height: 5px; border-radius: 50%; }
+  .nx-role-student    { background: var(--nx-badge-student-bg);    color: var(--nx-badge-student-fg); }
+  .nx-role-student    .nx-badge-dot { background: var(--nx-badge-student-dot); }
+  .nx-role-instructor { background: var(--nx-badge-instructor-bg); color: var(--nx-badge-instructor-fg); }
+  .nx-role-instructor .nx-badge-dot { background: var(--nx-badge-instructor-dot); }
+  .nx-role-chairman   { background: var(--nx-badge-chairman-bg);   color: var(--nx-badge-chairman-fg); }
+  .nx-role-chairman   .nx-badge-dot { background: var(--nx-badge-chairman-dot); }
+  .nx-role-admin      { background: var(--nx-badge-admin-bg);      color: var(--nx-badge-admin-fg); }
+  .nx-role-admin      .nx-badge-dot { background: var(--nx-badge-admin-dot); }
+
+  .cluster-pill {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: var(--accent-soft); color: var(--accent-ink);
+    border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+    border-radius: var(--nx-r-full); padding: 1px 7px 1px 6px;
+    font-size: 10px; font-weight: 500;
+  }
+  .cluster-pill .count { font-family: "JetBrains Mono", monospace; font-weight: 600; }
+  .slide-tag {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-family: "JetBrains Mono", monospace; font-size: 10px;
+    color: var(--nx-fg-muted); border: 1px dashed var(--nx-border-strong);
+    border-radius: var(--nx-r-sm); padding: 1px 6px; cursor: pointer;
+  }
+  .slide-tag:hover { color: var(--accent-ink); border-color: var(--accent); }
+
+  /* — Moderation card (muted + quick controls) — */
+  .mod-tabs { display: flex; border-bottom: 1px solid var(--nx-border); }
+  .mod-tab {
+    flex: 1; padding: 10px 12px; border: 0; background: transparent;
+    color: var(--nx-fg-muted); font-size: 11px; font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.06em; cursor: pointer;
+    border-bottom: 2px solid transparent; margin-bottom: -1px;
+    transition: color 80ms linear, border-color 80ms linear;
+  }
+  .mod-tab[data-active="true"] { color: var(--nx-fg); border-bottom-color: var(--nx-fg); }
+  .mod-tab .count { font-family: "JetBrains Mono", monospace; font-size: 10px; color: var(--nx-fg-muted); }
+
+  .muted-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px; border-top: 1px solid var(--nx-border);
+  }
+  .muted-row:first-child { border-top: 0; }
+  .muted-row .meta { flex: 1; display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+  .muted-row .meta b { font-size: var(--nx-fs-xs); font-weight: 500; color: var(--nx-fg); }
+  .muted-row .meta span { font-size: 10px; color: var(--nx-fg-muted); font-family: "JetBrains Mono", monospace; }
+  .muted-row .nx-btn { height: 24px; padding: 0 8px; font-size: 11px; }
+
+  .qc-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 11px 14px; border-top: 1px solid var(--nx-border);
+  }
+  .qc-row:first-child { border-top: 0; }
+  .qc-row .label { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+  .qc-row .label b { font-size: var(--nx-fs-xs); font-weight: 500; color: var(--nx-fg); }
+  .qc-row .label span { font-size: 10px; color: var(--nx-fg-muted); }
+
+  .nx-toggle { position: relative; width: 34px; height: 18px; background: var(--nx-border-strong); border-radius: var(--nx-r-full); cursor: pointer; transition: background 80ms linear; flex-shrink: 0; }
+  .nx-toggle::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; background: var(--nx-bg-elev); border-radius: 50%; box-shadow: var(--nx-shadow-sm); transition: transform 100ms ease-out; }
+  .nx-toggle[data-on="true"] { background: var(--accent); }
+  .nx-toggle[data-on="true"]::after { transform: translateX(16px); }
+
+  .nx-segmented-inline { display: inline-flex; padding: 2px; background: var(--nx-bg-sub); border: 1px solid var(--nx-border); border-radius: var(--nx-r-sm); }
+  .nx-segmented-inline button { height: 20px; padding: 0 7px; border: 0; background: transparent; color: var(--nx-fg-muted); font-size: 10px; cursor: pointer; border-radius: 3px; font-family: inherit; font-weight: 500; }
+  .nx-segmented-inline button[data-active="true"] { background: var(--nx-bg-elev); color: var(--nx-fg); box-shadow: var(--nx-shadow-sm); }
+
+  /* ── Modal preview (end-session) ──────────────────────────────── */
+  .preview-divider {
+    margin: 56px 0 18px; display: flex; align-items: center; gap: 14px;
+    color: var(--nx-fg-subtle); font-size: var(--nx-fs-xs); letter-spacing: 0.04em; text-transform: uppercase; font-weight: 600;
+  }
+  .preview-divider::before, .preview-divider::after { content: ""; flex: 1; height: 1px; background: var(--nx-border); }
+
+  .modal-stage {
+    position: relative; border-radius: var(--nx-r-lg);
+    background: var(--nx-bg-sub); border: 1px solid var(--nx-border);
+    padding: 36px; overflow: hidden;
+  }
+  .modal-stage::before { content: ""; position: absolute; inset: 0; background: rgba(0,0,0,.20); }
+  [data-nx-theme="dark"] .modal-stage::before { background: rgba(0,0,0,.50); }
+
+  .nx-modal {
+    position: relative; width: min(640px, 100%); margin: 0 auto;
+    background: var(--nx-bg-elev); border: 1px solid var(--nx-border);
+    border-radius: var(--nx-r-xl); box-shadow: var(--nx-shadow-modal); overflow: hidden;
+  }
+  .nx-modal-head { padding: 18px 22px 0; }
+  .nx-modal-eyebrow { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--nx-fg-subtle); font-weight: 600; }
+  .nx-modal-title { margin: 4px 0 4px; font-size: 17px; font-weight: 600; color: var(--nx-fg); letter-spacing: -0.01em; }
+  .nx-modal-sub   { margin: 0 0 18px; font-size: var(--nx-fs-sm); color: var(--nx-fg-muted); }
+  .nx-modal-body { padding: 0 22px 18px; }
+
+  .report-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 16px; }
+  .report-stat { border: 1px solid var(--nx-border); border-radius: var(--nx-r-md); padding: 10px 12px; }
+  .report-stat .lbl { font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--nx-fg-subtle); font-weight: 500; }
+  .report-stat .val { font-family: "JetBrains Mono", monospace; font-size: 18px; font-weight: 600; color: var(--nx-fg); margin-top: 2px; }
+  .report-stat .delta { font-family: "JetBrains Mono", monospace; font-size: 10px; color: var(--nx-fg-muted); }
+
+  .report-section-title { font-size: 10px; color: var(--nx-fg-muted); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; margin: 0 0 8px; }
+
+  .report-chart { width: 100%; height: 140px; display: block; }
+  .report-chart text { font-family: "JetBrains Mono", monospace; font-size: 9px; fill: var(--nx-fg-subtle); }
+  .report-chart .grid { stroke: var(--nx-border); stroke-width: 1; stroke-dasharray: 2 4; opacity: 0.7; }
+  .report-chart .axis { stroke: var(--nx-border-strong); stroke-width: 1; }
+
+  .peak { display: grid; grid-template-columns: 56px 1fr auto; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid var(--nx-border); }
+  .peak:first-of-type { border-top: 0; }
+  .peak .ts { font-family: "JetBrains Mono", monospace; font-size: 12px; color: var(--nx-fg); }
+  .peak .text { font-size: var(--nx-fs-sm); color: var(--nx-fg); }
+  .peak .text small { display: block; color: var(--nx-fg-muted); font-size: 11px; margin-top: 1px; }
+  .peak-spark { display: block; width: 64px; height: 22px; }
+
+  .nx-modal-foot {
+    background: var(--nx-bg-sub); border-top: 1px solid var(--nx-border);
+    padding: 12px 22px; display: flex; justify-content: space-between; align-items: center; gap: 10px;
+  }
+  .nx-modal-foot .hint { font-size: var(--nx-fs-xs); color: var(--nx-fg-muted); display: flex; align-items: center; gap: 6px; }
+
+  /* toast */
+  .nx-toast-region { position: fixed; right: 24px; bottom: 24px; display: flex; flex-direction: column; gap: 8px; z-index: 20; pointer-events: none; }
+  .nx-toast {
+    background: var(--nx-bg-elev); color: var(--nx-fg);
+    border: 1px solid var(--nx-border); border-left: 3px solid var(--accent);
+    border-radius: var(--nx-r-md); padding: 10px 14px; font-size: var(--nx-fs-sm);
+    box-shadow: 0 8px 30px rgba(0,0,0,.20); pointer-events: auto; min-width: 240px;
+    display: flex; align-items: center; gap: 8px;
+  }
+
+  .ic { width: 15px; height: 15px; flex-shrink: 0; }
+  .ic-sm { width: 13px; height: 13px; flex-shrink: 0; }
+  .ic-xs { width: 11px; height: 11px; flex-shrink: 0; }
+</style>
+</head>
+
+<body data-nx-theme="light" data-nx-density="compact">
+
+<div class="nx-shell">
+  <!-- ─── Sidebar ─── -->
+  <aside class="nx-sidebar" aria-label="Primary">
+    <div class="nx-sidebar-brand" title="WODOOH (وضوح)">W</div>
+    <button class="nx-sidebar-icon" title="Dashboard">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+    </button>
+    <button class="nx-sidebar-icon is-active" title="Sessions">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.5"/><path d="M5 12a7 7 0 0 1 14 0M2 12a10 10 0 0 1 20 0"/></svg>
+    </button>
+    <button class="nx-sidebar-icon" title="Courses">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H19v15.5H5.5A1.5 1.5 0 0 1 4 18z"/><path d="M8 4v15.5"/></svg>
+    </button>
+    <button class="nx-sidebar-icon" title="Materials">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></svg>
+    </button>
+    <button class="nx-sidebar-icon" title="Reports">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5M9 19v-8M14 19v-5M19 19V8M3 19h18"/></svg>
+    </button>
+    <div class="nx-sidebar-spacer"></div>
+    <button class="nx-sidebar-icon" title="Settings">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1A2 2 0 1 1 4.3 17l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1A2 2 0 1 1 7 4.3l.1.1a1.7 1.7 0 0 0 1.8.3 1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v0a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1"/></svg>
+    </button>
+  </aside>
+
+  <!-- ─── Main ─── -->
+  <main class="nx-main">
+    <header class="nx-topbar">
+      <nav class="nx-crumb">
+        <span>Sessions</span>
+        <span class="sep">/</span>
+        <span><span class="mono">CS-401</span> · Section 02</span>
+        <span class="sep">/</span>
+        <b>Live</b>
+      </nav>
+      <div class="nx-topbar-right">
+        <div class="nx-segmented" role="tablist" aria-label="Theme">
+          <button class="nx-segmented-btn" data-active="true" data-theme="light" onclick="setTheme('light')">
+            <svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+            Light
+          </button>
+          <button class="nx-segmented-btn" data-theme="dark" onclick="setTheme('dark')">
+            <svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+            Dark
+          </button>
+        </div>
+        <div class="nx-segmented" role="tablist" aria-label="Density">
+          <button class="nx-segmented-btn" data-active="true" data-density="compact" onclick="setDensity('compact')">Compact</button>
+          <button class="nx-segmented-btn" data-density="balanced" onclick="setDensity('balanced')">Balanced</button>
+        </div>
+        <button class="nx-icon-btn" title="Profile">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="nx-page">
+
+      <!-- Caption -->
+      <div class="preview-caption" role="note">
+        <b>Mockup · Instructor live session</b> — the instructor presents a file (here a <code>.pptx</code>); each student views it independently on their device and may toggle <i>Follow instructor</i> on their side to auto-sync to the instructor's current page. Reactions tick live in the right rail; the engagement chart and full report appear <b>only at end of session</b> inside the End-session modal preview below.
+        <br>
+        Covers <b>UC-09</b> (View Real-Time Dashboard, <code>wodooh-docs/design.md</code> §UC-09) and user stories <code>US-C1</code> (start session), <code>US-C2</code> (end session + summary), <code>US-C3</code> (upload materials), <code>US-C5</code> (mute student), <code>US-D4</code> (open question), <code>US-D6</code> (report abuse), <code>US-D7</code> (real-time dashboard ≤ 200 ms via Ably Pub/Sub), <code>US-D8</code> (auto-grouped similar questions, cosine ≥ 0.75), <code>US-E1</code> (generate session report). See <code>wodooh-docs/backlog.md</code> §Epic C–E. Privacy: students appear only as <code>authorAnonymousCourseID</code> / <code>anonymousSessionId</code>.
+      </div>
+
+      <!-- Session header strip -->
+      <section class="session-strip" aria-label="Session header">
+        <div class="session-id">
+          <div class="crumb-row">
+            <span class="live-dot">Live</span>
+            <span>·</span>
+            <span>Section 02</span>
+            <span>·</span>
+            <span>Mon · 13:00–14:30</span>
+          </div>
+          <h1><span class="course-code">CS-401</span> · Advanced Algorithms</h1>
+        </div>
+        <div class="session-meta">
+          <div class="meta-item">
+            <span class="meta-label">Elapsed</span>
+            <span class="meta-value" id="elapsed">00:42:18</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Joined</span>
+            <span class="meta-value">38 <small style="color:var(--nx-fg-subtle);font-size:11px;font-weight:400">/ 41</small></span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Join code</span>
+            <span class="join-code">
+              <span>K3-7F2A</span>
+              <button class="copy" aria-label="Copy join code" title="Copy">
+                <svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg>
+              </button>
+            </span>
+          </div>
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button class="nx-btn">
+            <svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="5" width="12" height="14" rx="2"/><path d="M9 9h6M9 13h6M9 17h3"/></svg>
+            Notes
+          </button>
+          <button class="nx-btn nx-btn-danger" onclick="document.getElementById('end-modal-stage').scrollIntoView({behavior:'smooth', block:'start'})">
+            <svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+            End session
+          </button>
+        </div>
+      </section>
+
+      <!-- ── Main grid: viewer + right rail ── -->
+      <section class="live-grid">
+
+        <!-- Document viewer (centerpiece) -->
+        <div class="nx-card viewer-card" aria-label="Lecture document viewer">
+
+          <!-- Toolbar -->
+          <div class="doc-toolbar">
+            <div class="doc-file">
+              <div class="file-glyph" title="PowerPoint presentation">PPT</div>
+              <div class="file-meta">
+                <div class="file-name">lecture-09 · master-theorem.pptx</div>
+                <div class="file-sub">Uploaded Mon · 8.2 MB · 47 slides</div>
+              </div>
+            </div>
+
+            <div class="doc-pagenav">
+              <button class="nx-icon-btn" title="First slide">
+                <svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5v14M19 5l-9 7 9 7z"/></svg>
+              </button>
+              <button class="nx-icon-btn" title="Previous slide">
+                <svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+              </button>
+              <span class="pg-input"><b id="page-num">12</b> <span class="sep">/</span> <span style="color:var(--nx-fg-muted)">47</span></span>
+              <button class="nx-icon-btn" title="Next slide">
+                <svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
+              </button>
+              <button class="nx-icon-btn" title="Last slide">
+                <svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M19 5v14M5 5l9 7-9 7z"/></svg>
+              </button>
+            </div>
+
+            <div class="doc-actions">
+              <span class="broadcast-pill" title="Broadcasting page changes to followers">
+                <span class="live-dot-mini"></span>
+                Broadcasting · 34 following
+              </span>
+              <button class="nx-btn" title="Force all students to my slide (overrides their follow-off)">
+                <svg class="ic-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+                Pull all
+              </button>
+              <div class="zoom-cluster">
+                <button title="Zoom out"><svg class="ic-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 12h14"/></svg></button>
+                <span class="zoom-val">100%</span>
+                <button title="Zoom in"><svg class="ic-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+              </div>
+              <button class="nx-icon-btn" title="Fullscreen">
+                <svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Slide stage -->
+          <div class="slide-stage" id="slide-stage">
+            <button class="slide-nav-arrow left" title="Previous slide" aria-label="Previous">
+              <svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+            </button>
+
+            <article class="slide" aria-label="Current slide">
+              <div class="slide-inner">
+                <div>
+                  <div class="slide-eyebrow">
+                    <span>Master Theorem</span>
+                    <span class="rule"></span>
+                    <span class="pg">Case 2</span>
+                  </div>
+                  <h2 class="slide-title">The Logarithmic Boundary</h2>
+                  <p class="slide-subtitle">when f(n) = Θ(n^log_b(a))</p>
+
+                  <ul class="slide-bullets">
+                    <li><span></span><span>Given the recurrence <em>T(n) = a·T(n/b) + f(n)</em>, where a ≥ 1 and b &gt; 1.</span></li>
+                    <li><span></span><span>If f(n) and <em>n^log_b(a)</em> grow at the same asymptotic rate, the recursion does equal work at every level.</span></li>
+                    <li><span></span><span>The total cost telescopes to <em>T(n) = Θ(n^log_b(a) · log n)</em>.</span></li>
+                    <li><span></span><span>Intuition: there are <em>log_b(n)</em> levels, and each contributes the same Θ(n^log_b(a)) work.</span></li>
+                  </ul>
+                </div>
+
+                <aside class="slide-aside">
+                  <div class="slide-caption">Recursion tree · uniform work per level</div>
+                  <svg class="slide-tree" viewBox="0 0 320 220" aria-hidden="true">
+                    <!-- edges -->
+                    <path class="edge" d="M160 26 L80 70  M160 26 L160 70  M160 26 L240 70"/>
+                    <path class="edge" d="M80 86  L50 130 M80 86  L80 130 M80 86  L110 130"/>
+                    <path class="edge" d="M160 86 L140 130 M160 86 L180 130"/>
+                    <path class="edge" d="M240 86 L220 130 M240 86 L270 130"/>
+                    <path class="edge" d="M50 146 L40 186 M50 146 L60 186"/>
+                    <path class="edge" d="M270 146 L260 186 M270 146 L280 186"/>
+                    <!-- nodes -->
+                    <circle class="node-accent" cx="160" cy="22" r="14"/>
+                    <text class="lbl" x="160" y="25" text-anchor="middle">n</text>
+                    <circle class="node" cx="80"  cy="78" r="11"/><text x="80"  y="81" text-anchor="middle">n/b</text>
+                    <circle class="node" cx="160" cy="78" r="11"/><text x="160" y="81" text-anchor="middle">n/b</text>
+                    <circle class="node" cx="240" cy="78" r="11"/><text x="240" y="81" text-anchor="middle">n/b</text>
+                    <circle class="node" cx="50"  cy="138" r="8"/><circle class="node" cx="80"  cy="138" r="8"/><circle class="node" cx="110" cy="138" r="8"/>
+                    <circle class="node" cx="140" cy="138" r="8"/><circle class="node" cx="180" cy="138" r="8"/>
+                    <circle class="node" cx="220" cy="138" r="8"/><circle class="node" cx="270" cy="138" r="8"/>
+                    <circle class="node" cx="40"  cy="194" r="5"/><circle class="node" cx="60" cy="194" r="5"/>
+                    <circle class="node" cx="260" cy="194" r="5"/><circle class="node" cx="280" cy="194" r="5"/>
+                    <text class="lbl" x="315" y="25"  text-anchor="end">level 0 → Θ(n^k)</text>
+                    <text class="lbl" x="315" y="81"  text-anchor="end">level 1 → Θ(n^k)</text>
+                    <text class="lbl" x="315" y="141" text-anchor="end">level 2 → Θ(n^k)</text>
+                    <text class="lbl" x="315" y="201" text-anchor="end">log_b(n) levels</text>
+                  </svg>
+                </aside>
+              </div>
+              <div class="slide-foot">
+                <span>CS-401 · Master Theorem</span>
+                <span class="pgnum">12 / 47</span>
+              </div>
+            </article>
+
+            <button class="slide-nav-arrow right" title="Next slide" aria-label="Next">
+              <svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
+            </button>
+          </div>
+
+          <!-- Follower distribution strip -->
+          <div class="follow-strip" aria-label="Follower distribution">
+            <div class="follow-stat" title="Students viewing this exact slide">
+              <span class="num">34</span><span class="lbl">On your slide</span>
+            </div>
+            <div class="follow-stat" title="Students who navigated ahead">
+              <span class="num">4</span><span class="lbl">Ahead</span>
+            </div>
+            <div class="follow-stat" title="Students who navigated back">
+              <span class="num">0</span><span class="lbl">Behind</span>
+            </div>
+            <div class="follow-stat" title="Students with follow turned off">
+              <span class="num">0</span><span class="lbl">Independent</span>
+            </div>
+
+            <div class="follow-bar" title="Distribution of 38 joined students">
+              <span class="seg seg-with"   style="width: 89.5%"></span>
+              <span class="seg seg-ahead"  style="width: 10.5%"></span>
+              <span class="seg seg-behind" style="width: 0%"></span>
+              <span class="seg seg-idle"   style="width: 0%"></span>
+            </div>
+
+            <div class="follow-legend">
+              <span class="item"><span class="sw" style="background:var(--accent)"></span>With you</span>
+              <span class="item"><span class="sw" style="background:color-mix(in srgb, var(--nx-success) 80%, transparent)"></span>Ahead</span>
+              <span class="item"><span class="sw" style="background:color-mix(in srgb, var(--nx-warning) 80%, transparent)"></span>Behind</span>
+            </div>
+          </div>
+
+          <!-- Thumbnail strip -->
+          <div class="thumb-strip" aria-label="All slides">
+            <div class="thumb"><div class="thumb-bar"></div><div class="thumb-line"></div><div class="thumb-line short"></div><span class="thumb-num">1</span></div>
+            <div class="thumb"><div class="thumb-bar"></div><div class="thumb-line"></div><div class="thumb-line"></div><span class="thumb-num">2</span></div>
+            <div class="thumb"><div class="thumb-bar"></div><div class="thumb-line short"></div><span class="thumb-num">3</span></div>
+            <div class="thumb"><div class="thumb-bar"></div><div class="thumb-line"></div><div class="thumb-line short"></div><span class="thumb-num">4</span></div>
+            <div class="thumb has-question"><div class="thumb-bar"></div><div class="thumb-line"></div><span class="thumb-num">5</span></div>
+            <div class="thumb"><div class="thumb-bar"></div><div class="thumb-line short"></div><span class="thumb-num">6</span></div>
+            <div class="thumb"><div class="thumb-bar"></div><div class="thumb-line"></div><div class="thumb-line"></div><span class="thumb-num">7</span></div>
+            <div class="thumb has-question"><div class="thumb-bar"></div><div class="thumb-line"></div><span class="thumb-num">8</span></div>
+            <div class="thumb"><div class="thumb-bar"></div><div class="thumb-line short"></div><span class="thumb-num">9</span></div>
+            <div class="thumb"><div class="thumb-bar"></div><div class="thumb-line"></div><span class="thumb-num">10</span></div>
+            <div class="thumb has-question"><div class="thumb-bar"></div><div class="thumb-line"></div><div class="thumb-line short"></div><span class="thumb-num">11</span></div>
+            <div class="thumb is-current"><div class="thumb-bar"></div><div class="thumb-line"></div><div class="thumb-line"></div><span class="thumb-num">12</span></div>
+            <div class="thumb"><div class="thumb-bar"></div><div class="thumb-line short"></div><span class="thumb-num">13</span></div>
+            <div class="thumb"><div class="thumb-bar"></div><div class="thumb-line"></div><span class="thumb-num">14</span></div>
+            <div class="thumb"><div class="thumb-bar"></div><div class="thumb-line"></div><div class="thumb-line"></div><span class="thumb-num">15</span></div>
+            <div class="thumb"><div class="thumb-bar"></div><div class="thumb-line short"></div><span class="thumb-num">16</span></div>
+            <div class="thumb"><div class="thumb-bar"></div><div class="thumb-line"></div><span class="thumb-num">17</span></div>
+            <div class="thumb"><div class="thumb-bar"></div><div class="thumb-line"></div><div class="thumb-line"></div><span class="thumb-num">18</span></div>
+          </div>
+
+        </div>
+
+        <!-- ── Right rail ── -->
+        <aside class="now-rail" aria-label="Now panel">
+
+          <!-- Reactions live -->
+          <div class="nx-card reactions-card">
+            <div class="reactions-head">
+              <span class="reactions-eyebrow"><span class="live-mini"></span>Reactions · live</span>
+              <span class="reactions-meta">slide 12 · <span style="color:var(--nx-fg)">last 60s</span></span>
+            </div>
+            <div class="reactions-grid">
+              <div class="react-tile is-fast">
+                <div class="lbl-row"><span class="dot"></span><span class="lbl">Too fast</span></div>
+                <span class="val" id="r-fast">0</span>
+                <span class="delta">0.0 / min</span>
+              </div>
+              <div class="react-tile is-slow">
+                <div class="lbl-row"><span class="dot"></span><span class="lbl">Too slow</span></div>
+                <span class="val" id="r-slow">2</span>
+                <span class="delta">1.1 / min</span>
+              </div>
+              <div class="react-tile is-und">
+                <div class="lbl-row"><span class="dot"></span><span class="lbl">Understood</span></div>
+                <span class="val" id="r-und">3</span>
+                <span class="delta">2.0 / min</span>
+              </div>
+              <div class="react-tile is-nc">
+                <div class="lbl-row"><span class="dot"></span><span class="lbl">Not clear</span></div>
+                <span class="val" id="r-nc">9</span>
+                <span class="delta">6.8 / min ↑</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Question stream -->
+          <div class="nx-card" aria-label="Incoming questions">
+            <div class="nx-card-head">
+              <div>
+                <h3 class="nx-card-title">Anonymous questions</h3>
+                <p class="nx-card-sub">Grouped by similarity · cosine ≥ 0.75</p>
+              </div>
+              <span class="nx-filter-bar-count">7 open</span>
+            </div>
+
+            <div class="stream-toolbar">
+              <div class="nx-input-wrap">
+                <svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color:var(--nx-fg-subtle)"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+                <input class="nx-input" placeholder="Filter…" />
+              </div>
+              <div class="nx-tabs" role="tablist">
+                <button class="nx-tab" data-active="true">All <span class="count">7</span></button>
+                <button class="nx-tab">New <span class="count">4</span></button>
+                <button class="nx-tab">Opened <span class="count">2</span></button>
+              </div>
+            </div>
+
+            <div class="stream-list" role="list">
+
+              <!-- Q1 — newest, cluster head of 12, references THIS slide -->
+              <div class="qrow qrow--new" role="listitem">
+                <div class="qrow-head">
+                  <span class="anon-chip"><span class="glyph" data-hue="40"></span>anon-7f3a</span>
+                  <span class="cluster-pill">
+                    <svg class="ic-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2"/><circle cx="18" cy="6" r="2"/><circle cx="12" cy="18" r="2"/><path d="M7.4 7.5 10.6 16.5M16.6 7.5 13.4 16.5M8 6h8"/></svg>
+                    <span class="count">12</span> similar
+                  </span>
+                  <span class="slide-tag" title="Asked while viewing slide 12">↳ slide 12</span>
+                  <span class="qrow-meta" style="margin-left:auto">22s ago</span>
+                </div>
+                <p class="qrow-text">Can you walk through how the master theorem applies when f(n) sits exactly between the two cases? I keep getting different answers depending on how I split it.</p>
+                <div class="qrow-actions">
+                  <span class="nx-badge nx-role-student"><span class="nx-badge-dot"></span>New</span>
+                  <span style="flex:1"></span>
+                  <button class="nx-btn nx-btn-primary">
+                    <svg class="ic-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+                    Open
+                  </button>
+                  <button class="nx-btn" title="Ungroup cluster">
+                    <svg class="ic-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h7M14 6h7M3 12h18M3 18h7M14 18h7"/></svg>
+                  </button>
+                  <button class="nx-btn" title="Mute anonymous author">
+                    <svg class="ic-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="m22 9-6 6M16 9l6 6"/></svg>
+                  </button>
+                  <button class="nx-btn nx-btn-danger-ghost" title="Report">
+                    <svg class="ic-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V4l5 2 5-2 6 3-2 6 2 6-6-3-5 2-5-2z"/></svg>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Q2 — opened, references slide 11 -->
+              <div class="qrow is-opened" role="listitem">
+                <div class="qrow-head">
+                  <span class="anon-chip"><span class="glyph" data-hue="220"></span>anon-2c91</span>
+                  <span class="slide-tag">↳ slide 11</span>
+                  <span class="qrow-meta" style="margin-left:auto">1m 14s ago</span>
+                </div>
+                <p class="qrow-text">Why does the partition step in randomized quickselect not need a separate base case for duplicate keys?</p>
+                <div class="qrow-actions">
+                  <span class="nx-badge nx-role-admin"><span class="nx-badge-dot"></span>Opened · visible to you</span>
+                  <span style="flex:1"></span>
+                  <button class="nx-btn nx-btn-primary">Mark resolved</button>
+                  <button class="nx-btn">Skip</button>
+                </div>
+              </div>
+
+              <!-- Q3 — cluster head of 4 -->
+              <div class="qrow" role="listitem">
+                <div class="qrow-head">
+                  <span class="anon-chip"><span class="glyph" data-hue="280"></span>anon-b033</span>
+                  <span class="cluster-pill"><span class="count">4</span> similar</span>
+                  <span class="slide-tag">↳ slide 9</span>
+                  <span class="qrow-meta" style="margin-left:auto">2m 47s ago</span>
+                </div>
+                <p class="qrow-text">I lost the connection between expected vs. amortized analysis — could you reframe that with a different example than the dynamic array?</p>
+                <div class="qrow-actions">
+                  <span class="nx-badge nx-role-student"><span class="nx-badge-dot"></span>New</span>
+                  <span style="flex:1"></span>
+                  <button class="nx-btn nx-btn-primary">Open</button>
+                  <button class="nx-btn">Ungroup</button>
+                </div>
+              </div>
+
+              <!-- Q4 — resolved -->
+              <div class="qrow" role="listitem">
+                <div class="qrow-head">
+                  <span class="anon-chip"><span class="glyph" data-hue="160"></span>anon-d8e2</span>
+                  <span class="slide-tag">↳ slide 7</span>
+                  <span class="qrow-meta" style="margin-left:auto">4m 02s ago</span>
+                </div>
+                <p class="qrow-text" style="color:var(--nx-fg-muted)">Is the proof sketch for the median-of-medians selection going to be on the midterm?</p>
+                <div class="qrow-actions">
+                  <span class="nx-badge nx-role-instructor"><span class="nx-badge-dot"></span>Resolved by author</span>
+                  <span style="flex:1"></span>
+                  <button class="nx-btn">Reopen</button>
+                </div>
+              </div>
+
+              <!-- Q5 -->
+              <div class="qrow" role="listitem">
+                <div class="qrow-head">
+                  <span class="anon-chip"><span class="glyph" data-hue="320"></span>anon-9a1f</span>
+                  <span class="slide-tag">↳ slide 10</span>
+                  <span class="qrow-meta" style="margin-left:auto">6m 12s ago</span>
+                </div>
+                <p class="qrow-text">What happens when k &gt; n/2 in the deterministic selection algorithm — does the T(n) ≤ T(n/5) + T(7n/10) recurrence still hold?</p>
+                <div class="qrow-actions">
+                  <span class="nx-badge nx-role-student"><span class="nx-badge-dot"></span>New</span>
+                  <span style="flex:1"></span>
+                  <button class="nx-btn nx-btn-primary">Open</button>
+                  <button class="nx-btn" title="Mute"><svg class="ic-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="m22 9-6 6M16 9l6 6"/></svg></button>
+                </div>
+              </div>
+
+              <!-- Q6 — opened -->
+              <div class="qrow is-opened" role="listitem">
+                <div class="qrow-head">
+                  <span class="anon-chip"><span class="glyph" data-hue="0"></span>anon-4e07</span>
+                  <span class="slide-tag">↳ slide 8</span>
+                  <span class="qrow-meta" style="margin-left:auto">8m 38s ago</span>
+                </div>
+                <p class="qrow-text">Could you write the recurrence on the board again? I missed the constant in front of the n term.</p>
+                <div class="qrow-actions">
+                  <span class="nx-badge nx-role-admin"><span class="nx-badge-dot"></span>Opened 5m ago</span>
+                  <span style="flex:1"></span>
+                  <button class="nx-btn">Mark resolved</button>
+                </div>
+              </div>
+
+              <!-- Q7 — resolved -->
+              <div class="qrow" role="listitem">
+                <div class="qrow-head">
+                  <span class="anon-chip"><span class="glyph" data-hue="120"></span>anon-5b71</span>
+                  <span class="slide-tag">↳ slide 5</span>
+                  <span class="qrow-meta" style="margin-left:auto">11m 02s ago</span>
+                </div>
+                <p class="qrow-text" style="color:var(--nx-fg-muted)">Sorry — is this the same algorithm as the one in §9.3 of the textbook?</p>
+                <div class="qrow-actions">
+                  <span class="nx-badge nx-role-instructor"><span class="nx-badge-dot"></span>Resolved by author</span>
+                  <span style="flex:1"></span>
+                  <button class="nx-btn">Reopen</button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Moderation card (tabs: muted + controls) -->
+          <div class="nx-card" aria-label="Moderation">
+            <div class="mod-tabs" role="tablist">
+              <button class="mod-tab" data-active="true">Muted <span class="count">2</span></button>
+              <button class="mod-tab">Controls</button>
+            </div>
+            <div>
+              <div class="muted-row">
+                <span class="anon-chip"><span class="glyph" data-hue="280"></span>sess-x4f2</span>
+                <div class="meta">
+                  <b>spamming reactions</b>
+                  <span>muted 3m ago</span>
+                </div>
+                <button class="nx-btn">Unmute</button>
+              </div>
+              <div class="muted-row">
+                <span class="anon-chip"><span class="glyph" data-hue="0"></span>sess-k8a9</span>
+                <div class="meta">
+                  <b>duplicate questions</b>
+                  <span>muted 8m ago</span>
+                </div>
+                <button class="nx-btn">Unmute</button>
+              </div>
+              <div class="qc-row">
+                <div class="label"><b>Pause new questions</b><span>Students see "catching up"</span></div>
+                <div class="nx-toggle" data-on="false" onclick="this.dataset.on = this.dataset.on==='true' ? 'false' : 'true'"></div>
+              </div>
+              <div class="qc-row">
+                <div class="label"><b>Profanity filter</b><span>EN + AR · server-side</span></div>
+                <div class="nx-segmented-inline">
+                  <button data-active="false">Off</button>
+                  <button data-active="true">Std</button>
+                  <button data-active="false">Strict</button>
+                </div>
+              </div>
+              <div class="qc-row">
+                <div class="label"><b>Lock session</b><span>No late joins</span></div>
+                <div class="nx-toggle" data-on="false" onclick="this.dataset.on = this.dataset.on==='true' ? 'false' : 'true'"></div>
+              </div>
+            </div>
+          </div>
+
+        </aside>
+      </section>
+
+      <!-- ─── End-session modal preview (report appears only here) ─── -->
+      <div class="preview-divider">End-session confirmation · modal preview · this is where the chart + report appear</div>
+
+      <div class="modal-stage" id="end-modal-stage">
+        <div class="nx-modal">
+          <div class="nx-modal-head">
+            <div class="nx-modal-eyebrow">CS-401 · Section 02 · 42 min elapsed</div>
+            <h3 class="nx-modal-title">End live session and generate report?</h3>
+            <p class="nx-modal-sub">Students will lose the feedback channel immediately. The post-session summary will be archived and available to you and the Department Chairman.</p>
+          </div>
+
+          <div class="nx-modal-body">
+            <div class="report-stats">
+              <div class="report-stat">
+                <div class="lbl">Questions</div>
+                <div class="val">19</div>
+                <div class="delta">7 open · 12 resolved</div>
+              </div>
+              <div class="report-stat">
+                <div class="lbl">Reactions</div>
+                <div class="val">259</div>
+                <div class="delta">6.2 / min avg</div>
+              </div>
+              <div class="report-stat">
+                <div class="lbl">Slides viewed</div>
+                <div class="val">12 / 47</div>
+                <div class="delta">avg 3.5m / slide</div>
+              </div>
+              <div class="report-stat">
+                <div class="lbl">Attendance</div>
+                <div class="val">38 / 41</div>
+                <div class="delta" style="color:var(--nx-success)">92.7%</div>
+              </div>
+            </div>
+
+            <!-- Engagement timeline (generated only at end of session) -->
+            <h4 class="report-section-title">Engagement timeline · session-long</h4>
+            <svg class="report-chart" viewBox="0 0 600 140" preserveAspectRatio="none" aria-hidden="true">
+              <line class="grid" x1="30" y1="100" x2="590" y2="100"/>
+              <line class="grid" x1="30" y1="60"  x2="590" y2="60"/>
+              <line class="grid" x1="30" y1="20"  x2="590" y2="20"/>
+              <line class="axis" x1="30" y1="120" x2="590" y2="120"/>
+              <line class="axis" x1="30" y1="10"  x2="30"  y2="120"/>
+
+              <text x="25" y="123" text-anchor="end">0</text>
+              <text x="25" y="103" text-anchor="end">10</text>
+              <text x="25" y="63"  text-anchor="end">20</text>
+              <text x="25" y="23"  text-anchor="end">30</text>
+              <text x="30"  y="135">0m</text>
+              <text x="170" y="135">10m</text>
+              <text x="310" y="135">20m</text>
+              <text x="450" y="135">30m</text>
+              <text x="585" y="135" text-anchor="end">42m</text>
+
+              <!-- stacked layers (top-down so lower paints over higher in overlap region) -->
+              <!-- Not clear (top cum) -->
+              <path d="M 30 120 L 56 99 L 84 89 L 110 83 L 136 76 L 162 70 L 190 60 L 216 47 L 244 47 L 270 47 L 296 44 L 322 37 L 350 41 L 376 34 L 402 37 L 428 34 L 456 34 L 482 31 L 508 28 L 536 37 L 562 24 L 590 21 L 590 120 L 30 120 Z" fill="var(--nx-danger-soft)"/>
+              <!-- Too fast (cum) -->
+              <path d="M 30 120 L 56 99 L 84 93 L 110 87 L 136 84 L 162 76 L 190 70 L 216 60 L 244 63 L 270 66 L 296 70 L 322 73 L 350 84 L 376 80 L 402 87 L 428 90 L 456 93 L 482 96 L 508 96 L 536 99 L 562 96 L 590 99 L 590 120 L 30 120 Z" fill="var(--nx-warning-soft)" opacity="0.85"/>
+              <!-- Too slow (cum) -->
+              <path d="M 30 120 L 56 102 L 84 96 L 110 93 L 136 87 L 162 76 L 190 70 L 216 63 L 244 66 L 270 70 L 296 73 L 322 80 L 350 87 L 376 84 L 402 87 L 428 90 L 456 96 L 482 99 L 508 99 L 536 102 L 562 96 L 590 102 L 590 120 L 30 120 Z" fill="var(--nx-warning-soft)"/>
+              <!-- Understood -->
+              <path d="M 30 120 L 56 108 L 84 102 L 110 96 L 136 90 L 162 84 L 190 80 L 216 76 L 244 84 L 270 90 L 296 90 L 322 93 L 350 96 L 376 93 L 402 93 L 428 96 L 456 99 L 482 102 L 508 105 L 536 105 L 562 102 L 590 105 L 590 120 L 30 120 Z" fill="var(--nx-success-soft)"/>
+
+              <polyline points="30,120 56,99 84,89 110,83 136,76 162,70 190,60 216,47 244,47 270,47 296,44 322,37 350,41 376,34 402,37 428,34 456,34 482,31 508,28 536,37 562,24 590,21" fill="none" stroke="var(--nx-danger)" stroke-width="1.4"/>
+              <polyline points="30,120 56,108 84,102 110,96 136,90 162,84 190,80 216,76 244,84 270,90 296,90 322,93 350,96 376,93 402,93 428,96 456,99 482,102 508,105 536,105 562,102 590,105" fill="none" stroke="var(--nx-success)" stroke-width="1.2"/>
+            </svg>
+
+            <h4 class="report-section-title" style="margin-top:14px">Top 3 confusion peaks</h4>
+
+            <div class="peak">
+              <span class="ts mono">34:00</span>
+              <div class="text">Spike in "Not clear" · slide 11
+                <small>20 students, ~110s — clustered with 12 questions on master theorem boundary cases</small>
+              </div>
+              <svg class="peak-spark" viewBox="0 0 64 22" preserveAspectRatio="none" aria-hidden="true"><polyline points="2,18 10,17 18,15 26,12 34,6 42,4 50,8 58,12" fill="none" stroke="var(--nx-danger)" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/></svg>
+            </div>
+            <div class="peak">
+              <span class="ts mono">22:30</span>
+              <div class="text">Spike in "Too slow" · slide 7
+                <small>11 students, ~90s — corresponded to amortized analysis worked example</small>
+              </div>
+              <svg class="peak-spark" viewBox="0 0 64 22" preserveAspectRatio="none" aria-hidden="true"><polyline points="2,18 10,14 18,8 26,4 34,8 42,12 50,15 58,18" fill="none" stroke="#C77B0F" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/></svg>
+            </div>
+            <div class="peak">
+              <span class="ts mono">40:30</span>
+              <div class="text">Spike in "Not clear" · slide 12
+                <small>14 students, ~80s — second wave of master theorem confusion</small>
+              </div>
+              <svg class="peak-spark" viewBox="0 0 64 22" preserveAspectRatio="none" aria-hidden="true"><polyline points="2,18 10,17 18,14 26,10 34,6 42,4 50,3 58,4" fill="none" stroke="var(--nx-danger)" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/></svg>
+            </div>
+          </div>
+
+          <div class="nx-modal-foot">
+            <span class="hint">
+              <svg class="ic-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
+              This action cannot be undone.
+            </span>
+            <div style="display:flex; gap:8px;">
+              <button class="nx-btn">Cancel</button>
+              <button class="nx-btn nx-btn-primary nx-btn-lg">End &amp; generate report</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<!-- toast -->
+<div class="nx-toast-region">
+  <div class="nx-toast">
+    <svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="var(--accent-ink)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+    <span><b>Slide 12 broadcast</b> · 34 students followed instantly</span>
+  </div>
+</div>
+
+<script>
+  function setTheme(t){
+    document.body.dataset.nxTheme = t;
+    document.querySelectorAll('[data-theme]').forEach(b => b.dataset.active = String(b.dataset.theme === t));
+  }
+  function setDensity(d){
+    document.body.dataset.nxDensity = d;
+    document.querySelectorAll('[data-density]').forEach(b => b.dataset.active = String(b.dataset.density === d));
+  }
+
+  /* Mock realtime: tick elapsed timer + occasionally bump a reaction counter
+     to demonstrate the count-pop animation. */
+  (function(){
+    const el = document.getElementById('elapsed');
+    let t = 42*60 + 18;
+    setInterval(() => {
+      t += 1;
+      const h = String(Math.floor(t/3600)).padStart(2,'0');
+      const m = String(Math.floor((t%3600)/60)).padStart(2,'0');
+      const s = String(t%60).padStart(2,'0');
+      el.textContent = `${h}:${m}:${s}`;
+    }, 1000);
+
+    const ids = ['r-fast','r-slow','r-und','r-nc'];
+    const weights = [1, 3, 5, 12]; // not-clear is climbing hardest
+    function bumpRandom(){
+      const total = weights.reduce((a,b)=>a+b,0);
+      let r = Math.random() * total, pick = 0;
+      for (let i=0;i<weights.length;i++){ r -= weights[i]; if (r <= 0) { pick = i; break; } }
+      const cell = document.getElementById(ids[pick]);
+      if (!cell) return;
+      cell.textContent = String(parseInt(cell.textContent, 10) + 1);
+      const tile = cell.closest('.react-tile');
+      tile.classList.remove('is-incr'); void tile.offsetWidth; tile.classList.add('is-incr');
+    }
+    setInterval(bumpRandom, 2400);
+  })();
+</script>
+
+</body>
+</html>
