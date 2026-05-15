@@ -35,7 +35,7 @@ export interface Section {
   sectionId: number;
   courseId: string;
   instructorId?: string | SectionInstructor; // populated by backend
-  capacity: number;
+  capacity?: number;
   enrolledCount: number;
   createdAt: string;
   updatedAt: string;
@@ -43,7 +43,7 @@ export interface Section {
 
 export interface CreateSectionRequest {
   sectionId?: number;
-  capacity: number;
+  capacity?: number;
   instructorId?: string;
 }
 

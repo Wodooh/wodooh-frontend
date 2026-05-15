@@ -12,15 +12,16 @@ import type { Course, CreateCourseRequest, Section } from "@/lib/types/course.ty
 const EMPTY_COURSE: CreateCourseRequest = { name: "", code: "", description: "", departmentId: "", credits: undefined };
 
 // ─── Capacity bar ─────────────────────────────────────────────────────────
-function CapBar({ enrolled, capacity }: { enrolled: number; capacity: number }) {
-  const pct = capacity > 0 ? Math.min(100, (enrolled / capacity) * 100) : 0;
+function CapBar({ enrolled, capacity }: { enrolled: number; capacity?: number }) {
+  const hasCap = typeof capacity === "number" && capacity > 0;
+  const pct = hasCap ? Math.min(100, (enrolled / capacity!) * 100) : 0;
   const fill = pct >= 100 ? "var(--nx-danger)" : pct >= 75 ? "var(--nx-warning)" : "var(--nx-success)";
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--nx-fg-muted)", fontVariantNumeric: "tabular-nums" }}>
       <div style={{ width: 60, height: 4, background: "var(--nx-bg-active)", borderRadius: 999, overflow: "hidden", flexShrink: 0 }}>
         <div style={{ height: "100%", width: `${pct}%`, background: fill }} />
       </div>
-      <span>{enrolled}/{capacity}</span>
+      <span>{enrolled}/{hasCap ? capacity : "∞"}</span>
     </div>
   );
 }
@@ -40,7 +41,7 @@ function SectionsPanel({
   const { sections, loading, error, createSection, updateSection, deleteSection } = useSections(course._id);
   const { users: instructors } = useUsers({ role: "instructor", limit: 200 });
   const [addOpen, setAddOpen] = useState(false);
-  const [previewId, setPreviewId] = useState<number | null>(null);
+  const [sectionIdInput, setSectionIdInput] = useState("");
   const [previewLoading, setPreviewLoading] = useState(false);
   const [capacity, setCapacity] = useState("");
   const [instructorId, setInstructorId] = useState("");
@@ -58,15 +59,15 @@ function SectionsPanel({
   }, [sections.length, loading]);  // eslint-disable-line react-hooks/exhaustive-deps
 
   const openAdd = async () => {
+    setSectionIdInput("");
     setCapacity("");
     setInstructorId("");
     setFormError(null);
-    setPreviewId(null);
     setAddOpen(true);
     setPreviewLoading(true);
     try {
       const res = await apiClient.get<{ nextId: number }>(API_ENDPOINTS.ADMIN_COURSE_SECTION_NEXT_ID(course._id));
-      if (res.status === "success" && res.data) setPreviewId(res.data.nextId);
+      if (res.status === "success" && res.data) setSectionIdInput(String(res.data.nextId));
     } catch {
       // preview unavailable — still let user submit, backend will assign
     } finally {
@@ -77,12 +78,25 @@ function SectionsPanel({
 
   const submitAdd = async (e: React.FormEvent) => {
     e.preventDefault();
-    const cap = Number(capacity);
-    if (!capacity || cap < 1) { setFormError("Capacity must be at least 1."); return; }
+    const trimmedId = sectionIdInput.trim();
+    const parsedId = trimmedId ? Number(trimmedId) : NaN;
+    if (trimmedId && (!Number.isInteger(parsedId) || parsedId < 10001 || parsedId > 99999)) {
+      setFormError("Section ID must be a number between 10001 and 99999.");
+      return;
+    }
+    const cap = capacity ? Number(capacity) : NaN;
+    if (capacity && (isNaN(cap) || cap < 1)) {
+      setFormError("Capacity must be at least 1.");
+      return;
+    }
     setSaving(true);
     setFormError(null);
     try {
-      const sec = await createSection({ sectionId: previewId ?? undefined, capacity: cap, instructorId: instructorId || undefined });
+      const sec = await createSection({
+        sectionId: trimmedId ? parsedId : undefined,
+        capacity: capacity ? cap : undefined,
+        instructorId: instructorId || undefined,
+      });
       setAddOpen(false);
       onToast({ kind: "success", msg: `Section ${sec.sectionId} added.` });
     } catch (err: unknown) {
@@ -108,7 +122,7 @@ function SectionsPanel({
 
   const openEdit = (sec: Section) => {
     setEditTarget(sec);
-    setEditCapacity(String(sec.capacity));
+    setEditCapacity(sec.capacity != null ? String(sec.capacity) : "");
     setEditInstructorId(
       sec.instructorId
         ? typeof sec.instructorId === "object"
@@ -122,12 +136,18 @@ function SectionsPanel({
   const submitEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editTarget) return;
-    const cap = Number(editCapacity);
-    if (!editCapacity || cap < 1) { setEditError("Capacity must be at least 1."); return; }
+    const cap = editCapacity ? Number(editCapacity) : NaN;
+    if (editCapacity && (isNaN(cap) || cap < 1)) {
+      setEditError("Capacity must be at least 1.");
+      return;
+    }
     setEditSaving(true);
     setEditError(null);
     try {
-      await updateSection(editTarget._id, { capacity: cap, instructorId: editInstructorId || undefined });
+      await updateSection(editTarget._id, {
+        capacity: editCapacity ? cap : undefined,
+        instructorId: editInstructorId || undefined,
+      });
       onToast({ kind: "success", msg: `Section ${editTarget.sectionId} updated.` });
       setEditTarget(null);
     } catch (err: unknown) {
@@ -246,26 +266,31 @@ function SectionsPanel({
                 {formError && <div className="nx-login-error" role="alert"><span>{formError}</span></div>}
                 <div>
                   <span className="nx-field-label">Section ID</span>
-                  <div style={{
-                    fontFamily: "'JetBrains Mono', monospace",
-                    fontSize: 18,
-                    fontWeight: 600,
-                    color: previewId ? "var(--nx-fg)" : "var(--nx-fg-subtle)",
-                    padding: "8px 12px",
-                    background: "var(--nx-bg-sub)",
-                    border: "1px solid var(--nx-border)",
-                    borderRadius: 6,
-                    letterSpacing: "0.08em",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                  }}>
-                    {previewLoading
-                      ? <><span className="nx-spin" style={{ fontSize: 13 }} /> calculating…</>
-                      : previewId ?? "—"}
-                  </div>
+                  <input
+                    type="number"
+                    min={10001}
+                    max={99999}
+                    value={sectionIdInput}
+                    onChange={e => setSectionIdInput(e.target.value)}
+                    placeholder={previewLoading ? "calculating…" : "auto"}
+                    disabled={previewLoading}
+                    style={{
+                      width: "100%",
+                      boxSizing: "border-box",
+                      fontFamily: "'JetBrains Mono', monospace",
+                      fontSize: 18,
+                      fontWeight: 600,
+                      color: sectionIdInput ? "var(--nx-fg)" : "var(--nx-fg-subtle)",
+                      padding: "8px 12px",
+                      background: "var(--nx-bg-sub)",
+                      border: "1px solid var(--nx-border)",
+                      borderRadius: 6,
+                      letterSpacing: "0.08em",
+                      outline: "none",
+                    }}
+                  />
                   <p style={{ fontSize: 11.5, color: "var(--nx-fg-subtle)", margin: "4px 0 0" }}>
-                    Sequential · guaranteed unique · dept slot {deptIndex + 1}
+                    Leave blank to auto-generate · dept slot {deptIndex + 1}
                   </p>
                 </div>
                 <div>
@@ -285,7 +310,7 @@ function SectionsPanel({
                   </select>
                 </div>
                 <div>
-                  <span className="nx-field-label">Capacity *</span>
+                  <span className="nx-field-label">Capacity</span>
                   <input
                     className="nx-input"
                     style={{ width: "100%", boxSizing: "border-box" }}
@@ -293,8 +318,7 @@ function SectionsPanel({
                     min={1}
                     value={capacity}
                     onChange={e => setCapacity(e.target.value)}
-                    placeholder="e.g. 40"
-                    autoFocus
+                    placeholder="optional · e.g. 40"
                   />
                 </div>
               </div>
@@ -366,7 +390,7 @@ function SectionsPanel({
                   </select>
                 </div>
                 <div>
-                  <span className="nx-field-label">Capacity *</span>
+                  <span className="nx-field-label">Capacity</span>
                   <input
                     className="nx-input"
                     style={{ width: "100%", boxSizing: "border-box" }}
@@ -374,7 +398,7 @@ function SectionsPanel({
                     min={1}
                     value={editCapacity}
                     onChange={e => setEditCapacity(e.target.value)}
-                    placeholder="e.g. 40"
+                    placeholder="optional · e.g. 40"
                     autoFocus
                   />
                 </div>
