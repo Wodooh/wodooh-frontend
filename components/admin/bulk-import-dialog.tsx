@@ -97,11 +97,12 @@ const GUIDE: Record<
       { name: "credits",              type: "number", required: false, note: "Credit hours (integer)" },
       { name: "departmentId",         type: "string", required: false, note: "Department _id from the system" },
       { name: "description",          type: "string", required: false, note: "Optional description" },
-      { name: "section_capacity",     type: "number", required: false, note: "Seats in this section — repeat the row to add more sections" },
-      { name: "section_instructorId", type: "string", required: false, note: "Instructor _id assigned to this section" },
+      { name: "section_id",           type: "number", required: false, note: "Optional · 5-digit section ID (10001–99999) · leave blank to auto-generate" },
+      { name: "section_capacity",     type: "number", required: false, note: "Optional · seats in this section — repeat the row to add more sections" },
+      { name: "section_instructorId", type: "string", required: false, note: "Optional · instructor _id · leave blank for unassigned" },
     ],
-    csvExample:  `name,code,credits,section_capacity,section_instructorId\nData Structures,CS201,3,30,\nData Structures,CS201,3,25,<inst-id>\nCalculus I,MATH101,4,40,`,
-    jsonExample: `[\n  {\n    "name": "Data Structures",\n    "code": "CS201", "credits": 3,\n    "sections": [\n      { "capacity": 30 },\n      { "capacity": 25, "instructorId": "<inst-id>" }\n    ]\n  },\n  { "name": "Calculus I", "code": "MATH101", "credits": 4 }\n]`,
+    csvExample:  `name,code,credits,section_id,section_capacity,section_instructorId\nData Structures,CS201,3,,30,\nData Structures,CS201,3,12345,,<inst-id>\nData Structures,CS201,3,,,\nCalculus I,MATH101,4,,,`,
+    jsonExample: `[\n  {\n    "name": "Data Structures",\n    "code": "CS201", "credits": 3,\n    "sections": [\n      { "capacity": 30 },\n      { "sectionId": 12345, "instructorId": "<inst-id>" },\n      {}\n    ]\n  },\n  { "name": "Calculus I", "code": "MATH101", "credits": 4 }\n]`,
   },
 };
 
@@ -172,6 +173,12 @@ function validateRows(rows: ParsedRow[], entity: EntityType): ValidatedRow[] {
       const cap = data.section_capacity;
       if (cap !== undefined && cap !== "" && (isNaN(Number(cap)) || Number(cap) <= 0))
         errors.push("section_capacity must be a positive number");
+      const sid = data.section_id;
+      if (sid !== undefined && sid !== "") {
+        const n = Number(sid);
+        if (!Number.isInteger(n) || n < 10001 || n > 99999)
+          errors.push("section_id must be an integer between 10001 and 99999");
+      }
     }
     return { data, _valid: errors.length === 0, _errors: errors, _index: i };
   });
@@ -308,7 +315,7 @@ const COMBINED_JSON_EXAMPLE = `{
   "courses": [
     {
       "name": "Data Structures", "code": "CS201", "credits": 3,
-      "sections": [{ "capacity": 30 }, { "capacity": 25 }]
+      "sections": [{ "capacity": 30 }, { "sectionId": 12345 }, {}]
     }
   ]
 }`;
@@ -370,6 +377,17 @@ function FormatGuide() {
         const g = GUIDE[tab];
         return (
           <div className="flex flex-col gap-4">
+            {tab === "courses" && (
+              <div className="rounded-lg border bg-muted/40 px-4 py-3 text-xs text-muted-foreground leading-relaxed">
+                <p className="font-semibold text-foreground mb-1">Sections — every field is optional</p>
+                <ul className="list-disc pl-4 space-y-0.5">
+                  <li><code className="rounded bg-muted px-1">sectionId</code> — leave blank and the server auto-generates a 5-digit ID in the course's dept slot.</li>
+                  <li><code className="rounded bg-muted px-1">capacity</code> — omit for unlimited seats.</li>
+                  <li><code className="rounded bg-muted px-1">instructorId</code> — omit to leave the section unassigned.</li>
+                  <li>An empty <code className="rounded bg-muted px-1">{"{}"}</code> creates a section with everything auto-defaulted.</li>
+                </ul>
+              </div>
+            )}
             <div className="rounded-lg border overflow-hidden">
               <Table>
                 <TableHeader>
@@ -689,25 +707,36 @@ async function importRows(
           if (Array.isArray(d.sections)) {
             for (const sec of d.sections as Record<string, unknown>[]) {
               const cap = Number(sec.capacity);
-              if (!isNaN(cap) && cap > 0) {
-                try {
-                  await apiClient.post(API_ENDPOINTS.ADMIN_COURSE_SECTIONS(courseId), { capacity: cap, ...(sec.instructorId ? { instructorId: str(sec.instructorId) } : {}) } as CreateSectionRequest);
-                  sectionsCreated++;
-                } catch (e) {
-                  errors.push(`${str(d.code)} section: ${e instanceof Error ? e.message : "Unknown error"}`);
-                }
+              const sid = Number(sec.sectionId);
+              const body: CreateSectionRequest = {
+                ...(Number.isFinite(cap) && cap > 0 ? { capacity: cap } : {}),
+                ...(Number.isInteger(sid) && sid >= 10001 && sid <= 99999 ? { sectionId: sid } : {}),
+                ...(sec.instructorId ? { instructorId: str(sec.instructorId) } : {}),
+              };
+              try {
+                await apiClient.post(API_ENDPOINTS.ADMIN_COURSE_SECTIONS(courseId), body);
+                sectionsCreated++;
+              } catch (e) {
+                errors.push(`${str(d.code)} section: ${e instanceof Error ? e.message : "Unknown error"}`);
               }
             }
           } else {
             for (const row of group) {
               const cap = Number(row.data.section_capacity);
-              if (!isNaN(cap) && cap > 0) {
-                try {
-                  await apiClient.post(API_ENDPOINTS.ADMIN_COURSE_SECTIONS(courseId), { capacity: cap, ...(row.data.section_instructorId ? { instructorId: str(row.data.section_instructorId) } : {}) } as CreateSectionRequest);
-                  sectionsCreated++;
-                } catch (e) {
-                  errors.push(`${str(d.code)} row ${row._index + 1}: ${e instanceof Error ? e.message : "Unknown error"}`);
-                }
+              const sid = Number(row.data.section_id);
+              const hasCap = Number.isFinite(cap) && cap > 0;
+              const hasSid = Number.isInteger(sid) && sid >= 10001 && sid <= 99999;
+              if (!hasCap && !hasSid && !row.data.section_instructorId) continue;
+              const body: CreateSectionRequest = {
+                ...(hasCap ? { capacity: cap } : {}),
+                ...(hasSid ? { sectionId: sid } : {}),
+                ...(row.data.section_instructorId ? { instructorId: str(row.data.section_instructorId) } : {}),
+              };
+              try {
+                await apiClient.post(API_ENDPOINTS.ADMIN_COURSE_SECTIONS(courseId), body);
+                sectionsCreated++;
+              } catch (e) {
+                errors.push(`${str(d.code)} row ${row._index + 1}: ${e instanceof Error ? e.message : "Unknown error"}`);
               }
             }
           }
@@ -839,7 +868,7 @@ export function BulkImportDialog({ open, onOpenChange, onToast }: BulkImportDial
         courses += codes.size;
         for (const r of valid) {
           if (Array.isArray(r.data.sections)) sections += (r.data.sections as unknown[]).length;
-          else if (Number(r.data.section_capacity) > 0) sections++;
+          else if (Number(r.data.section_capacity) > 0 || Number(r.data.section_id) > 0 || r.data.section_instructorId) sections++;
         }
       } else { others += valid.length; }
     }
