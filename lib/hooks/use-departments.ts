@@ -5,7 +5,13 @@ import apiClient from '../api/client';
 import API_ENDPOINTS from '../api/endpoints';
 import type { Department, CreateDepartmentRequest, UpdateDepartmentRequest } from '../types/department.types';
 
-export function useDepartments() {
+interface DepartmentsParams {
+  collegeId?: string;
+}
+
+export function useDepartments(params: DepartmentsParams = {}) {
+  const { collegeId } = params;
+
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -16,7 +22,11 @@ export function useDepartments() {
     setLoading(true);
     setError(null);
 
-    apiClient.get<Department[]>(API_ENDPOINTS.DEPARTMENTS)
+    const qs = new URLSearchParams();
+    if (collegeId) qs.set('collegeId', collegeId);
+    const url = `${API_ENDPOINTS.DEPARTMENTS}${qs.toString() ? `?${qs}` : ''}`;
+
+    apiClient.get<Department[]>(url)
       .then(res => {
         if (cancelled) return;
         if (res.status === 'success' && Array.isArray(res.data)) {
@@ -35,7 +45,7 @@ export function useDepartments() {
       });
 
     return () => { cancelled = true; };
-  }, [tick]);
+  }, [collegeId, tick]);
 
   const refetch = useCallback(() => setTick(t => t + 1), []);
 

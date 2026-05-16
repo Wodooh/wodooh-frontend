@@ -268,7 +268,8 @@ export default function AdminDepartmentsPage() {
                 </p>
                 <ul style={{ margin: 0, paddingLeft: 18, color: "var(--nx-fg-muted)", fontSize: 13 }}>
                   <li>All courses belonging to this department</li>
-                  <li>All instructor assignments for those courses</li>
+                  <li>All sections within those courses</li>
+                  <li>All instructor assignments for those sections</li>
                 </ul>
                 <p style={{ margin: 0, fontSize: 12, color: "var(--nx-fg-muted)", marginTop: 2 }}>
                   This action cannot be undone.
