@@ -30,7 +30,6 @@ export interface LiveSessionMeta {
   joinCode: string;              // e.g. "K3-7F2A"
   startedAt: string;             // ISO
   status: SessionStatus;
-  enrolledCount: number;
   joinedCount: number;
 }
 

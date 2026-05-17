@@ -81,7 +81,6 @@ function buildSnapshot(session: ApiSession, questions: ApiQuestion[]): LiveSessi
       joinCode: '',
       startedAt: session.startedAt,
       status: session.status === 'live' ? 'active' : session.status,
-      enrolledCount: 0,
       joinedCount: 0,
     },
     material: {

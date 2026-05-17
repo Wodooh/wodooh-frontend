@@ -11,21 +11,6 @@ import type { Course, CreateCourseRequest, Section } from "@/lib/types/course.ty
 
 const EMPTY_COURSE: CreateCourseRequest = { name: "", code: "", description: "", departmentId: "", credits: undefined };
 
-// ─── Capacity bar ─────────────────────────────────────────────────────────
-function CapBar({ enrolled, capacity }: { enrolled: number; capacity?: number }) {
-  const hasCap = typeof capacity === "number" && capacity > 0;
-  const pct = hasCap ? Math.min(100, (enrolled / capacity!) * 100) : 0;
-  const fill = pct >= 100 ? "var(--nx-danger)" : pct >= 75 ? "var(--nx-warning)" : "var(--nx-success)";
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--nx-fg-muted)", fontVariantNumeric: "tabular-nums" }}>
-      <div style={{ width: 60, height: 4, background: "var(--nx-bg-active)", borderRadius: 999, overflow: "hidden", flexShrink: 0 }}>
-        <div style={{ height: "100%", width: `${pct}%`, background: fill }} />
-      </div>
-      <span>{enrolled}/{hasCap ? capacity : "∞"}</span>
-    </div>
-  );
-}
-
 // ─── Sections panel (rendered when course row is expanded) ─────────────────
 function SectionsPanel({
   course,
@@ -43,13 +28,11 @@ function SectionsPanel({
   const [addOpen, setAddOpen] = useState(false);
   const [sectionIdInput, setSectionIdInput] = useState("");
   const [previewLoading, setPreviewLoading] = useState(false);
-  const [capacity, setCapacity] = useState("");
   const [instructorId, setInstructorId] = useState("");
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Section | null>(null);
   const [editTarget, setEditTarget] = useState<Section | null>(null);
-  const [editCapacity, setEditCapacity] = useState("");
   const [editInstructorId, setEditInstructorId] = useState("");
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
@@ -60,7 +43,6 @@ function SectionsPanel({
 
   const openAdd = async () => {
     setSectionIdInput("");
-    setCapacity("");
     setInstructorId("");
     setFormError(null);
     setAddOpen(true);
@@ -84,17 +66,11 @@ function SectionsPanel({
       setFormError("Section ID must be a number between 10001 and 99999.");
       return;
     }
-    const cap = capacity ? Number(capacity) : NaN;
-    if (capacity && (isNaN(cap) || cap < 1)) {
-      setFormError("Capacity must be at least 1.");
-      return;
-    }
     setSaving(true);
     setFormError(null);
     try {
       const sec = await createSection({
         sectionId: trimmedId ? parsedId : undefined,
-        capacity: capacity ? cap : undefined,
         instructorId: instructorId || undefined,
       });
       setAddOpen(false);
@@ -122,7 +98,6 @@ function SectionsPanel({
 
   const openEdit = (sec: Section) => {
     setEditTarget(sec);
-    setEditCapacity(sec.capacity != null ? String(sec.capacity) : "");
     setEditInstructorId(
       sec.instructorId
         ? typeof sec.instructorId === "object"
@@ -136,16 +111,10 @@ function SectionsPanel({
   const submitEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editTarget) return;
-    const cap = editCapacity ? Number(editCapacity) : NaN;
-    if (editCapacity && (isNaN(cap) || cap < 1)) {
-      setEditError("Capacity must be at least 1.");
-      return;
-    }
     setEditSaving(true);
     setEditError(null);
     try {
       await updateSection(editTarget._id, {
-        capacity: editCapacity ? cap : undefined,
         instructorId: editInstructorId || undefined,
       });
       onToast({ kind: "success", msg: `Section ${editTarget.sectionId} updated.` });
@@ -180,7 +149,7 @@ function SectionsPanel({
             {sections.map(sec => (
               <div key={sec._id} style={{
                 display: "grid",
-                gridTemplateColumns: "100px 1fr 180px auto",
+                gridTemplateColumns: "100px 1fr auto",
                 gap: 14,
                 alignItems: "center",
                 padding: "9px 12px",
@@ -203,7 +172,6 @@ function SectionsPanel({
                       : "Assigned"
                     : "No instructor assigned"}
                 </span>
-                <CapBar enrolled={sec.enrolledCount ?? 0} capacity={sec.capacity} />
                 <div style={{ display: "flex", gap: 4 }}>
                   <button
                     className="nx-btn nx-btn-ghost"
@@ -309,18 +277,6 @@ function SectionsPanel({
                     ))}
                   </select>
                 </div>
-                <div>
-                  <span className="nx-field-label">Capacity</span>
-                  <input
-                    className="nx-input"
-                    style={{ width: "100%", boxSizing: "border-box" }}
-                    type="number"
-                    min={1}
-                    value={capacity}
-                    onChange={e => setCapacity(e.target.value)}
-                    placeholder="optional · e.g. 40"
-                  />
-                </div>
               </div>
               <div className="nx-modal-foot">
                 <button type="button" className="nx-btn nx-btn-ghost" disabled={saving} onClick={closeAdd}>Cancel</button>
@@ -388,19 +344,6 @@ function SectionsPanel({
                       </option>
                     ))}
                   </select>
-                </div>
-                <div>
-                  <span className="nx-field-label">Capacity</span>
-                  <input
-                    className="nx-input"
-                    style={{ width: "100%", boxSizing: "border-box" }}
-                    type="number"
-                    min={1}
-                    value={editCapacity}
-                    onChange={e => setEditCapacity(e.target.value)}
-                    placeholder="optional · e.g. 40"
-                    autoFocus
-                  />
                 </div>
               </div>
               <div className="nx-modal-foot">

@@ -27,7 +27,6 @@ export const LIVE_SESSION_MOCK: LiveSessionSnapshot = {
     joinCode: "K3-7F2A",
     startedAt,
     status: "active",
-    enrolledCount: 41,
     joinedCount: 38,
   },
   material: {

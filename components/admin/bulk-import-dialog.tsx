@@ -75,10 +75,9 @@ const GUIDE: Record<
       { name: "name",        type: "string", required: true,  note: 'Full college name, e.g. "College of Engineering"' },
       { name: "code",        type: "string", required: true,  note: 'Short uppercase code, e.g. "ENG"' },
       { name: "description", type: "string", required: false, note: "Optional description" },
-      { name: "color",       type: "string", required: false, note: 'Hex color, e.g. "#6366f1"' },
     ],
-    csvExample:  `name,code,description,color\nCollege of Engineering,ENG,Engineering college,#6366f1\nCollege of Sciences,SCI,,#10b981`,
-    jsonExample: `[\n  { "name": "College of Engineering", "code": "ENG", "description": "Engineering college", "color": "#6366f1" },\n  { "name": "College of Sciences", "code": "SCI", "description": "Sciences college", "color": "#10b981" }\n]`,
+    csvExample:  `name,code,description\nCollege of Engineering,ENG,Engineering college\nCollege of Sciences,SCI,`,
+    jsonExample: `[\n  { "name": "College of Engineering", "code": "ENG", "description": "Engineering college" },\n  { "name": "College of Sciences", "code": "SCI", "description": "Sciences college" }\n]`,
   },
   users: {
     label: "Users",
@@ -96,10 +95,9 @@ const GUIDE: Record<
       { name: "name",        type: "string", required: true,  note: 'Full department name, e.g. "Computer Science"' },
       { name: "code",        type: "string", required: true,  note: 'Short uppercase code, e.g. "CS"' },
       { name: "description", type: "string", required: false, note: "Optional description" },
-      { name: "color",       type: "string", required: false, note: 'Hex color, e.g. "#6366f1"' },
     ],
-    csvExample:  `name,code,description,color\nComputer Science,CS,CS department,#6366f1\nMathematics,MATH,,#f59e0b`,
-    jsonExample: `[\n  { "name": "Computer Science", "code": "CS", "description": "CS Department", "color": "#6366f1" },\n  { "name": "Mathematics", "code": "MATH", "description": "Mathematics Department", "color": "#f59e0b" }\n]`,
+    csvExample:  `name,code,description\nComputer Science,CS,CS department\nMathematics,MATH,`,
+    jsonExample: `[\n  { "name": "Computer Science", "code": "CS", "description": "CS Department" },\n  { "name": "Mathematics", "code": "MATH", "description": "Mathematics Department" }\n]`,
   },
   courses: {
     label: "Courses + Sections",
@@ -109,12 +107,11 @@ const GUIDE: Record<
       { name: "credits",              type: "number", required: false, note: "Credit hours (integer)" },
       { name: "departmentId",         type: "string", required: false, note: "Department _id from the system" },
       { name: "description",          type: "string", required: false, note: "Optional description" },
-      { name: "section_id",           type: "number", required: false, note: "Optional · 5-digit section ID (10001–99999) · leave blank to auto-generate" },
-      { name: "section_capacity",     type: "number", required: false, note: "Optional · seats in this section — repeat the row to add more sections" },
+      { name: "section_id",           type: "number", required: false, note: "Optional · 5-digit section ID (10001–99999) · leave blank to auto-generate · repeat the row to add more sections" },
       { name: "section_instructorId", type: "string", required: false, note: "Optional · instructor _id · leave blank for unassigned" },
     ],
-    csvExample:  `name,code,credits,section_id,section_capacity,section_instructorId\nData Structures,CS201,3,,30,\nData Structures,CS201,3,12345,,<inst-id>\nData Structures,CS201,3,,,\nCalculus I,MATH101,4,,,`,
-    jsonExample: `[\n  {\n    "name": "Data Structures",\n    "code": "CS201", "credits": 3,\n    "sections": [\n      { "capacity": 30 },\n      { "sectionId": 12345, "instructorId": "<inst-id>" },\n      {}\n    ]\n  },\n  { "name": "Calculus I", "code": "MATH101", "credits": 4 }\n]`,
+    csvExample:  `name,code,credits,section_id,section_instructorId\nData Structures,CS201,3,,\nData Structures,CS201,3,12345,<inst-id>\nCalculus I,MATH101,4,,`,
+    jsonExample: `[\n  {\n    "name": "Data Structures",\n    "code": "CS201", "credits": 3,\n    "sections": [\n      { "sectionId": 12345, "instructorId": "<inst-id>" },\n      {}\n    ]\n  },\n  { "name": "Calculus I", "code": "MATH101", "credits": 4 }\n]`,
   },
 };
 
@@ -185,9 +182,6 @@ function validateRows(rows: ParsedRow[], entity: EntityType): ValidatedRow[] {
       const credits = data.credits;
       if (credits !== undefined && credits !== "" && isNaN(Number(credits)))
         errors.push("credits must be a number");
-      const cap = data.section_capacity;
-      if (cap !== undefined && cap !== "" && (isNaN(Number(cap)) || Number(cap) <= 0))
-        errors.push("section_capacity must be a positive number");
       const sid = data.section_id;
       if (sid !== undefined && sid !== "") {
         const n = Number(sid);
@@ -305,10 +299,10 @@ function EntityBadge({ type }: { type: EntityType }) {
 
 const COMBINED_JSON_EXAMPLE = `{
   "colleges": [
-    { "name": "College of Engineering", "code": "ENG", "description": "Engineering college", "color": "#6366f1" }
+    { "name": "College of Engineering", "code": "ENG", "description": "Engineering college" }
   ],
   "departments": [
-    { "name": "Computer Science", "code": "CS", "description": "CS Department", "color": "#6366f1" }
+    { "name": "Computer Science", "code": "CS", "description": "CS Department" }
   ],
   "users": [
     { "name": "Jane Smith", "email": "jane@uni.edu", "role": "instructor" }
@@ -316,7 +310,7 @@ const COMBINED_JSON_EXAMPLE = `{
   "courses": [
     {
       "name": "Data Structures", "code": "CS201", "credits": 3,
-      "sections": [{ "capacity": 30 }, { "sectionId": 12345 }, {}]
+      "sections": [{ "sectionId": 12345 }, {}]
     }
   ]
 }`;
@@ -427,7 +421,6 @@ function FormatGuide() {
                 <p className="font-semibold text-foreground mb-1">Sections — every field is optional</p>
                 <ul className="list-disc pl-4 space-y-0.5">
                   <li><code className="rounded bg-muted px-1">sectionId</code> — leave blank and the server auto-generates a 5-digit ID in the course's dept slot.</li>
-                  <li><code className="rounded bg-muted px-1">capacity</code> — omit for unlimited seats.</li>
                   <li><code className="rounded bg-muted px-1">instructorId</code> — omit to leave the section unassigned.</li>
                   <li>An empty <code className="rounded bg-muted px-1">{"{}"}</code> creates a section with everything auto-defaulted.</li>
                 </ul>
@@ -575,7 +568,6 @@ function CoursePreviewTable({ rows }: { rows: ValidatedRow[] }) {
             <TableHead className="text-xs font-mono">code</TableHead>
             <TableHead className="text-xs font-mono">name</TableHead>
             <TableHead className="text-xs font-mono">credits</TableHead>
-            <TableHead className="text-xs font-mono">capacity</TableHead>
             <TableHead className="text-xs">Type</TableHead>
             <TableHead className="text-xs">Status</TableHead>
           </TableRow>
@@ -586,14 +578,12 @@ function CoursePreviewTable({ rows }: { rows: ValidatedRow[] }) {
             const d = row.data;
 
             if (Array.isArray(d.sections)) {
-              const secCount = (d.sections as unknown[]).length;
               return (
                 <TableRow key={row._index} className={!row._valid ? "bg-destructive/5" : ""}>
                   <TableCell className="text-xs text-muted-foreground">{row._index + 1}</TableCell>
                   <TableCell className="text-xs font-mono font-semibold">{str(d.code)}</TableCell>
                   <TableCell className="text-xs font-mono">{str(d.name)}</TableCell>
                   <TableCell className="text-xs text-muted-foreground">{str(d.credits) || "—"}</TableCell>
-                  <TableCell className="text-xs text-muted-foreground">{secCount > 0 ? `${secCount} section${secCount !== 1 ? "s" : ""}` : "—"}</TableCell>
                   <TableCell><EntityBadge type="courses" /></TableCell>
                   <TableCell className="text-xs">
                     {row._valid
@@ -617,9 +607,6 @@ function CoursePreviewTable({ rows }: { rows: ValidatedRow[] }) {
                 </TableCell>
                 <TableCell className="text-xs font-mono text-muted-foreground">
                   {isSection ? "" : (str(d.credits) || "—")}
-                </TableCell>
-                <TableCell className="text-xs font-mono text-muted-foreground">
-                  {str(d.section_capacity) || "—"}
                 </TableCell>
                 <TableCell>
                   {isSection
@@ -706,7 +693,6 @@ async function importRows(
           name: str(d.name),
           code: str(d.code).toUpperCase(),
           ...(d.description ? { description: str(d.description) } : {}),
-          ...(d.color ? { color: str(d.color) } : {}),
         };
         await apiClient.post(API_ENDPOINTS.COLLEGES, body);
         succeeded++;
@@ -737,7 +723,6 @@ async function importRows(
           name: str(d.name),
           code: str(d.code).toUpperCase(),
           ...(d.description ? { description: str(d.description) } : {}),
-          ...(d.color ? { color: str(d.color) } : {}),
         };
         await apiClient.post(API_ENDPOINTS.DEPARTMENTS, body);
         succeeded++;
@@ -768,10 +753,8 @@ async function importRows(
         if (courseId) {
           if (Array.isArray(d.sections)) {
             for (const sec of d.sections as Record<string, unknown>[]) {
-              const cap = Number(sec.capacity);
               const sid = Number(sec.sectionId);
               const body: CreateSectionRequest = {
-                ...(Number.isFinite(cap) && cap > 0 ? { capacity: cap } : {}),
                 ...(Number.isInteger(sid) && sid >= 10001 && sid <= 99999 ? { sectionId: sid } : {}),
                 ...(sec.instructorId ? { instructorId: str(sec.instructorId) } : {}),
               };
@@ -784,13 +767,10 @@ async function importRows(
             }
           } else {
             for (const row of group) {
-              const cap = Number(row.data.section_capacity);
               const sid = Number(row.data.section_id);
-              const hasCap = Number.isFinite(cap) && cap > 0;
               const hasSid = Number.isInteger(sid) && sid >= 10001 && sid <= 99999;
-              if (!hasCap && !hasSid && !row.data.section_instructorId) continue;
+              if (!hasSid && !row.data.section_instructorId) continue;
               const body: CreateSectionRequest = {
-                ...(hasCap ? { capacity: cap } : {}),
                 ...(hasSid ? { sectionId: sid } : {}),
                 ...(row.data.section_instructorId ? { instructorId: str(row.data.section_instructorId) } : {}),
               };
@@ -931,7 +911,7 @@ export function BulkImportDialog({ open, onOpenChange, onToast }: BulkImportDial
         courses += codes.size;
         for (const r of valid) {
           if (Array.isArray(r.data.sections)) sections += (r.data.sections as unknown[]).length;
-          else if (Number(r.data.section_capacity) > 0 || Number(r.data.section_id) > 0 || r.data.section_instructorId) sections++;
+          else if (Number(r.data.section_id) > 0 || r.data.section_instructorId) sections++;
         }
       } else { others += valid.length; }
     }
