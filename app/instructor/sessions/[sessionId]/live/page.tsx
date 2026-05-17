@@ -280,12 +280,7 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
           </div>
           <div className="nx-meta-item">
             <span className="nx-meta-label">Joined</span>
-            <span className="nx-meta-value">
-              {meta.joinedCount}{" "}
-              <small style={{ color: "var(--nx-fg-subtle)", fontWeight: 400 }}>
-                / {meta.enrolledCount}
-              </small>
-            </span>
+            <span className="nx-meta-value">{meta.joinedCount}</span>
           </div>
           <div className="nx-meta-item">
             <span className="nx-meta-label">Join code</span>
@@ -642,7 +637,6 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
       {endModalOpen && (
         <EndSessionModal
           questions={questions}
-          enrolledCount={meta.enrolledCount}
           joinedCount={meta.joinedCount}
           totalPages={material.totalPages}
           slidesViewed={currentPage}
@@ -814,7 +808,6 @@ function ThumbnailStrip({ totalPages, currentPage, hotPages, onPick }: Thumbnail
 
 interface EndSessionModalProps {
   questions: LiveQuestion[];
-  enrolledCount: number;
   joinedCount: number;
   totalPages: number;
   slidesViewed: number;
@@ -826,7 +819,7 @@ interface EndSessionModalProps {
 }
 
 function EndSessionModal({
-  questions, enrolledCount, joinedCount,
+  questions, joinedCount,
   totalPages, slidesViewed, elapsedFmt, courseCode, sectionNumber,
   onCancel, onConfirm,
 }: EndSessionModalProps) {
@@ -839,7 +832,6 @@ function EndSessionModal({
 
   const open     = questions.filter(q => q.status !== "resolved").length;
   const resolved = questions.filter(q => q.status === "resolved").length;
-  const attendancePct = (joinedCount / enrolledCount * 100).toFixed(1);
 
   return (
     <div className="nx-modal-backdrop" onClick={onCancel}>
@@ -887,14 +879,9 @@ function EndSessionModal({
               <div className="nx-report-stat-delta">avg 3.5m / slide</div>
             </div>
             <div className="nx-report-stat">
-              <div className="nx-report-stat-lbl">Attendance</div>
-              <div className="nx-report-stat-val">{joinedCount} / {enrolledCount}</div>
-              <div
-                className="nx-report-stat-delta"
-                style={{ color: "var(--nx-success)" }}
-              >
-                {attendancePct}%
-              </div>
+              <div className="nx-report-stat-lbl">Joined</div>
+              <div className="nx-report-stat-val">{joinedCount}</div>
+              <div className="nx-report-stat-delta">students</div>
             </div>
           </div>
 

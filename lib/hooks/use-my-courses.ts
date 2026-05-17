@@ -8,8 +8,6 @@ import type { UserRole } from '../types/user.types';
 export interface MyCourseEntry {
   sectionDbId: string;
   sectionId: number;
-  capacity: number | null;
-  enrolledCount: number;
   instructor: { _id: string; name: string; email: string } | null;
   course: { _id: string; name: string; code: string; credits: number | null } | null;
 }

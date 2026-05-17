@@ -5,12 +5,7 @@ import { useDepartments } from "@/lib/hooks/use-departments";
 import { useColleges } from "@/lib/hooks/use-colleges";
 import type { Department, CreateDepartmentRequest } from "@/lib/types/department.types";
 
-const PRESET_COLORS = [
-  "#6366f1", "#10b981", "#f59e0b", "#ef4444",
-  "#3b82f6", "#a855f7", "#ec4899", "#14b8a6",
-];
-
-const EMPTY_FORM: CreateDepartmentRequest = { name: "", code: "", description: "", color: "#6366f1", collegeId: null };
+const EMPTY_FORM: CreateDepartmentRequest = { name: "", code: "", description: "", collegeId: null };
 
 export default function AdminDepartmentsPage() {
   const { departments, loading, error, refetch, createDepartment, updateDepartment, deleteDepartment } = useDepartments();
@@ -45,7 +40,6 @@ export default function AdminDepartmentsPage() {
       name: dept.name,
       code: dept.code,
       description: dept.description ?? "",
-      color: dept.color ?? "#6366f1",
       collegeId: dept.collegeId ?? null,
     });
     setFormError(null);
@@ -133,10 +127,7 @@ export default function AdminDepartmentsPage() {
                 {departments.map(dept => (
                   <tr key={dept._id}>
                     <td>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        <span style={{ width: 10, height: 10, borderRadius: "50%", background: dept.color ?? "#6366f1", flexShrink: 0 }} />
-                        <span style={{ fontWeight: 500 }}>{dept.name}</span>
-                      </div>
+                      <span style={{ fontWeight: 500 }}>{dept.name}</span>
                     </td>
                     <td><span className="nx-tbl-mono">{dept.code}</span></td>
                     <td style={{ color: "var(--nx-fg-muted)", fontSize: 13 }}>
@@ -213,23 +204,6 @@ export default function AdminDepartmentsPage() {
                     onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
                     placeholder="Optional"
                   />
-                </div>
-                <div>
-                  <span className="nx-field-label">Color</span>
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 6 }}>
-                    {PRESET_COLORS.map(c => (
-                      <button
-                        key={c} type="button"
-                        onClick={() => setForm(f => ({ ...f, color: c }))}
-                        style={{
-                          width: 24, height: 24, borderRadius: "50%", background: c,
-                          border: "none", cursor: "pointer", flexShrink: 0,
-                          outline: form.color === c ? `2px solid ${c}` : "2px solid transparent",
-                          outlineOffset: 2,
-                        }}
-                      />
-                    ))}
-                  </div>
                 </div>
               </div>
               <div className="nx-modal-foot">

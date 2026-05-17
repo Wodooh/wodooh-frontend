@@ -4,8 +4,6 @@ export interface Course {
   code: string;
   description?: string;
   departmentId?: string;
-  instructorId?: string;
-  capacity?: number;
   credits?: number;
   createdAt: string;
   updatedAt: string;
@@ -16,8 +14,6 @@ export interface CreateCourseRequest {
   code: string;
   description?: string;
   departmentId?: string;
-  instructorId?: string;
-  capacity?: number;
   credits?: number;
 }
 
@@ -37,15 +33,12 @@ export interface Section {
   sectionId: number;
   courseId: string;
   instructorId?: string | SectionInstructor; // populated by backend
-  capacity?: number;
-  enrolledCount: number;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface CreateSectionRequest {
   sectionId?: number;
-  capacity?: number;
   instructorId?: string;
 }
 

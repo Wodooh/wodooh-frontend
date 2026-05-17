@@ -86,7 +86,6 @@ export default function InstructorDashboardPage() {
                 <tr>
                   <th scope="col">Course</th>
                   <th scope="col">Section</th>
-                  <th scope="col">Enrolled</th>
                   <th scope="col" style={{ textAlign: "right" }}>Actions</th>
                 </tr>
               </thead>
@@ -99,9 +98,6 @@ export default function InstructorDashboardPage() {
                       </div>
                     </td>
                     <td className="nx-tbl-mono">{c.sectionId}</td>
-                    <td className="nx-tbl-mono">
-                      {c.enrolledCount}{c.capacity != null ? ` / ${c.capacity}` : ""}
-                    </td>
                     <td style={{ textAlign: "right" }}>
                       <button
                         className="nx-btn nx-btn-ghost"
