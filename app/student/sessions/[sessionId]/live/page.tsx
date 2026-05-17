@@ -37,7 +37,9 @@ import {
   ZoomOut,
 } from "@/components/live-session/icons";
 
-import { LIVE_SESSION_MOCK } from "@/lib/mock/live-session-mock";
+import apiClient from "@/lib/api/client";
+import API_ENDPOINTS from "@/lib/api/endpoints";
+import { useLiveSession } from "@/lib/hooks/use-live-session";
 import type {
   LiveQuestion,
   LiveSessionSnapshot,
@@ -45,12 +47,6 @@ import type {
 } from "@/lib/types/live-session.types";
 import { cn } from "@/lib/utils";
 
-/* ─────────────────────────────────────────────────────────────────── */
-/* Constants tied to the per-student session pseudonyms. In V2 the     */
-/* backend hands these IDs back from `POST /sessions/:id/join`.        */
-/* ─────────────────────────────────────────────────────────────────── */
-const MY_ANON_COURSE_ID = "anon-9a1f";
-const MY_ANON_SESSION_ID = "sess-9a1f";
 const QUESTION_MAX_LEN = 500;
 
 interface PageProps {
@@ -69,68 +65,75 @@ export default function StudentLiveSessionPage({ params }: PageProps) {
   const { sessionId } = use(params);
   const router = useRouter();
 
-  // V1: hydrate from the same mock the instructor uses. V2: useLiveSession.
-  const [snapshot, setSnapshot] = useState<LiveSessionSnapshot>(() => LIVE_SESSION_MOCK);
+  // Hook owns the session, questions, and Ably realtime subscription.
+  const {
+    snapshot: liveSnapshot,
+    connected,
+    ended,
+    loading,
+    error,
+    updateQuestion,
+    prependQuestion,
+  } = useLiveSession(sessionId);
 
-  // Mock guard: in real impl, snapshot would be loaded by sessionId and
-  // return 404 / "session ended" if not active. Sanity-check the URL param.
+  // Local mirror so the existing local-only mutator (sendReaction) keeps
+  // working on snapshot fields the backend doesn't surface yet. Hook
+  // updates (initial fetch + Ably question events) flow into this mirror
+  // via the effect below. Local-only mutations to `reactions` get
+  // overwritten on the next hook-driven sync.
+  const [snapshot, setSnapshot] = useState<LiveSessionSnapshot | null>(null);
   useEffect(() => {
-    if (sessionId !== snapshot.meta.sessionId) {
-      // No-op — useful seam for V2.
-    }
-  }, [sessionId, snapshot.meta.sessionId]);
+    setSnapshot(liveSnapshot);
+  }, [liveSnapshot]);
+
+  // Captured from the backend on the first successful question submission;
+  // used to identify "my questions" in the stream until a real
+  // POST /sessions/:id/join hands the pseudonym back up front.
+  const [myAnonCourseId, setMyAnonCourseId] = useState<string | null>(null);
 
   /* — Slide navigation: student can follow the instructor or roam ── */
   const [followInstructor, setFollowInstructor] = useState(true);
-  const [studentPage, setStudentPage] = useState<number>(snapshot.currentPage);
+  const [studentPage, setStudentPage] = useState<number>(1);
   const [zoomPct, setZoomPct] = useState(100);
 
   // While "follow instructor" is on, keep the student page locked to the
   // instructor's `currentPage`. As soon as the student navigates manually,
   // we flip the toggle off so they don't get yanked back on the next tick.
-  const effectivePage = followInstructor ? snapshot.currentPage : studentPage;
-  const isBehindInstructor = !followInstructor && studentPage < snapshot.currentPage;
-  const isAheadOfInstructor = !followInstructor && studentPage > snapshot.currentPage;
+  const currentInstructorPage = snapshot?.currentPage ?? 1;
+  const effectivePage = followInstructor ? currentInstructorPage : studentPage;
+  const isBehindInstructor = !followInstructor && studentPage < currentInstructorPage;
+  const isAheadOfInstructor = !followInstructor && studentPage > currentInstructorPage;
 
   const goToPage = (p: number) => {
+    if (!snapshot) return;
     const clamped = Math.max(1, Math.min(snapshot.material.totalPages, p));
     setFollowInstructor(false);
     setStudentPage(clamped);
   };
 
   const catchUpToInstructor = () => {
+    if (!snapshot) return;
     setStudentPage(snapshot.currentPage);
     setFollowInstructor(true);
   };
 
   /* — Elapsed timer (display only) ───────────────────────────────── */
-  const [elapsedSec, setElapsedSec] = useState(() =>
-    Math.floor((Date.now() - new Date(snapshot.meta.startedAt).getTime()) / 1000)
-  );
+  const [elapsedSec, setElapsedSec] = useState(0);
   useEffect(() => {
     const id = window.setInterval(() => setElapsedSec(s => s + 1), 1000);
     return () => window.clearInterval(id);
   }, []);
+  // Hydrate elapsedSec from the real session start once the snapshot arrives.
+  useEffect(() => {
+    if (!liveSnapshot?.meta.startedAt) return;
+    setElapsedSec(Math.floor((Date.now() - new Date(liveSnapshot.meta.startedAt).getTime()) / 1000));
+  }, [liveSnapshot?.meta.startedAt]);
   const elapsedFmt = useMemo(() => {
     const h = String(Math.floor(elapsedSec / 3600)).padStart(2, "0");
     const m = String(Math.floor((elapsedSec % 3600) / 60)).padStart(2, "0");
     const s = String(elapsedSec % 60).padStart(2, "0");
     return `${h}:${m}:${s}`;
   }, [elapsedSec]);
-
-  /* — Simulated instructor advancement (every ~18s, while following) ─
-   * V2: snapshot.currentPage is driven by Ably "sess.<id>.page". For the
-   * mock we just nudge it forward periodically so the "follow" toggle has
-   * visible effect. We stop at the last page.                            */
-  useEffect(() => {
-    const id = window.setInterval(() => {
-      setSnapshot(prev => {
-        if (prev.currentPage >= prev.material.totalPages) return prev;
-        return { ...prev, currentPage: prev.currentPage + 1 };
-      });
-    }, 18_000);
-    return () => window.clearInterval(id);
-  }, []);
 
   /* — Reactions: send + local tally ───────────────────────────────── */
   const [reactState, setReactState] = useState<LocalReactionState>({
@@ -152,13 +155,13 @@ export default function StudentLiveSessionPage({ params }: PageProps) {
       lastSubmittedAt: { ...prev.lastSubmittedAt, [kind]: now },
       mine: { ...prev.mine, [kind]: prev.mine[kind] + 1 },
     }));
-    setSnapshot(prev => ({
+    setSnapshot(prev => prev ? ({
       ...prev,
       reactions: {
         ...prev.reactions,
         [kind]: { ...prev.reactions[kind], total: prev.reactions[kind].total + 1 },
       },
-    }));
+    }) : prev);
     setPulseKind(kind);
     window.setTimeout(() => setPulseKind(null), 280);
   };
@@ -171,8 +174,8 @@ export default function StudentLiveSessionPage({ params }: PageProps) {
 
   const trimmed = draft.trim();
   const charsLeft = QUESTION_MAX_LEN - draft.length;
-  const isMuted = snapshot.muted.some(m => m.anonymousSessionId === MY_ANON_SESSION_ID);
-  const isPaused = snapshot.controls.questionsPaused;
+  const isMuted = false;
+  const isPaused = snapshot?.controls.questionsPaused ?? false;
   const canSubmit = trimmed.length > 0 && trimmed.length <= QUESTION_MAX_LEN && !isMuted && !isPaused && !submitting;
 
   const submitQuestion = async () => {
@@ -180,27 +183,43 @@ export default function StudentLiveSessionPage({ params }: PageProps) {
     setSubmitting(true);
     setSubmitError(null);
 
-    // V2: POST /sessions/:id/questions { text } — server runs profanity
-    // filter and mute check, persists, then publishes to Ably channel
-    // "session:<id>:questions" so the instructor's stream lights up.
     try {
-      // Optimistic insert into the local snapshot so the student sees
-      // their question land in "My questions" immediately.
-      const newQ: LiveQuestion = {
-        questionId: `q-local-${Date.now()}`,
-        authorAnonymousCourseID: MY_ANON_COURSE_ID,
-        text: trimmed,
-        postedAt: new Date().toISOString(),
-        fromPage: effectivePage,
-        status: "new",
+      const res = await apiClient.post<{
+        _id: string;
+        sessionId: string;
+        content: string;
+        authorAnonymousCourseId: string;
+        visibilityStatus: "visible" | "hidden";
+        postSessionStatus: "open" | "resolved" | "archived";
+        createdAt: string;
+      }>(API_ENDPOINTS.QUESTIONS, { sessionId, content: trimmed });
+
+      if (res.status !== "success" || !res.data) {
+        throw new Error(res.message || "Failed to submit question");
+      }
+
+      const q = res.data;
+      const mapped: LiveQuestion = {
+        questionId: q._id,
+        authorAnonymousCourseID: q.authorAnonymousCourseId,
+        text: q.content,
+        postedAt: q.createdAt,
+        fromPage: 1,
+        status:
+          q.postSessionStatus === "resolved"
+            ? "resolved"
+            : q.visibilityStatus === "visible"
+            ? "opened"
+            : "new",
         clusterSize: 1,
       };
-      setSnapshot(prev => ({ ...prev, questions: [newQ, ...prev.questions] }));
+      prependQuestion(mapped);
+      setMyAnonCourseId(q.authorAnonymousCourseId);
       setDraft("");
       setShowRecentSubmit(true);
       window.setTimeout(() => setShowRecentSubmit(false), 2400);
-    } catch {
-      setSubmitError("Could not send your question. Try again.");
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : "Failed to submit question");
     } finally {
       setSubmitting(false);
     }
@@ -215,21 +234,46 @@ export default function StudentLiveSessionPage({ params }: PageProps) {
 
   /* — Derived data ───────────────────────────────────────────────── */
   const myQuestions = useMemo(
-    () => snapshot.questions.filter(q => q.authorAnonymousCourseID === MY_ANON_COURSE_ID),
-    [snapshot.questions]
+    () =>
+      myAnonCourseId
+        ? (snapshot?.questions ?? []).filter(q => q.authorAnonymousCourseID === myAnonCourseId)
+        : [],
+    [snapshot?.questions, myAnonCourseId],
   );
+
+  if (loading) {
+    return (
+      <div className="nx-loading">
+        <span className="nx-spin" /> Loading session…
+      </div>
+    );
+  }
+  if (error) {
+    return (
+      <div className="nx-empty">
+        <div className="nx-empty-title">Couldn&apos;t load session</div>
+        <div className="nx-empty-sub">{error}</div>
+      </div>
+    );
+  }
+  if (!snapshot) return null;
 
   const { meta, material, reactions } = snapshot;
 
   return (
     <div className="nx-portal-accent">
+      {ended && (
+        <div className="nx-student-banner is-warn" role="alert">
+          <b>This session has ended.</b>
+        </div>
+      )}
       {/* Page head */}
       <div className="nx-page-head">
         <div>
           <h1 className="nx-page-title">Live session</h1>
           <p className="nx-page-sub">
             You are participating anonymously as{" "}
-            <span style={{ fontFamily: "'JetBrains Mono', monospace" }}>{MY_ANON_COURSE_ID}</span>
+            <span style={{ fontFamily: "'JetBrains Mono', monospace" }}>{myAnonCourseId ?? "—"}</span>
             {" · "}your real name is never sent with your questions or reactions.
           </p>
         </div>
@@ -261,7 +305,7 @@ export default function StudentLiveSessionPage({ params }: PageProps) {
           </div>
           <div className="nx-meta-item">
             <span className="nx-meta-label">Your alias</span>
-            <span className="nx-meta-value">{MY_ANON_COURSE_ID}</span>
+            <span className="nx-meta-value">{myAnonCourseId ?? "—"}</span>
           </div>
         </div>
 
@@ -491,7 +535,7 @@ export default function StudentLiveSessionPage({ params }: PageProps) {
                   Tagged from slide {effectivePage} · only your alias is attached
                 </p>
               </div>
-              <AnonChip id={MY_ANON_COURSE_ID} />
+              <AnonChip id={myAnonCourseId ?? "—"} />
             </div>
 
             <div className="nx-composer">

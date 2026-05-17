@@ -1,17 +1,46 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import apiClient from "@/lib/api/client";
+import API_ENDPOINTS from "@/lib/api/endpoints";
 import { useAuth } from "@/lib/auth/auth-provider";
-import { useMyCourses } from "@/lib/hooks/use-my-courses";
+import { useMyCourses, type MyCourseEntry } from "@/lib/hooks/use-my-courses";
 
 export default function InstructorDashboardPage() {
   const { user } = useAuth();
   const { courses, loading, error } = useMyCourses();
+  const router = useRouter();
+  const [starting, setStarting] = useState<string | null>(null);
   const today = new Date().toLocaleDateString(undefined, {
     weekday: "long",
     month: "long",
     day: "numeric",
   });
+
+  const startSession = async (entry: MyCourseEntry) => {
+    if (!entry.course) {
+      toast.error("This section is not linked to a course.");
+      return;
+    }
+    setStarting(entry.sectionDbId);
+    try {
+      const res = await apiClient.post<{ _id: string }>(API_ENDPOINTS.SESSIONS, {
+        courseId: entry.course._id,
+        sectionId: entry.sectionDbId,
+      });
+      if (res.status === "success" && res.data?._id) {
+        router.push(`/instructor/sessions/${res.data._id}/live`);
+      } else {
+        throw new Error(res.message || "Failed to start session");
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to start session");
+    } finally {
+      setStarting(null);
+    }
+  };
 
   return (
     <>
@@ -74,7 +103,13 @@ export default function InstructorDashboardPage() {
                       {c.enrolledCount}{c.capacity != null ? ` / ${c.capacity}` : ""}
                     </td>
                     <td style={{ textAlign: "right" }}>
-                      <button className="nx-btn nx-btn-ghost">Start session</button>
+                      <button
+                        className="nx-btn nx-btn-ghost"
+                        onClick={() => startSession(c)}
+                        disabled={!!starting}
+                      >
+                        {starting === c.sectionDbId ? "Starting…" : "Start session"}
+                      </button>
                     </td>
                   </tr>
                 ))}
