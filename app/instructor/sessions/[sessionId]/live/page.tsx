@@ -53,7 +53,9 @@ import {
   ZoomOut,
 } from "@/components/live-session/icons";
 
-import { LIVE_SESSION_MOCK } from "@/lib/mock/live-session-mock";
+import apiClient from "@/lib/api/client";
+import API_ENDPOINTS from "@/lib/api/endpoints";
+import { useLiveSession } from "@/lib/hooks/use-live-session";
 import type {
   LiveQuestion,
   LiveSessionSnapshot,
@@ -63,6 +65,7 @@ import type {
   SessionControls,
 } from "@/lib/types/live-session.types";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 type QuestionFilter = "all" | "new" | "opened";
 type ModerationTab = "muted" | "controls";
@@ -76,81 +79,65 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
   const { sessionId } = use(params);
   const router = useRouter();
 
-  // V1: hydrate from the mock fixture. V2: useLiveSession(sessionId).
-  const [snapshot, setSnapshot] = useState<LiveSessionSnapshot>(() => LIVE_SESSION_MOCK);
+  // Hook owns the session, questions, and Ably realtime subscription.
+  const {
+    snapshot: liveSnapshot,
+    connected,
+    ended,
+    loading,
+    error,
+    updateQuestion,
+    prependQuestion,
+  } = useLiveSession(sessionId);
 
-  // Mock guard: in real impl, snapshot would be loaded by sessionId and
-  // return 404 if not found. Here we just sanity-check the URL param.
+  // Local mirror so the existing local-only mutators (setControls,
+  // onMuteAuthor, onUnmute) can continue to operate on `controls` /
+  // `muted` without backend wiring. Hook updates (initial fetch + Ably
+  // events) flow into this mirror via the effect below. Local mutations
+  // to `controls` / `muted` get overwritten on the next hook-driven sync
+  // — those handlers need to be backend-wired in a follow-up.
+  const [snapshot, setSnapshot] = useState<LiveSessionSnapshot | null>(null);
   useEffect(() => {
-    if (sessionId !== snapshot.meta.sessionId) {
-      // For the mockup we just normalize, but it's a useful seam for V2.
-      // No-op intentionally.
-    }
-  }, [sessionId, snapshot.meta.sessionId]);
+    setSnapshot(liveSnapshot);
+  }, [liveSnapshot]);
 
   // Local UI state (would later flow through Ably to followers/server).
-  const [currentPage, setCurrentPage] = useState<number>(snapshot.currentPage);
+  const [currentPage, setCurrentPage] = useState<number>(1);
   const [questionFilter, setQuestionFilter] = useState<QuestionFilter>("all");
   const [modTab, setModTab] = useState<ModerationTab>("muted");
   const [endModalOpen, setEndModalOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [zoomPct, setZoomPct] = useState(100);
-  const [elapsedSec, setElapsedSec] = useState(() =>
-    Math.floor((Date.now() - new Date(snapshot.meta.startedAt).getTime()) / 1000)
-  );
+  const [elapsedSec, setElapsedSec] = useState(0);
   const [pulseKind, setPulseKind] = useState<ReactionKind | null>(null);
 
-  /* — Elapsed timer + mock reaction pulse so the page feels alive ───── */
+  /* — Elapsed timer ─────────────────────────────────────────────────── */
   useEffect(() => {
     const id = window.setInterval(() => setElapsedSec(s => s + 1), 1000);
     return () => window.clearInterval(id);
   }, []);
 
+  // Hydrate elapsedSec from the real session start once the snapshot arrives.
   useEffect(() => {
-    // In V2: subscribe to Ably channel "sess.<id>.reactions". For now,
-    // simulate a streaming reaction every ~2.4s with weighted randomness
-    // — "not_clear" is climbing hardest, matching the mock data trend.
-    const weights: { kind: ReactionKind; w: number }[] = [
-      { kind: "too_fast",   w: 1  },
-      { kind: "too_slow",   w: 3  },
-      { kind: "understood", w: 5  },
-      { kind: "not_clear",  w: 12 },
-    ];
-    const total = weights.reduce((a, b) => a + b.w, 0);
-    const id = window.setInterval(() => {
-      let r = Math.random() * total;
-      const pick = weights.find(({ w }) => (r -= w) <= 0)?.kind ?? "understood";
-      setSnapshot(prev => ({
-        ...prev,
-        reactions: {
-          ...prev.reactions,
-          [pick]: { ...prev.reactions[pick], total: prev.reactions[pick].total + 1 },
-        },
-      }));
-      setPulseKind(pick);
-      window.setTimeout(() => setPulseKind(null), 260);
-    }, 2400);
-    return () => window.clearInterval(id);
-  }, []);
+    if (!liveSnapshot?.meta.startedAt) return;
+    setElapsedSec(Math.floor((Date.now() - new Date(liveSnapshot.meta.startedAt).getTime()) / 1000));
+  }, [liveSnapshot?.meta.startedAt]);
 
   /* — Derived helpers ─────────────────────────────────────────────── */
 
   const filteredQuestions = useMemo(() => {
+    if (!snapshot) return [];
     if (questionFilter === "all") return snapshot.questions;
     if (questionFilter === "new") return snapshot.questions.filter(q => q.status === "new");
     return snapshot.questions.filter(q => q.status === "opened");
-  }, [snapshot.questions, questionFilter]);
+  }, [snapshot, questionFilter]);
 
   const counts = useMemo(() => ({
-    all:      snapshot.questions.length,
-    new:      snapshot.questions.filter(q => q.status === "new").length,
-    opened:   snapshot.questions.filter(q => q.status === "opened").length,
-    resolved: snapshot.questions.filter(q => q.status === "resolved").length,
-  }), [snapshot.questions]);
-
-  const followers = snapshot.followers;
-  const followTotal = Math.max(1, followers.onCurrent + followers.ahead + followers.behind + followers.independent);
-  const pct = (n: number) => `${(n / followTotal) * 100}%`;
+    all:      snapshot?.questions.length ?? 0,
+    new:      snapshot?.questions.filter(q => q.status === "new").length ?? 0,
+    opened:   snapshot?.questions.filter(q => q.status === "opened").length ?? 0,
+    resolved: snapshot?.questions.filter(q => q.status === "resolved").length ?? 0,
+  }), [snapshot]);
 
   const elapsedFmt = useMemo(() => {
     const h = String(Math.floor(elapsedSec / 3600)).padStart(2, "0");
@@ -162,15 +149,10 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
   /* — Actions (local-only in V1; will dispatch to backend in V2) ───── */
 
   const setControls = (patch: Partial<SessionControls>) =>
-    setSnapshot(prev => ({ ...prev, controls: { ...prev.controls, ...patch } }));
-
-  const updateQuestion = (id: string, patch: Partial<LiveQuestion>) =>
-    setSnapshot(prev => ({
-      ...prev,
-      questions: prev.questions.map(q => (q.questionId === id ? { ...q, ...patch } : q)),
-    }));
+    setSnapshot(prev => (prev ? { ...prev, controls: { ...prev.controls, ...patch } } : prev));
 
   const goToPage = (p: number) => {
+    if (!snapshot) return;
     const clamped = Math.max(1, Math.min(snapshot.material.totalPages, p));
     setCurrentPage(clamped);
     // V2: if `controls.broadcasting`, publish to channel "sess.<id>.page".
@@ -189,6 +171,7 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
     // `authorAnonymousCourseID` (privacy invariant). V2: server resolves
     // current session pseudonym from the question id. Here we synthesize
     // a believable `sess-` id from the question for the demo.
+    if (!snapshot) return;
     const sessionPseudonym = `sess-${q.authorAnonymousCourseID.slice(-4)}`;
     if (snapshot.muted.some(m => m.anonymousSessionId === sessionPseudonym)) return;
     const next: MutedParticipant = {
@@ -196,11 +179,13 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
       mutedAt: new Date().toISOString(),
       reason: "muted from question stream",
     };
-    setSnapshot(prev => ({ ...prev, muted: [next, ...prev.muted] }));
+    setSnapshot(prev => (prev ? { ...prev, muted: [next, ...prev.muted] } : prev));
   };
 
   const onUnmute = (id: string) =>
-    setSnapshot(prev => ({ ...prev, muted: prev.muted.filter(m => m.anonymousSessionId !== id) }));
+    setSnapshot(prev =>
+      prev ? { ...prev, muted: prev.muted.filter(m => m.anonymousSessionId !== id) } : prev,
+    );
 
   const onReport = (id: string) => {
     // V2: POST /sessions/:id/questions/:qid/report. For V1 just visually
@@ -209,6 +194,7 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
   };
 
   const onCopyJoinCode = async () => {
+    if (!snapshot) return;
     try {
       await navigator.clipboard.writeText(snapshot.meta.joinCode);
       setCopied(true);
@@ -216,18 +202,51 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
     } catch { /* clipboard blocked — silent in V1 */ }
   };
 
-  const onEndSession = () => {
-    // V2: POST /sessions/:id/end → archive + generate report → route to it.
+  const onEndSession = async () => {
     setEndModalOpen(false);
-    router.push("/instructor/sessions");
+    try {
+      const res = await apiClient.patch(API_ENDPOINTS.SESSION_END(sessionId));
+      if (res.status === "success") {
+        router.push("/instructor/dashboard");
+      } else {
+        throw new Error(res.message || "Failed to end session");
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to end session");
+    }
   };
 
   /* ─────────────────────────────────────────────────────────────── */
 
+  if (loading) {
+    return (
+      <div className="nx-loading">
+        <span className="nx-spin" /> Loading session…
+      </div>
+    );
+  }
+  if (error) {
+    return (
+      <div className="nx-empty">
+        <div className="nx-empty-title">Couldn&apos;t load session</div>
+        <div className="nx-empty-sub">{error}</div>
+      </div>
+    );
+  }
+  if (!snapshot) return null;
+
   const { meta, material, reactions, muted, controls, questions } = snapshot;
+  const followers = snapshot.followers;
+  const followTotal = Math.max(1, followers.onCurrent + followers.ahead + followers.behind + followers.independent);
+  const pct = (n: number) => `${(n / followTotal) * 100}%`;
 
   return (
     <div className="nx-portal-accent">
+      {ended && (
+        <div className="nx-student-banner is-warn" role="alert">
+          <b>This session has ended.</b>
+        </div>
+      )}
       {/* Page head */}
       <div className="nx-page-head">
         <div>

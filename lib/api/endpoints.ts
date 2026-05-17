@@ -52,6 +52,18 @@ export const API_ENDPOINTS = {
   // Current user — used by student/instructor dashboards
   MY_COURSES: '/me/courses',
 
+  // Sessions
+  SESSIONS: '/sessions',
+  SESSION: (id: string) => `/sessions/${id}`,
+  SESSION_END: (id: string) => `/sessions/${id}/end`,
+
+  // Questions
+  QUESTIONS: '/questions',
+  QUESTION_VISIBILITY: (id: string) => `/questions/${id}/visibility`,
+
+  // Ably realtime
+  ABLY_TOKEN: '/ably/token',
+
   // --- Planned Backend Features (not yet implemented) ---
   // These are stubs for future backend development
 

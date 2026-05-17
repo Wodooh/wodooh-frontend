@@ -1,17 +1,59 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import apiClient from "@/lib/api/client";
+import API_ENDPOINTS from "@/lib/api/endpoints";
 import { useAuth } from "@/lib/auth/auth-provider";
 import { useMyCourses } from "@/lib/hooks/use-my-courses";
+
+interface LiveSession {
+  _id: string;
+  status: "live" | "ended";
+  startedAt: string;
+  courseId: { _id: string; name: string; code: string };
+  sectionId?: { _id: string; sectionId: number };
+  instructorId: { _id: string; name: string; email: string };
+}
 
 export default function StudentDashboardPage() {
   const { user } = useAuth();
   const { courses, loading, error } = useMyCourses();
+  const router = useRouter();
+  const [liveSessions, setLiveSessions] = useState<LiveSession[]>([]);
+  const [sessionsLoading, setSessionsLoading] = useState(true);
+  const [sessionsError, setSessionsError] = useState<string | null>(null);
   const today = new Date().toLocaleDateString(undefined, {
     weekday: "long",
     month: "long",
     day: "numeric",
   });
+
+  useEffect(() => {
+    let cancelled = false;
+    setSessionsLoading(true);
+    setSessionsError(null);
+
+    apiClient.get<LiveSession[]>(`${API_ENDPOINTS.SESSIONS}?status=live`)
+      .then(res => {
+        if (cancelled) return;
+        if (res.status === "success" && res.data) {
+          setLiveSessions(res.data);
+        } else {
+          throw new Error(res.message || "Failed to fetch live sessions");
+        }
+      })
+      .catch(err => {
+        if (cancelled) return;
+        setSessionsError(err?.message || "Failed to fetch live sessions");
+        setLiveSessions([]);
+      })
+      .finally(() => {
+        if (!cancelled) setSessionsLoading(false);
+      });
+
+    return () => { cancelled = true; };
+  }, []);
 
   return (
     <>
@@ -78,11 +120,57 @@ export default function StudentDashboardPage() {
             <h3 className="nx-card-title">Active sessions</h3>
             <p className="nx-card-sub">Live lectures you can join right now</p>
           </div>
+          {!sessionsLoading && !sessionsError && liveSessions.length > 0 && (
+            <span className="nx-filter-bar-count">{liveSessions.length} live</span>
+          )}
         </div>
-        <div className="nx-empty">
-          <div className="nx-empty-title">No active sessions</div>
-          <div className="nx-empty-sub">When an instructor starts a live session in one of your courses, it will appear here.</div>
-        </div>
+        {sessionsLoading ? (
+          <div className="nx-empty"><span className="nx-spin" /></div>
+        ) : sessionsError ? (
+          <div className="nx-empty">
+            <div className="nx-empty-title">Couldn&apos;t load sessions</div>
+            <div className="nx-empty-sub">{sessionsError}</div>
+          </div>
+        ) : liveSessions.length === 0 ? (
+          <div className="nx-empty">
+            <div className="nx-empty-title">No active sessions</div>
+            <div className="nx-empty-sub">When an instructor starts a live session in one of your courses, it will appear here.</div>
+          </div>
+        ) : (
+          <div className="nx-tbl-wrap">
+            <table className="nx-tbl">
+              <thead>
+                <tr>
+                  <th scope="col">Course</th>
+                  <th scope="col">Section</th>
+                  <th scope="col">Instructor</th>
+                  <th scope="col" style={{ textAlign: "right" }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {liveSessions.map((s) => (
+                  <tr key={s._id}>
+                    <td>
+                      <div className="nx-user-cell-name">
+                        {s.courseId?.code ?? "—"} · {s.courseId?.name ?? "Unknown course"}
+                      </div>
+                    </td>
+                    <td className="nx-tbl-mono">{s.sectionId?.sectionId ?? "—"}</td>
+                    <td>{s.instructorId?.name ?? "TBA"}</td>
+                    <td style={{ textAlign: "right" }}>
+                      <button
+                        className="nx-btn nx-btn-ghost"
+                        onClick={() => router.push(`/student/sessions/${s._id}/live`)}
+                      >
+                        Join
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       <div className="nx-card">
