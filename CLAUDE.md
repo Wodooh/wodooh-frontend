@@ -115,6 +115,19 @@ lib/
 | PATCH | `/admin/courses/:id/sections/:sectionId` | `useSections(courseId).updateSection()` |
 | DELETE | `/admin/courses/:id/sections/:sectionId` | `useSections(courseId).deleteSection()` |
 | GET | `/admin/audit-log` | `lib/api/endpoints.ts:AUDIT_LOG` (no hook yet) |
+| GET | `/public/colleges` | `usePublicColleges()` — onboarding (pre-auth) |
+| GET | `/public/departments` | `usePublicDepartments()` — onboarding (pre-auth) |
+| GET | `/public/courses` | `usePublicCourses()` — onboarding (pre-auth) |
+| GET | `/public/courses/:courseId/sections` | `usePublicSections(courseId)` — onboarding (pre-auth) |
+| GET | `/me/courses` | `useMyCourses()` — student/instructor dashboards, role-scoped |
+| POST | `/sessions` | `useLiveSession()` start path (instructor) |
+| PATCH | `/sessions/:id/end` | `useLiveSession()` end path (instructor) |
+| GET | `/sessions/:id` | `useLiveSession()` reads the session document |
+| GET | `/sessions` | `lib/api/endpoints.ts:SESSIONS` — filters: `courseId`, `sectionId`, `status`, `instructorId` |
+| POST | `/questions` | `useLiveSession()` student question submit |
+| GET | `/questions?sessionId=…` | `useLiveSession()` initial backfill before Ably attaches |
+| PATCH | `/questions/:id/visibility` | `useLiveSession()` instructor visibility toggle |
+| GET | `/ably/token` | `useLiveSession()` — mints a TokenRequest; client posts it to Ably to get a real token. **Never expose `ABLY_API_KEY` to the browser.** See ADR-001 and the Ably v2 subscribe-promise gotcha below. |
 
 ## Hook Patterns
 
