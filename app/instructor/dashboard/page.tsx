@@ -2,20 +2,11 @@
 
 import React from "react";
 import { useAuth } from "@/lib/auth/auth-provider";
-
-const TODAYS_CLASSES = [
-  { code: "CS-401", name: "Advanced Algorithms", time: "10:00 – 11:00", room: "Eng-204" },
-  { code: "CS-220", name: "Data Structures",    time: "13:00 – 14:30", room: "Eng-118" },
-];
-
-const PENDING_QUESTIONS = [
-  { id: "Q-2026-0481", course: "CS-401", excerpt: "What's the time complexity of the median-of-medians selection?", asked: "12 min ago" },
-  { id: "Q-2026-0479", course: "CS-220", excerpt: "Can you clarify the difference between an AVL tree and a red-black tree?", asked: "47 min ago" },
-  { id: "Q-2026-0476", course: "CS-401", excerpt: "Is the assignment 3 deadline still Friday?", asked: "2h ago" },
-];
+import { useMyCourses } from "@/lib/hooks/use-my-courses";
 
 export default function InstructorDashboardPage() {
   const { user } = useAuth();
+  const { courses, loading, error } = useMyCourses();
   const today = new Date().toLocaleDateString(undefined, {
     weekday: "long",
     month: "long",
@@ -29,27 +20,35 @@ export default function InstructorDashboardPage() {
           <h1 className="nx-page-title">Dashboard</h1>
           <p className="nx-page-sub">
             {today} · Welcome back, {user?.name?.split(" ")[0] ?? "Instructor"}
-            <span className="nx-version-pill" style={{ marginLeft: 10 }}>Demo data</span>
           </p>
         </div>
       </div>
 
       <div className="nx-kpi-strip">
-        <KPI label="Today's classes" value={String(TODAYS_CLASSES.length)} />
-        <KPI label="Pending questions" value={String(PENDING_QUESTIONS.length)} />
+        <KPI label="Assigned sections" value={loading ? "…" : String(courses.length)} />
       </div>
 
       <div className="nx-card">
         <div className="nx-card-head">
           <div>
-            <h3 className="nx-card-title">Today&apos;s classes</h3>
-            <p className="nx-card-sub">Scheduled sessions for {today}</p>
+            <h3 className="nx-card-title">My courses</h3>
+            <p className="nx-card-sub">Sections you&apos;re teaching</p>
           </div>
+          {!loading && !error && courses.length > 0 && (
+            <span className="nx-filter-bar-count">{courses.length} assigned</span>
+          )}
         </div>
-        {TODAYS_CLASSES.length === 0 ? (
+        {loading ? (
+          <div className="nx-empty"><span className="nx-spin" /></div>
+        ) : error ? (
           <div className="nx-empty">
-            <div className="nx-empty-title">No classes today</div>
-            <div className="nx-empty-sub">Enjoy the day off — your next session is tomorrow.</div>
+            <div className="nx-empty-title">Couldn&apos;t load courses</div>
+            <div className="nx-empty-sub">{error}</div>
+          </div>
+        ) : courses.length === 0 ? (
+          <div className="nx-empty">
+            <div className="nx-empty-title">No assigned sections</div>
+            <div className="nx-empty-sub">You haven&apos;t been assigned any sections yet.</div>
           </div>
         ) : (
           <div className="nx-tbl-wrap">
@@ -57,19 +56,23 @@ export default function InstructorDashboardPage() {
               <thead>
                 <tr>
                   <th scope="col">Course</th>
-                  <th scope="col">Time</th>
-                  <th scope="col">Room</th>
+                  <th scope="col">Section</th>
+                  <th scope="col">Enrolled</th>
                   <th scope="col" style={{ textAlign: "right" }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {TODAYS_CLASSES.map(c => (
-                  <tr key={c.code}>
+                {courses.map((c) => (
+                  <tr key={c.sectionDbId}>
                     <td>
-                      <div className="nx-user-cell-name">{c.code} · {c.name}</div>
+                      <div className="nx-user-cell-name">
+                        {c.course?.code ?? "—"} · {c.course?.name ?? "Unknown course"}
+                      </div>
                     </td>
-                    <td className="nx-tbl-mono">{c.time}</td>
-                    <td className="nx-tbl-mono">{c.room}</td>
+                    <td className="nx-tbl-mono">{c.sectionId}</td>
+                    <td className="nx-tbl-mono">
+                      {c.enrolledCount}{c.capacity != null ? ` / ${c.capacity}` : ""}
+                    </td>
                     <td style={{ textAlign: "right" }}>
                       <button className="nx-btn nx-btn-ghost">Start session</button>
                     </td>
@@ -81,48 +84,6 @@ export default function InstructorDashboardPage() {
         )}
       </div>
 
-      <div className="nx-card">
-        <div className="nx-card-head">
-          <div>
-            <h3 className="nx-card-title">Pending questions</h3>
-            <p className="nx-card-sub">Anonymous student questions awaiting your reply</p>
-          </div>
-          <span className="nx-filter-bar-count">{PENDING_QUESTIONS.length} open</span>
-        </div>
-        {PENDING_QUESTIONS.length === 0 ? (
-          <div className="nx-empty">
-            <div className="nx-empty-title">All caught up</div>
-            <div className="nx-empty-sub">There are no unanswered questions across your courses.</div>
-          </div>
-        ) : (
-          <div className="nx-tbl-wrap">
-            <table className="nx-tbl">
-              <thead>
-                <tr>
-                  <th scope="col">ID</th>
-                  <th scope="col">Course</th>
-                  <th scope="col">Question</th>
-                  <th scope="col">Asked</th>
-                  <th scope="col" style={{ textAlign: "right" }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {PENDING_QUESTIONS.map(q => (
-                  <tr key={q.id}>
-                    <td className="nx-tbl-mono">{q.id}</td>
-                    <td><span className="nx-badge nx-role-instructor"><span className="nx-badge-dot" />{q.course}</span></td>
-                    <td>{q.excerpt}</td>
-                    <td className="nx-tbl-mono">{q.asked}</td>
-                    <td style={{ textAlign: "right" }}>
-                      <button className="nx-btn nx-btn-ghost">Open</button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
     </>
   );
 }

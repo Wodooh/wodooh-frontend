@@ -1,20 +1,16 @@
 "use client";
 
-import React, { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/auth/auth-provider";
-import type {
-  College,
-  Department,
-  Course,
-  Section,
-  CourseSelection,
-} from "@/types/onboarding";
-import {
-  OnboardingService,
-  isValidName,
-  trackOnboardingEvent,
-} from "@/services/onboardingService";
+import apiClient from "@/lib/api/client";
+import API_ENDPOINTS from "@/lib/api/endpoints";
+import { usePublicColleges } from "@/lib/hooks/use-public-colleges";
+import { usePublicDepartments } from "@/lib/hooks/use-public-departments";
+import { usePublicCourses } from "@/lib/hooks/use-public-courses";
+import type { Section } from "@/lib/types/course.types";
+import type { CourseSelection } from "@/types/onboarding";
+import { isValidName, trackOnboardingEvent } from "@/services/onboardingService";
 import "../nexus.css";
 import "../login/login.css";
 import "./onboarding.css";
@@ -79,6 +75,13 @@ const PodiumIcon = ({ size = 14 }: { size?: number }) => (
   </Icon>
 );
 
+const SearchIcon = ({ size = 14 }: { size?: number }) => (
+  <Icon size={size}>
+    <circle cx="11" cy="11" r="7" />
+    <path d="m21 21-4.3-4.3" />
+  </Icon>
+);
+
 // ── Theme (mirrors login page) ───────────────────────────────
 
 function useTheme() {
@@ -91,8 +94,6 @@ function useTheme() {
       : window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
     document.documentElement.dataset.nxTheme = resolved;
     document.documentElement.dataset.nxDensity = "compact";
-    // Hydrate from localStorage on mount; mirrors the pre-existing pattern in
-    // app/login/page.tsx so onboarding renders consistently with login.
     // eslint-disable-next-line react-hooks/set-state-in-effect, react-hooks/exhaustive-deps
     setThemeState(resolved);
   }, []);
@@ -140,7 +141,7 @@ function Stepper({ currentStep }: { currentStep: number }) {
   );
 }
 
-// ── Page ─────────────────────────────────────────────────────
+// ── Helpers ──────────────────────────────────────────────────
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PW_MIN = 8;
@@ -148,6 +149,14 @@ const PW_MIN = 8;
 function parseRole(value: string | null): OnboardingRole {
   return value === "instructor" ? "instructor" : "student";
 }
+
+function instructorNameOf(s: Section): string {
+  if (!s.instructorId) return "TBA";
+  if (typeof s.instructorId === "string") return "TBA";
+  return s.instructorId.name;
+}
+
+// ── Page ─────────────────────────────────────────────────────
 
 export default function OnboardingPage() {
   return (
@@ -174,11 +183,9 @@ function OnboardingPageInner() {
     if (next === role) return;
     setRole(next);
     setContentKey((k) => k + 1);
-    // Reset state that doesn't transfer cleanly across roles.
     setSubmitError(null);
     setFacultyId("");
     setFacultyIdTouched(false);
-    // Update URL so refresh / share preserves the choice (no full navigation).
     const params = new URLSearchParams(searchParams.toString());
     if (next === "instructor") params.set("role", "instructor");
     else params.delete("role");
@@ -206,19 +213,36 @@ function OnboardingPageInner() {
       ? "Faculty ID must be 3–20 alphanumeric characters."
       : null;
 
-  // ── Academic fields ───────────────────────────────────────
-  const [colleges, setColleges] = useState<College[]>([]);
-  const [departments, setDepartments] = useState<Department[]>([]);
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [sectionsMap, setSectionsMap] = useState<Record<string, Section[]>>({});
+  // ── Academic selections ───────────────────────────────────
   const [selectedCollege, setSelectedCollege] = useState("");
   const [selectedDepartment, setSelectedDepartment] = useState("");
   const [courseSelections, setCourseSelections] = useState<CourseSelection[]>([]);
-  const [loadingColleges, setLoadingColleges] = useState(false);
-  const [loadingDepartments, setLoadingDepartments] = useState(false);
-  const [loadingCourses, setLoadingCourses] = useState(false);
+  const [courseSearch, setCourseSearch] = useState("");
+
+  // Sections are fetched on demand (one course at a time) and cached by courseId.
+  const [sectionsMap, setSectionsMap] = useState<Record<string, Section[]>>({});
   const [loadingSections, setLoadingSections] = useState<string | null>(null);
-  const [noDepartments, setNoDepartments] = useState(false);
+
+  // ── Real data ─────────────────────────────────────────────
+  // Fetch whenever an ID is selected so the lists stay available on the Review
+  // step too (needed to resolve names from IDs).
+  //
+  // Course scope is role-dependent:
+  //   • student    → all courses across every department/college
+  //   • instructor → all courses in the selected college only
+  // We still gate the fetch on the user having picked a department, so the
+  // course list doesn't appear before the prerequisite steps are done.
+  const { colleges, loading: loadingColleges, error: collegesError } = usePublicColleges();
+  const { departments, loading: loadingDepartments, error: departmentsError } =
+    usePublicDepartments(selectedCollege || undefined);
+  const { courses, loading: loadingCourses, error: coursesError } = usePublicCourses(
+    role === "instructor"
+      ? { collegeId: selectedCollege || undefined, enabled: !!selectedDepartment && !!selectedCollege }
+      : { enabled: !!selectedDepartment }
+  );
+
+  const noDepartments =
+    !!selectedCollege && !loadingDepartments && !departmentsError && departments.length === 0;
 
   // ── Submission state ──────────────────────────────────────
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -246,59 +270,32 @@ function OnboardingPageInner() {
     }
   }, []);
 
-  // ── Load colleges when entering step 2 ────────────────────
-  useEffect(() => {
-    if (currentStep === 2 && colleges.length === 0) {
-      setLoadingColleges(true);
-      OnboardingService.getColleges()
-        .then(setColleges)
-        .finally(() => setLoadingColleges(false));
-    }
-  }, [currentStep, colleges.length]);
-
-  // ── Cascading loaders ─────────────────────────────────────
-  const handleCollegeChange = useCallback(async (collegeId: string) => {
+  // ── Cascading resets when the user changes college/department ──
+  const handleCollegeChange = useCallback((collegeId: string) => {
     setSelectedCollege(collegeId);
     setSelectedDepartment("");
-    setDepartments([]);
-    setCourses([]);
-    setSectionsMap({});
     setCourseSelections([]);
-    setNoDepartments(false);
-    if (!collegeId) return;
-
-    setLoadingDepartments(true);
-    try {
-      const depts = await OnboardingService.getDepartments(collegeId);
-      setDepartments(depts);
-      if (depts.length === 0) setNoDepartments(true);
-    } finally {
-      setLoadingDepartments(false);
-    }
+    setSectionsMap({});
+    setCourseSearch("");
   }, []);
 
-  const handleDepartmentChange = useCallback(async (deptId: string) => {
+  const handleDepartmentChange = useCallback((deptId: string) => {
     setSelectedDepartment(deptId);
-    setCourses([]);
-    setSectionsMap({});
     setCourseSelections([]);
-    if (!deptId) return;
-
-    setLoadingCourses(true);
-    try {
-      const crs = await OnboardingService.getCourses(deptId);
-      setCourses(crs);
-    } finally {
-      setLoadingCourses(false);
-    }
+    setSectionsMap({});
+    setCourseSearch("");
   }, []);
 
+  // ── Load sections for a course on demand ─────────────────
   const loadSections = useCallback(async (courseId: string) => {
     if (sectionsMap[courseId]) return;
     setLoadingSections(courseId);
     try {
-      const secs = await OnboardingService.getSections(courseId);
-      setSectionsMap((prev) => ({ ...prev, [courseId]: secs }));
+      const res = await apiClient.get<Section[]>(API_ENDPOINTS.PUBLIC_COURSE_SECTIONS(courseId));
+      const list = res.status === "success" && Array.isArray(res.data) ? res.data : [];
+      setSectionsMap((prev) => ({ ...prev, [courseId]: list }));
+    } catch {
+      setSectionsMap((prev) => ({ ...prev, [courseId]: [] }));
     } finally {
       setLoadingSections(null);
     }
@@ -318,6 +315,15 @@ function OnboardingPageInner() {
       prev.map((cs) => (cs.courseId === courseId ? { ...cs, sectionId } : cs))
     );
   }, []);
+
+  // ── Search filter on courses (name OR code, case-insensitive) ──
+  const filteredCourses = useMemo(() => {
+    const q = courseSearch.trim().toLowerCase();
+    if (!q) return courses;
+    return courses.filter((c) =>
+      c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q)
+    );
+  }, [courses, courseSearch]);
 
   // ── Validation ───────────────────────────────────────────
   const validateAccount = (): boolean => {
@@ -360,6 +366,8 @@ function OnboardingPageInner() {
         email: email.trim().toLowerCase(),
         password,
         role,
+        departmentId: selectedDepartment || undefined,
+        sectionIds: courseSelections.map((cs) => cs.sectionId).filter(Boolean),
       });
 
       trackOnboardingEvent("manual_onboarding_completed", {
@@ -382,13 +390,11 @@ function OnboardingPageInner() {
   };
 
   // ── Lookup helpers for review ─────────────────────────────
-  const getCollegeName = (id: string) =>
-    colleges.find((c) => c.collegeID === id)?.collegeName ?? id;
-  const getDepartmentName = (id: string) =>
-    departments.find((d) => d.departmentID === id)?.deptName ?? id;
-  const getCourse = (id: string) => courses.find((c) => c.courseID === id);
+  const getCollegeName = (id: string) => colleges.find((c) => c._id === id)?.name ?? id;
+  const getDepartmentName = (id: string) => departments.find((d) => d._id === id)?.name ?? id;
+  const getCourse = (id: string) => courses.find((c) => c._id === id);
   const getSection = (courseId: string, sectionId: string) =>
-    sectionsMap[courseId]?.find((s) => s.sectionID === sectionId);
+    sectionsMap[courseId]?.find((s) => s._id === sectionId);
 
   if (authLoading) {
     return (
@@ -647,6 +653,10 @@ function OnboardingPageInner() {
                     : "Pick your college, department, and the courses you're enrolling in."}
                 </p>
 
+                {collegesError && (
+                  <span className="nx-login-helper is-error">{collegesError}</span>
+                )}
+
                 <div className="nx-login-field">
                   <label htmlFor="ob-college" className="nx-field-label">College</label>
                   <select
@@ -659,7 +669,7 @@ function OnboardingPageInner() {
                   >
                     <option value="">{loadingColleges ? "Loading colleges…" : "Select your college"}</option>
                     {colleges.map((c) => (
-                      <option key={c.collegeID} value={c.collegeID}>{c.collegeName}</option>
+                      <option key={c._id} value={c._id}>{c.name}</option>
                     ))}
                   </select>
                 </div>
@@ -684,9 +694,12 @@ function OnboardingPageInner() {
                             : "Select your department"}
                     </option>
                     {departments.map((d) => (
-                      <option key={d.departmentID} value={d.departmentID}>{d.deptName}</option>
+                      <option key={d._id} value={d._id}>{d.name}</option>
                     ))}
                   </select>
+                  {departmentsError && (
+                    <span className="nx-login-helper is-error">{departmentsError}</span>
+                  )}
                   {noDepartments && (
                     <span className="nx-login-helper">
                       No departments listed for this college. Please contact your administrator.
@@ -698,59 +711,96 @@ function OnboardingPageInner() {
                   <span className="nx-login-helper">Loading courses…</span>
                 )}
 
+                {selectedDepartment && coursesError && !loadingCourses && (
+                  <span className="nx-login-helper is-error">{coursesError}</span>
+                )}
+
                 {selectedDepartment && !loadingCourses && courses.length > 0 && (
                   <div className="nx-login-field">
-                    <span className="nx-field-label">Courses &amp; sections</span>
-                    <ul className="nx-course-list">
-                      {courses.map((course) => {
-                        const sel = courseSelections.find((cs) => cs.courseId === course.courseID);
-                        const isSelected = !!sel;
-                        const sections = sectionsMap[course.courseID] ?? [];
-                        const isLoadingSections = loadingSections === course.courseID;
+                    <label htmlFor="ob-course-search" className="nx-field-label">
+                      Courses &amp; sections
+                    </label>
 
-                        return (
-                          <li key={course.courseID} className={`nx-course-item${isSelected ? " is-selected" : ""}`}>
-                            <button
-                              type="button"
-                              className="nx-course-toggle"
-                              onClick={() => handleCourseToggle(course.courseID)}
-                              aria-pressed={isSelected}
-                            >
-                              <span className="nx-course-checkbox" aria-hidden="true">
-                                {isSelected && <Check size={12} />}
-                              </span>
-                              <span className="nx-course-info">
-                                <span className="nx-course-code">{course.courseCode}</span>
-                                <span className="nx-course-name">{course.courseName}</span>
-                              </span>
-                            </button>
-                            {isSelected && (
-                              <div className="nx-course-section">
-                                {isLoadingSections ? (
-                                  <span className="nx-login-helper">Loading sections…</span>
-                                ) : sections.length > 0 ? (
-                                  <select
-                                    className="nx-select"
-                                    value={sel?.sectionId ?? ""}
-                                    onChange={(e) => handleSectionSelect(course.courseID, e.target.value)}
-                                    style={{ width: "100%" }}
-                                  >
-                                    <option value="">Select section</option>
-                                    {sections.map((s) => (
-                                      <option key={s.sectionID} value={s.sectionID}>
-                                        {s.sectionNumber} — {s.instructorName} ({s.term})
-                                      </option>
-                                    ))}
-                                  </select>
-                                ) : (
-                                  <span className="nx-login-helper is-error">No sections available.</span>
-                                )}
-                              </div>
-                            )}
-                          </li>
-                        );
-                      })}
-                    </ul>
+                    <div className="nx-login-input-wrap" style={{ marginBottom: 8 }}>
+                      <span
+                        aria-hidden="true"
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          padding: "0 8px 0 10px",
+                          color: "var(--nx-text-muted, currentColor)",
+                          opacity: 0.7,
+                        }}
+                      >
+                        <SearchIcon size={14} />
+                      </span>
+                      <input
+                        id="ob-course-search"
+                        className="nx-login-input"
+                        type="search"
+                        placeholder="Search courses by name or code…"
+                        value={courseSearch}
+                        onChange={(e) => setCourseSearch(e.target.value)}
+                        aria-label="Search courses by name or code"
+                      />
+                    </div>
+
+                    {filteredCourses.length === 0 ? (
+                      <span className="nx-login-helper">
+                        No courses match &quot;{courseSearch}&quot;.
+                      </span>
+                    ) : (
+                      <ul className="nx-course-list">
+                        {filteredCourses.map((course) => {
+                          const sel = courseSelections.find((cs) => cs.courseId === course._id);
+                          const isSelected = !!sel;
+                          const sections = sectionsMap[course._id] ?? [];
+                          const isLoadingSections = loadingSections === course._id;
+
+                          return (
+                            <li key={course._id} className={`nx-course-item${isSelected ? " is-selected" : ""}`}>
+                              <button
+                                type="button"
+                                className="nx-course-toggle"
+                                onClick={() => handleCourseToggle(course._id)}
+                                aria-pressed={isSelected}
+                              >
+                                <span className="nx-course-checkbox" aria-hidden="true">
+                                  {isSelected && <Check size={12} />}
+                                </span>
+                                <span className="nx-course-info">
+                                  <span className="nx-course-code">{course.code}</span>
+                                  <span className="nx-course-name">{course.name}</span>
+                                </span>
+                              </button>
+                              {isSelected && (
+                                <div className="nx-course-section">
+                                  {isLoadingSections ? (
+                                    <span className="nx-login-helper">Loading sections…</span>
+                                  ) : sections.length > 0 ? (
+                                    <select
+                                      className="nx-select"
+                                      value={sel?.sectionId ?? ""}
+                                      onChange={(e) => handleSectionSelect(course._id, e.target.value)}
+                                      style={{ width: "100%" }}
+                                    >
+                                      <option value="">Select section</option>
+                                      {sections.map((s) => (
+                                        <option key={s._id} value={s._id}>
+                                          {s.sectionId} — {instructorNameOf(s)}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  ) : (
+                                    <span className="nx-login-helper is-error">No sections available.</span>
+                                  )}
+                                </div>
+                              )}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
                   </div>
                 )}
 
@@ -813,11 +863,11 @@ function OnboardingPageInner() {
                     return (
                       <div key={cs.courseId} className="nx-review-row">
                         <span className="nx-review-key">
-                          <span className="nx-course-code" style={{ marginRight: 8 }}>{course?.courseCode ?? cs.courseId}</span>
-                          {course?.courseName ?? ""}
+                          <span className="nx-course-code" style={{ marginRight: 8 }}>{course?.code ?? cs.courseId}</span>
+                          {course?.name ?? ""}
                         </span>
                         <span className="nx-review-val">
-                          {section ? `${section.sectionNumber} · ${section.instructorName}` : cs.sectionId}
+                          {section ? `${section.sectionId} · ${instructorNameOf(section)}` : cs.sectionId}
                         </span>
                       </div>
                     );
