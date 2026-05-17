@@ -5,6 +5,7 @@ export interface Course {
   description?: string;
   departmentId?: string;
   instructorId?: string;
+  capacity?: number;
   credits?: number;
   createdAt: string;
   updatedAt: string;
@@ -16,6 +17,7 @@ export interface CreateCourseRequest {
   description?: string;
   departmentId?: string;
   instructorId?: string;
+  capacity?: number;
   credits?: number;
 }
 

@@ -25,6 +25,10 @@ export const API_ENDPOINTS = {
   USERS_BULK_ROLE_CHANGE: '/admin/users/bulk-role-change',
   AUTH_ME: '/auth/me',
 
+  // Admin - Colleges
+  COLLEGES: '/admin/colleges',
+  COLLEGE: (id: string) => `/admin/colleges/${id}`,
+
   // Admin - Departments
   DEPARTMENTS: '/admin/departments',
   DEPARTMENT: (id: string) => `/admin/departments/${id}`,

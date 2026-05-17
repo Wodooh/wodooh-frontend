@@ -97,16 +97,22 @@ lib/
 | GET | `/auth/me` | `useAuthMe()` — also called by `AuthProvider` on app init to refresh the role from the server (closes the stale-role-after-demotion gap) |
 | GET | `/admin/users` | `useUsers()` |
 | PATCH | `/admin/users/:userId/role` | `useUpdateRole()` |
-| GET | `/admin/departments` | `useDepartments()` |
+| GET | `/admin/colleges` | `useColleges()` |
+| POST | `/admin/colleges` | `useColleges().createCollege()` |
+| PATCH | `/admin/colleges/:id` | `useColleges().updateCollege()` |
+| DELETE | `/admin/colleges/:id` | `useColleges().deleteCollege()` |
+| GET | `/admin/departments` | `useDepartments()` — accepts optional `?collegeId=` filter |
 | POST | `/admin/departments` | `useDepartments().createDepartment()` |
 | PATCH | `/admin/departments/:id` | `useDepartments().updateDepartment()` |
 | DELETE | `/admin/departments/:id` | `useDepartments().deleteDepartment()` |
-| GET | `/admin/courses` | `useCourses()` |
+| GET | `/admin/courses` | `useCourses()` — accepts optional `?departmentId=`, `?page=`, `?limit=` |
 | POST | `/admin/courses` | `useCourses().createCourse()` |
 | PATCH | `/admin/courses/:id` | `useCourses().updateCourse()` |
 | DELETE | `/admin/courses/:id` | `useCourses().deleteCourse()` |
+| GET | `/admin/courses/:id/sections/next-id` | `lib/api/endpoints.ts:ADMIN_COURSE_SECTION_NEXT_ID` — preview next section ID |
 | GET | `/admin/courses/:id/sections` | `useSections(courseId)` |
 | POST | `/admin/courses/:id/sections` | `useSections(courseId).createSection()` |
+| PATCH | `/admin/courses/:id/sections/:sectionId` | `useSections(courseId).updateSection()` |
 | DELETE | `/admin/courses/:id/sections/:sectionId` | `useSections(courseId).deleteSection()` |
 | GET | `/admin/audit-log` | `lib/api/endpoints.ts:AUDIT_LOG` (no hook yet) |
 

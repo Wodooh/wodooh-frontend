@@ -29,12 +29,13 @@ import { cn } from "@/lib/utils";
 import apiClient from "@/lib/api/client";
 import API_ENDPOINTS from "@/lib/api/endpoints";
 import type { CreateUserRequest } from "@/lib/types/admin-user.types";
+import type { CreateCollegeRequest } from "@/lib/types/college.types";
 import type { CreateDepartmentRequest } from "@/lib/types/department.types";
 import type { Course, CreateCourseRequest, CreateSectionRequest } from "@/lib/types/course.types";
 
 // ── Types ───────────────────────────────────────────
 
-type EntityType = "users" | "departments" | "courses";
+type EntityType = "colleges" | "users" | "departments" | "courses";
 
 type ParsedRow = Record<string, unknown>;
 
@@ -68,6 +69,17 @@ const GUIDE: Record<
     jsonExample: string;
   }
 > = {
+  colleges: {
+    label: "Colleges",
+    columns: [
+      { name: "name",        type: "string", required: true,  note: 'Full college name, e.g. "College of Engineering"' },
+      { name: "code",        type: "string", required: true,  note: 'Short uppercase code, e.g. "ENG"' },
+      { name: "description", type: "string", required: false, note: "Optional description" },
+      { name: "color",       type: "string", required: false, note: 'Hex color, e.g. "#6366f1"' },
+    ],
+    csvExample:  `name,code,description,color\nCollege of Engineering,ENG,Engineering college,#6366f1\nCollege of Sciences,SCI,,#10b981`,
+    jsonExample: `[\n  { "name": "College of Engineering", "code": "ENG", "description": "Engineering college", "color": "#6366f1" },\n  { "name": "College of Sciences", "code": "SCI", "description": "Sciences college", "color": "#10b981" }\n]`,
+  },
   users: {
     label: "Users",
     columns: [
@@ -87,7 +99,7 @@ const GUIDE: Record<
       { name: "color",       type: "string", required: false, note: 'Hex color, e.g. "#6366f1"' },
     ],
     csvExample:  `name,code,description,color\nComputer Science,CS,CS department,#6366f1\nMathematics,MATH,,#f59e0b`,
-    jsonExample: `[\n  { "name": "Computer Science", "code": "CS", "color": "#6366f1" },\n  { "name": "Mathematics", "code": "MATH" }\n]`,
+    jsonExample: `[\n  { "name": "Computer Science", "code": "CS", "description": "CS Department", "color": "#6366f1" },\n  { "name": "Mathematics", "code": "MATH", "description": "Mathematics Department", "color": "#f59e0b" }\n]`,
   },
   courses: {
     label: "Courses + Sections",
@@ -155,7 +167,10 @@ function str(v: unknown): string { return String(v ?? "").trim(); }
 function validateRows(rows: ParsedRow[], entity: EntityType): ValidatedRow[] {
   return rows.map((data, i) => {
     const errors: string[] = [];
-    if (entity === "users") {
+    if (entity === "colleges") {
+      if (!str(data.name)) errors.push("name is required");
+      if (!str(data.code)) errors.push("code is required");
+    } else if (entity === "users") {
       if (!str(data.name)) errors.push("name is required");
       if (!str(data.email)) errors.push("email is required");
       if (!str(data.role)) errors.push("role is required");
@@ -187,25 +202,7 @@ function validateRows(rows: ParsedRow[], entity: EntityType): ValidatedRow[] {
 // ── Combined template download ─────────────────────
 
 function downloadTemplate() {
-  const template = {
-    departments: [
-      { name: "Computer Science", code: "CS", description: "CS Department", color: "#6366f1" },
-      { name: "Mathematics", code: "MATH", description: "Mathematics Department", color: "#f59e0b" },
-    ],
-    users: [
-      { name: "Jane Smith", email: "jane@uni.edu", role: "instructor" },
-      { name: "John Doe",   email: "john@uni.edu", role: "student" },
-    ],
-    courses: [
-      {
-        name: "Data Structures", code: "CS201", credits: 3, departmentId: "",
-        description: "Fundamental data structures and algorithms",
-        sections: [{ capacity: 30, instructorId: "" }, { capacity: 25, instructorId: "" }],
-      },
-      { name: "Calculus I", code: "MATH101", credits: 4, departmentId: "", sections: [{ capacity: 40, instructorId: "" }] },
-    ],
-  };
-  const blob = new Blob([JSON.stringify(template, null, 2)], { type: "application/json" });
+  const blob = new Blob([COMBINED_JSON_EXAMPLE], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url; a.download = "wodooh-import-template.json";
@@ -215,7 +212,7 @@ function downloadTemplate() {
 
 // ── Combined JSON detection ────────────────────────
 
-const ENTITY_KEYS: EntityType[] = ["departments", "users", "courses"];
+const ENTITY_KEYS: EntityType[] = ["colleges", "departments", "users", "courses"];
 
 async function tryParseCombined(file: File): Promise<FileEntry[] | null> {
   try {
@@ -289,6 +286,7 @@ const UploadSmall = () => (
 // ── Entity badge ───────────────────────────────────
 
 const ENTITY_STYLES: Record<EntityType, string> = {
+  colleges:    "bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400",
   users:       "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
   departments: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
   courses:     "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
@@ -306,8 +304,11 @@ function EntityBadge({ type }: { type: EntityType }) {
 // ── Combined example ───────────────────────────────
 
 const COMBINED_JSON_EXAMPLE = `{
+  "colleges": [
+    { "name": "College of Engineering", "code": "ENG", "description": "Engineering college", "color": "#6366f1" }
+  ],
   "departments": [
-    { "name": "Computer Science", "code": "CS", "color": "#6366f1" }
+    { "name": "Computer Science", "code": "CS", "description": "CS Department", "color": "#6366f1" }
   ],
   "users": [
     { "name": "Jane Smith", "email": "jane@uni.edu", "role": "instructor" }
@@ -331,6 +332,7 @@ function FormatGuide() {
       <div className="flex gap-1.5 flex-wrap">
         {([
           ["combined",     "All types (combined)"],
+          ["colleges",     "Colleges"],
           ["users",        "Users"],
           ["departments",  "Departments"],
           ["courses",      "Courses + Sections"],
@@ -353,21 +355,64 @@ function FormatGuide() {
           <div className="rounded-lg border bg-muted/40 px-4 py-3 text-xs text-muted-foreground leading-relaxed">
             <p className="font-semibold text-foreground mb-1">Single-file import (JSON only)</p>
             Put all your data in one <code className="rounded bg-muted px-1">`.json`</code> file with a root object that has{" "}
+            <code className="rounded bg-muted px-1">colleges</code>,{" "}
             <code className="rounded bg-muted px-1">departments</code>,{" "}
             <code className="rounded bg-muted px-1">users</code>, and/or{" "}
-            <code className="rounded bg-muted px-1">courses</code> keys. When uploaded, it is automatically split into one entry per type. You can also{" "}
-            <button onClick={downloadTemplate} className="underline text-primary hover:opacity-80 transition-opacity">
-              download the blank template
-            </button>{" "}
-            and fill it in.
+            <code className="rounded bg-muted px-1">courses</code> keys. When uploaded, it is automatically split into one entry per type.
           </div>
+
+          {/* All-fields reference table */}
+          <div className="rounded-lg border overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-xs w-[110px]">Type</TableHead>
+                  <TableHead className="text-xs font-mono">Field</TableHead>
+                  <TableHead className="text-xs w-[60px]">Required</TableHead>
+                  <TableHead className="text-xs">Notes</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {(Object.entries(GUIDE) as [EntityType, typeof GUIDE[EntityType]][]).flatMap(([entityType, g]) =>
+                  g.columns.map((col, i) => (
+                    <TableRow key={`${entityType}-${col.name}`}>
+                      {i === 0 ? (
+                        <TableCell className="align-top">
+                          <EntityBadge type={entityType} />
+                        </TableCell>
+                      ) : (
+                        <TableCell />
+                      )}
+                      <TableCell className="font-mono text-xs font-semibold">{col.name}</TableCell>
+                      <TableCell className="text-xs">
+                        {col.required
+                          ? <span className="text-destructive font-medium">Yes</span>
+                          : <span className="text-muted-foreground">No</span>}
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">{col.note}</TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
           <div>
             <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-2">
               Combined JSON format
             </p>
-            <pre className="rounded-lg border bg-muted/40 text-xs p-4 overflow-x-auto leading-relaxed whitespace-pre text-foreground">
-              {COMBINED_JSON_EXAMPLE}
-            </pre>
+            <div className="relative">
+              <pre className="rounded-lg border bg-muted/40 text-xs p-4 overflow-x-auto leading-relaxed whitespace-pre text-foreground">
+                {COMBINED_JSON_EXAMPLE}
+              </pre>
+              <button
+                onClick={downloadTemplate}
+                title="Download this example"
+                className="absolute top-2 right-2 flex items-center gap-1.5 rounded-md border bg-background px-2 py-1 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              >
+                <DownloadIcon /> Download
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -483,6 +528,7 @@ function FileRow({
             <SelectValue placeholder="Select type…" />
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value="colleges">Colleges</SelectItem>
             <SelectItem value="users">Users</SelectItem>
             <SelectItem value="departments">Departments</SelectItem>
             <SelectItem value="courses">Courses</SelectItem>
@@ -652,7 +698,23 @@ async function importRows(
   const errors: string[] = [];
   const valid = rows.filter(r => r._valid);
 
-  if (entity === "users") {
+  if (entity === "colleges") {
+    for (const row of valid) {
+      const d = row.data;
+      try {
+        const body: CreateCollegeRequest = {
+          name: str(d.name),
+          code: str(d.code).toUpperCase(),
+          ...(d.description ? { description: str(d.description) } : {}),
+          ...(d.color ? { color: str(d.color) } : {}),
+        };
+        await apiClient.post(API_ENDPOINTS.COLLEGES, body);
+        succeeded++;
+      } catch (err) {
+        errors.push(`Row ${row._index + 1}: ${err instanceof Error ? err.message : "Unknown error"}`);
+      }
+    }
+  } else if (entity === "users") {
     for (const row of valid) {
       const d = row.data;
       try {
@@ -780,6 +842,7 @@ export function BulkImportDialog({ open, onOpenChange, onToast }: BulkImportDial
       }
       const lower = file.name.toLowerCase();
       const entityType: EntityType | null =
+        lower.includes("college") ? "colleges" :
         lower.includes("user") ? "users" :
         lower.includes("dept") || lower.includes("department") ? "departments" :
         lower.includes("course") ? "courses" : null;
@@ -897,11 +960,8 @@ export function BulkImportDialog({ open, onOpenChange, onToast }: BulkImportDial
           <div className="flex-none flex items-start justify-between gap-4 px-6 pt-5 pb-4 border-b">
             <div>
               <DialogTitle className="text-sm font-semibold">Bulk Import</DialogTitle>
-              <p className="text-xs text-muted-foreground mt-0.5">Import users, departments, and courses — CSV or JSON.</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Import colleges, departments, users, and courses — CSV or JSON.</p>
             </div>
-            <Button variant="outline" size="sm" className="gap-1.5 flex-none" onClick={downloadTemplate}>
-              <DownloadIcon /> Download template
-            </Button>
           </div>
 
           {/* ── Tabs ── */}
