@@ -237,7 +237,11 @@ function OnboardingPageInner() {
     usePublicDepartments(selectedCollege || undefined);
   const { courses, loading: loadingCourses, error: coursesError } = usePublicCourses(
     role === "instructor"
-      ? { collegeId: selectedCollege || undefined, enabled: !!selectedDepartment && !!selectedCollege }
+      ? {
+          collegeId: selectedCollege || undefined,
+          forInstructor: true,
+          enabled: !!selectedDepartment && !!selectedCollege,
+        }
       : { enabled: !!selectedDepartment }
   );
 
@@ -291,7 +295,9 @@ function OnboardingPageInner() {
     if (sectionsMap[courseId]) return;
     setLoadingSections(courseId);
     try {
-      const res = await apiClient.get<Section[]>(API_ENDPOINTS.PUBLIC_COURSE_SECTIONS(courseId));
+      const base = API_ENDPOINTS.PUBLIC_COURSE_SECTIONS(courseId);
+      const url = role === "instructor" ? `${base}?forInstructor=true` : base;
+      const res = await apiClient.get<Section[]>(url);
       const list = res.status === "success" && Array.isArray(res.data) ? res.data : [];
       setSectionsMap((prev) => ({ ...prev, [courseId]: list }));
     } catch {
@@ -299,7 +305,7 @@ function OnboardingPageInner() {
     } finally {
       setLoadingSections(null);
     }
-  }, [sectionsMap]);
+  }, [sectionsMap, role]);
 
   const handleCourseToggle = useCallback((courseId: string) => {
     setCourseSelections((prev) => {
