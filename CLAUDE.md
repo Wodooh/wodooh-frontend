@@ -134,6 +134,12 @@ useEffect(() => {
 const refetch = useCallback(() => setTick(t => t + 1), []);
 ```
 
+### Ably realtime hooks
+
+Ably v2 (`ably@^2`) made `channel.subscribe(...)` return a `Promise<ChannelStateChange | null>` — it implicitly attaches the channel. In a dev-mode `useEffect`, strict-mode double-mount runs the cleanup (`client.close()`) while the subscribe promise is still in flight, and that promise rejects with `ErrorInfo: Connection closed` (code `80017`). Any unhandled rejection surfaces in Next 16's Turbopack dev overlay as a runtime error pointing at the `client.close()` line.
+
+Always attach a `.catch(swallowClosed)` (or equivalent) on each `channel.subscribe(...)` call in `lib/hooks/use-live-session.ts` and any future Ably hook — see the `swallowClosed` helper there for the canonical shape (matches `code === 80017` or `/Connection closed/i`, rethrows anything else). Don't silently `.catch(() => {})` either — real subscribe failures must still surface.
+
 ## When Adding New Features
 
 1. **Add types first** in appropriate `lib/types/*.ts` file
