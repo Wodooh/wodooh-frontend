@@ -18,6 +18,8 @@ export interface SignupData {
   password: string;
   name: string;
   role?: UserRole;
+  departmentId?: string;
+  sectionIds?: string[];
 }
 
 export interface TokenPayload {

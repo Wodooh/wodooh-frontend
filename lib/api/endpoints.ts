@@ -43,6 +43,15 @@ export const API_ENDPOINTS = {
   // Admin - Audit Log
   AUDIT_LOG: '/admin/audit-log',
 
+  // Public (no auth) — used by onboarding before the user has an account
+  PUBLIC_COLLEGES: '/public/colleges',
+  PUBLIC_DEPARTMENTS: '/public/departments',
+  PUBLIC_COURSES: '/public/courses',
+  PUBLIC_COURSE_SECTIONS: (courseId: string) => `/public/courses/${courseId}/sections`,
+
+  // Current user — used by student/instructor dashboards
+  MY_COURSES: '/me/courses',
+
   // --- Planned Backend Features (not yet implemented) ---
   // These are stubs for future backend development
 
