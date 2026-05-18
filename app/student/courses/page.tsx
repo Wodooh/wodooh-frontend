@@ -3,15 +3,15 @@
 /**
  * Student → My Courses.
  *
- * Backlog: US-C4 / FR-09 (view section materials), US-D1 / FR-11 (join the
- * active session of an enrolled section). Materials upload (US-C3) is owned
- * by the instructor; here we only surface what materials would be available.
+ * FR-09: view section materials (US-C4)
+ * FR-11: join the active session of an enrolled section (US-D1)
  */
 
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import Link from "next/link";
 import { useMyCourses } from "@/lib/hooks/use-my-courses";
 import { useSessions } from "@/lib/hooks/use-sessions";
+import { MaterialsModal } from "@/components/lecture/materials-modal";
 import type { SessionPopulated } from "@/lib/types/session.types";
 
 function sectionIdFromSession(s: SessionPopulated): string | null {
@@ -22,6 +22,7 @@ function sectionIdFromSession(s: SessionPopulated): string | null {
 export default function StudentCoursesPage() {
   const { courses, loading, error } = useMyCourses();
   const { sessions: liveSessions, loading: liveLoading } = useSessions({ status: "live" });
+  const [materialsSection, setMaterialsSection] = useState<{ sectionDbId: string; label: string } | null>(null);
 
   const liveBySection = useMemo(() => {
     const map = new Map<string, SessionPopulated>();
@@ -34,6 +35,15 @@ export default function StudentCoursesPage() {
 
   return (
     <>
+      {materialsSection && (
+        <MaterialsModal
+          sectionId={materialsSection.sectionDbId}
+          sectionLabel={materialsSection.label}
+          mode="student"
+          onClose={() => setMaterialsSection(null)}
+        />
+      )}
+
       <div className="nx-page-head">
         <div>
           <h1 className="nx-page-title">My Courses</h1>
@@ -81,6 +91,7 @@ export default function StudentCoursesPage() {
               <tbody>
                 {courses.map((c) => {
                   const live = liveBySection.get(c.sectionDbId);
+                  const sectionLabel = `${c.course?.code ?? "—"} · Section ${c.sectionId}`;
                   return (
                     <tr key={c.sectionDbId}>
                       <td>
@@ -105,18 +116,20 @@ export default function StudentCoursesPage() {
                           </span>
                         )}
                       </td>
-                      <td style={{ textAlign: "right" }}>
-                        {live ? (
+                      <td style={{ textAlign: "right", display: "flex", justifyContent: "flex-end", gap: 8 }}>
+                        <button
+                          className="nx-btn nx-btn-ghost"
+                          onClick={() => setMaterialsSection({ sectionDbId: c.sectionDbId, label: sectionLabel })}
+                        >
+                          View materials
+                        </button>
+                        {live && (
                           <Link
                             href={`/student/sessions/${live._id}/live`}
                             className="nx-btn nx-btn-primary"
                           >
                             Join session
                           </Link>
-                        ) : (
-                          <button className="nx-btn nx-btn-ghost" disabled title="Materials surface coming soon">
-                            View materials
-                          </button>
                         )}
                       </td>
                     </tr>

@@ -3,10 +3,8 @@
 /**
  * Instructor → My Courses.
  *
- * Backlog: US-C1 / FR-06 (start a live session for one of my assigned
- * sections — only my sections are listed; conflict if one is already live)
- * and US-C3 / FR-08 (manage section materials). Section materials are
- * surfaced as a placeholder for the follow-up materials surface.
+ * FR-06: start a live session (US-C1)
+ * FR-08: manage section materials (US-C3) — Materials button opens modal
  */
 
 import React, { useMemo, useState } from "react";
@@ -14,7 +12,10 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useMyCourses } from "@/lib/hooks/use-my-courses";
 import { useSessions } from "@/lib/hooks/use-sessions";
+import { UploadMaterialModal } from "@/components/lecture/upload-material-modal";
+import { MaterialsModal } from "@/components/lecture/materials-modal";
 import type { SessionPopulated } from "@/lib/types/session.types";
+import type { SessionMaterial } from "@/lib/types/live-session.types";
 
 function sectionIdFromSession(s: SessionPopulated): string | null {
   if (!s.sectionId) return null;
@@ -27,6 +28,12 @@ export default function InstructorCoursesPage() {
   const { sessions: liveSessions, loading: liveLoading, startSession } = useSessions({ status: "live" });
   const [startingId, setStartingId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+
+  // Upload modal state: holds sessionId + sectionId after startSession() succeeds
+  const [uploadState, setUploadState] = useState<{ sessionId: string; sectionId: string; courseId: string } | null>(null);
+
+  // Materials modal state: holds sectionDbId of the row being managed
+  const [materialsSection, setMaterialsSection] = useState<{ sectionDbId: string; label: string } | null>(null);
 
   const liveBySection = useMemo(() => {
     const map = new Map<string, SessionPopulated>();
@@ -43,7 +50,7 @@ export default function InstructorCoursesPage() {
     setStartingId(sectionDbId);
     try {
       const created = await startSession({ courseId, sectionId: sectionDbId });
-      router.push(`/instructor/sessions/${created._id}/live`);
+      setUploadState({ sessionId: created._id, sectionId: sectionDbId, courseId });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to start session";
       setActionError(msg);
@@ -52,8 +59,34 @@ export default function InstructorCoursesPage() {
     }
   };
 
+  const onUploadSuccess = (_material: SessionMaterial) => {
+    if (!uploadState) return;
+    router.push(`/instructor/sessions/${uploadState.sessionId}/live`);
+  };
+
   return (
     <>
+      {/* Upload modal — shown after session starts, before entering live page */}
+      {uploadState && (
+        <UploadMaterialModal
+          sessionId={uploadState.sessionId}
+          sectionId={uploadState.sectionId}
+          courseId={uploadState.courseId}
+          onSuccess={onUploadSuccess}
+          onCancel={() => setUploadState(null)}
+        />
+      )}
+
+      {/* Materials management modal */}
+      {materialsSection && (
+        <MaterialsModal
+          sectionId={materialsSection.sectionDbId}
+          sectionLabel={materialsSection.label}
+          mode="instructor"
+          onClose={() => setMaterialsSection(null)}
+        />
+      )}
+
       <div className="nx-page-head">
         <div>
           <h1 className="nx-page-title">My Courses</h1>
@@ -111,6 +144,7 @@ export default function InstructorCoursesPage() {
                 {courses.map((c) => {
                   const live = liveBySection.get(c.sectionDbId);
                   const isStarting = startingId === c.sectionDbId;
+                  const sectionLabel = `${c.course?.code ?? "—"} · Section ${c.sectionId}`;
                   return (
                     <tr key={c.sectionDbId}>
                       <td>
@@ -138,7 +172,10 @@ export default function InstructorCoursesPage() {
                         )}
                       </td>
                       <td style={{ textAlign: "right", display: "flex", justifyContent: "flex-end", gap: 8 }}>
-                        <button className="nx-btn nx-btn-ghost" disabled title="Materials surface coming soon">
+                        <button
+                          className="nx-btn nx-btn-ghost"
+                          onClick={() => setMaterialsSection({ sectionDbId: c.sectionDbId, label: sectionLabel })}
+                        >
                           Materials
                         </button>
                         {live ? (
