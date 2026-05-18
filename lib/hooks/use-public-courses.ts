@@ -12,12 +12,15 @@ export interface PublicCoursesOptions {
   //   {}               → every course in the system
   departmentId?: string;
   collegeId?: string;
+  // When true, the backend hides courses with no sections left for a new
+  // instructor to claim (i.e. every section already has an instructor).
+  forInstructor?: boolean;
   // Set to false to skip fetching (e.g. wait until the user picks something).
   enabled?: boolean;
 }
 
 export function usePublicCourses(opts: PublicCoursesOptions = {}) {
-  const { departmentId, collegeId, enabled = true } = opts;
+  const { departmentId, collegeId, forInstructor = false, enabled = true } = opts;
 
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(false);
@@ -38,6 +41,7 @@ export function usePublicCourses(opts: PublicCoursesOptions = {}) {
     const qs = new URLSearchParams();
     if (departmentId) qs.set('departmentId', departmentId);
     else if (collegeId) qs.set('collegeId', collegeId);
+    if (forInstructor) qs.set('forInstructor', 'true');
     const url = qs.toString()
       ? `${API_ENDPOINTS.PUBLIC_COURSES}?${qs}`
       : API_ENDPOINTS.PUBLIC_COURSES;
@@ -61,7 +65,7 @@ export function usePublicCourses(opts: PublicCoursesOptions = {}) {
       });
 
     return () => { cancelled = true; };
-  }, [enabled, departmentId, collegeId, tick]);
+  }, [enabled, departmentId, collegeId, forInstructor, tick]);
 
   const refetch = useCallback(() => setTick(t => t + 1), []);
   return { courses, loading, error, refetch };

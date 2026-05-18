@@ -27,22 +27,10 @@ const I = {
       <path d="M12 7v5l3 2" />
     </svg>
   ),
-  GradeBook: ({ size = 15 }: { size?: number }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="4" y="3" width="16" height="18" rx="2" />
-      <path d="M8 7h8M8 12h8M8 17h5" />
-    </svg>
-  ),
   Reports: ({ size = 15 }: { size?: number }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
       <path d="M3 3v18h18" />
       <path d="M7 14l4-4 4 4 5-7" />
-    </svg>
-  ),
-  Announcements: ({ size = 15 }: { size?: number }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 11v2a2 2 0 0 0 2 2h3l5 4V5L8 9H5a2 2 0 0 0-2 2Z" />
-      <path d="M19 7c1.5 1.4 1.5 8.6 0 10" />
     </svg>
   ),
   Sun: ({ size = 15 }: { size?: number }) => (
@@ -66,12 +54,10 @@ const I = {
 };
 
 const NAV: { key: string; label: string; href: string; icon: React.FC<{ size?: number }> }[] = [
-  { key: "dashboard",     label: "Dashboard",     href: "/instructor/dashboard",     icon: I.Dashboard },
-  { key: "courses",       label: "My Courses",    href: "/instructor/courses",       icon: I.Courses },
-  { key: "sessions",      label: "Sessions",      href: "/instructor/sessions",      icon: I.Sessions },
-  { key: "gradebook",     label: "Grade Book",    href: "/instructor/gradebook",     icon: I.GradeBook },
-  { key: "announcements", label: "Announcements", href: "/instructor/announcements", icon: I.Announcements },
-  { key: "reports",       label: "Reports",       href: "/instructor/reports",       icon: I.Reports },
+  { key: "dashboard", label: "Dashboard",  href: "/instructor/dashboard", icon: I.Dashboard },
+  { key: "courses",   label: "My Courses", href: "/instructor/courses",   icon: I.Courses },
+  { key: "sessions",  label: "Sessions",   href: "/instructor/sessions",  icon: I.Sessions },
+  { key: "reports",   label: "Reports",    href: "/instructor/reports",   icon: I.Reports },
 ];
 
 export default function InstructorLayout({ children }: { children: React.ReactNode }) {
