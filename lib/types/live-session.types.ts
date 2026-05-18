@@ -35,12 +35,16 @@ export interface LiveSessionMeta {
 
 /** The instructor's lecture file backing the co-viewer. */
 export interface SessionMaterial {
+  _id?: string;                  // MongoDB document ID (present when from API)
   fileId: string;
   filename: string;              // "lecture-09-master-theorem.pptx"
+  originalName?: string;         // raw upload filename
   format: MaterialFormat;
   sizeBytes: number;
   totalPages: number;
   uploadedAt: string;            // ISO
+  /** Signed URL fetched from the backend on demand (not stored in DB). */
+  signedUrl?: string;
   /** Server-rendered page image URL, one per 1-based page. Optional in V1
    *  where the instructor page renders a placeholder slide locally. */
   pageImageUrls?: string[];

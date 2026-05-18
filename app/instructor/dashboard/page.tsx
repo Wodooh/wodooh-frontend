@@ -7,12 +7,15 @@ import apiClient from "@/lib/api/client";
 import API_ENDPOINTS from "@/lib/api/endpoints";
 import { useAuth } from "@/lib/auth/auth-provider";
 import { useMyCourses, type MyCourseEntry } from "@/lib/hooks/use-my-courses";
+import { UploadMaterialModal } from "@/components/lecture/upload-material-modal";
+import type { SessionMaterial } from "@/lib/types/live-session.types";
 
 export default function InstructorDashboardPage() {
   const { user } = useAuth();
   const { courses, loading, error } = useMyCourses();
   const router = useRouter();
   const [starting, setStarting] = useState<string | null>(null);
+  const [uploadState, setUploadState] = useState<{ sessionId: string; sectionId: string; courseId: string } | null>(null);
   const today = new Date().toLocaleDateString(undefined, {
     weekday: "long",
     month: "long",
@@ -31,7 +34,7 @@ export default function InstructorDashboardPage() {
         sectionId: entry.sectionDbId,
       });
       if (res.status === "success" && res.data?._id) {
-        router.push(`/instructor/sessions/${res.data._id}/live`);
+        setUploadState({ sessionId: res.data._id, sectionId: entry.sectionDbId, courseId: entry.course._id });
       } else {
         throw new Error(res.message || "Failed to start session");
       }
@@ -44,6 +47,18 @@ export default function InstructorDashboardPage() {
 
   return (
     <>
+      {uploadState && (
+        <UploadMaterialModal
+          sessionId={uploadState.sessionId}
+          sectionId={uploadState.sectionId}
+          courseId={uploadState.courseId}
+          onSuccess={(_m: SessionMaterial) => {
+            router.push(`/instructor/sessions/${uploadState.sessionId}/live`);
+          }}
+          onCancel={() => setUploadState(null)}
+        />
+      )}
+
       <div className="nx-page-head">
         <div>
           <h1 className="nx-page-title">Dashboard</h1>
