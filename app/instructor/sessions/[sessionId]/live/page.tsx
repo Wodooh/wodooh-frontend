@@ -138,7 +138,6 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
   // Local UI state (would later flow through Ably to followers/server).
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [questionFilter, setQuestionFilter] = useState<QuestionFilter>("all");
-  const [questionSearch, setQuestionSearch] = useState("");
   const [modTab, setModTab] = useState<ModerationTab>("muted");
   const [endModalOpen, setEndModalOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -161,20 +160,12 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
 
   const filteredQuestions = useMemo(() => {
     if (!snapshot) return [];
-    const byStatus =
-      questionFilter === "all"
-        ? snapshot.questions
-        : questionFilter === "new"
-        ? snapshot.questions.filter(q => q.status === "new")
-        : snapshot.questions.filter(q => q.status === "opened");
-    const needle = questionSearch.trim().toLowerCase();
-    if (!needle) return byStatus;
-    return byStatus.filter(
-      q =>
-        q.text.toLowerCase().includes(needle) ||
-        q.authorAnonymousCourseID.toLowerCase().includes(needle),
-    );
-  }, [snapshot, questionFilter, questionSearch]);
+    return questionFilter === "all"
+      ? snapshot.questions
+      : questionFilter === "new"
+      ? snapshot.questions.filter(q => q.status === "new")
+      : snapshot.questions.filter(q => q.status === "opened");
+  }, [snapshot, questionFilter]);
 
   const counts = useMemo(() => ({
     all:      snapshot?.questions.length ?? 0,

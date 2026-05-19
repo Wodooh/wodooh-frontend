@@ -52,6 +52,14 @@ export const API_ENDPOINTS = {
 
   // Current user — used by student/instructor dashboards
   MY_COURSES: '/me/courses',
+  MY_SESSIONS: (status?: string) => {
+    if (!status) {
+      return '/me/sessions';
+    }
+
+    const searchParams = new URLSearchParams({ status });
+    return `/me/sessions?${searchParams.toString()}`;
+  },
 
   // Sessions
   SESSIONS: '/sessions',
