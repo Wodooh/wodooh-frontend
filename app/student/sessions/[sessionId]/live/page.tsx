@@ -66,6 +66,8 @@ export default function StudentLiveSessionPage({ params }: PageProps) {
   const router = useRouter();
 
   // Hook owns the session, questions, and Ably realtime subscription.
+  // enterPresence: true — any user on this page (any account role) is counted
+  // as "present" so the instructor's auto-close timer reflects real attendance.
   const {
     snapshot: liveSnapshot,
     connected,
@@ -74,7 +76,7 @@ export default function StudentLiveSessionPage({ params }: PageProps) {
     error,
     updateQuestion,
     prependQuestion,
-  } = useLiveSession(sessionId);
+  } = useLiveSession(sessionId, true);
 
   // Materials hook — fetches uploaded PDFs for this session
   const { materials: sessionMaterials, getSignedUrl } = useSessionMaterials(sessionId);

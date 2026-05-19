@@ -114,13 +114,24 @@ function buildSnapshot(session: ApiSession, questions: ApiQuestion[]): LiveSessi
   };
 }
 
-export function useLiveSession(sessionId: string) {
+export function useLiveSession(
+  sessionId: string,
+  /**
+   * Pass `true` for any user who is **attending** the session (student, guest,
+   * any role). They will enter Ably presence so the instructor's attendance
+   * count is accurate. Pass `false` (default) for the instructor running the
+   * session — they watch the count instead of contributing to it.
+   */
+  enterPresence = false,
+) {
   const [snapshot, setSnapshot] = useState<LiveSessionSnapshot | null>(null);
   const [connected, setConnected] = useState(false);
   const [ended, setEnded] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
+  /** Live count of students currently in the session (instructor role only). */
+  const [studentCount, setStudentCount] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -244,11 +255,31 @@ export function useLiveSession(sessionId: string) {
       })
       .catch(swallowClosed);
 
+    // ── Presence ──────────────────────────────────────────────────────────────
+    const presenceChannel = client.channels.get(`session:${sessionId}:presence`);
+
+    if (enterPresence) {
+      // This user is attending the session — announce their presence so the
+      // instructor's attendance count is accurate regardless of account role.
+      presenceChannel.presence.enter({})
+        .catch(swallowClosed);
+    } else {
+      // Instructor: maintain a live count of present students.
+      const refreshCount = () => {
+        presenceChannel.presence.get()
+          .then(members => { if (!closed) setStudentCount(members.length); })
+          .catch(() => { /* non-fatal */ });
+      };
+      presenceChannel.presence.subscribe(() => refreshCount())
+        .catch(swallowClosed);
+      refreshCount(); // seed the count before the first event fires
+    }
+
     return () => {
       closed = true;
       client.close();
     };
-  }, [sessionId]);
+  }, [sessionId, enterPresence]);
 
   const refetch = useCallback(() => setTick(t => t + 1), []);
 
@@ -337,5 +368,6 @@ export function useLiveSession(sessionId: string) {
     updateQuestion,
     prependQuestion,
     setQuestionVisibility,
+    studentCount,
   };
 }
