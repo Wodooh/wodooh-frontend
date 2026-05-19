@@ -3,10 +3,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import apiClient from '../api/client';
 import API_ENDPOINTS from '../api/endpoints';
+import type { SessionStatus } from '../types/session.types';
 
 export interface MySession {
   _id: string;
-  status: 'live' | 'ended';
+  status: SessionStatus;
   startedAt: string;
   endedAt?: string;
   courseId: { _id: string; code: string; name: string };
@@ -14,7 +15,7 @@ export interface MySession {
   instructorId: { _id: string; name: string; email: string };
 }
 
-export function useMySessions(status?: 'live' | 'ended') {
+export function useMySessions(status?: SessionStatus) {
   const [sessions, setSessions] = useState<MySession[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
