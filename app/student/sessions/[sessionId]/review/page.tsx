@@ -37,7 +37,7 @@ export default function StudentSessionReviewPage({ params }: PageProps) {
   const { sessionId } = use(params);
   const router = useRouter();
 
-  const { questions, session, sessionLoading, loading, error, updateStatus } =
+  const { questions, session, sessionLoading, isLoading, error, updateStatus } =
     useReviewQuestions(sessionId);
 
   const isLive = session?.status === "live";
@@ -122,7 +122,7 @@ export default function StudentSessionReviewPage({ params }: PageProps) {
           </div>
         </div>
 
-        {loading ? (
+        {isLoading ? (
           <div className="nx-empty"><span className="nx-spin" /></div>
         ) : error ? (
           <div className="nx-empty">

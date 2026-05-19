@@ -113,7 +113,7 @@ export function useReviewQuestions(sessionId: string) {
 
     if (!authorAnonymousCourseId || session?._id !== sessionId) {
       setQuestionsLoading(false);
-      return () => { cancelled = true; };
+      return;
     }
 
     setQuestionsLoading(true);
@@ -162,7 +162,7 @@ export function useReviewQuestions(sessionId: string) {
     questions,
     session,
     sessionLoading,
-    loading: sessionLoading || questionsLoading,
+    isLoading: sessionLoading || questionsLoading,
     error: sessionError ?? questionsError,
     refetch,
     updateStatus,
