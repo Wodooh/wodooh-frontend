@@ -169,7 +169,7 @@ export default function StudentSessionReviewPage({ params }: PageProps) {
               <ReviewQuestionRow
                 key={q._id}
                 question={q}
-                disabled={!!isLive}
+                disabled={session == null || !!isLive}
                 onChange={status => updateStatus(q._id, status)}
               />
             ))}
