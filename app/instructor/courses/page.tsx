@@ -14,8 +14,8 @@ import { useMyCourses } from "@/lib/hooks/use-my-courses";
 import { useSessions } from "@/lib/hooks/use-sessions";
 import { UploadMaterialModal } from "@/components/lecture/upload-material-modal";
 import { MaterialsModal } from "@/components/lecture/materials-modal";
+import { uploadFileToSession, type LibraryMaterial } from "@/lib/hooks/use-session-materials";
 import type { SessionPopulated } from "@/lib/types/session.types";
-import type { SessionMaterial } from "@/lib/types/live-session.types";
 
 function sectionIdFromSession(s: SessionPopulated): string | null {
   if (!s.sectionId) return null;
@@ -26,11 +26,10 @@ export default function InstructorCoursesPage() {
   const router = useRouter();
   const { courses, loading, error } = useMyCourses();
   const { sessions: liveSessions, loading: liveLoading, startSession } = useSessions({ status: "live" });
-  const [startingId, setStartingId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  // Upload modal state: holds sessionId + sectionId after startSession() succeeds
-  const [uploadState, setUploadState] = useState<{ sessionId: string; sectionId: string; courseId: string } | null>(null);
+  // Holds the section the instructor wants to start — modal shown before any API call.
+  const [uploadState, setUploadState] = useState<{ sectionId: string; courseId: string } | null>(null);
 
   // Materials modal state: holds sectionDbId of the row being managed
   const [materialsSection, setMaterialsSection] = useState<{ sectionDbId: string; label: string } | null>(null);
@@ -44,35 +43,36 @@ export default function InstructorCoursesPage() {
     return map;
   }, [liveSessions]);
 
-  const onStart = async (sectionDbId: string, courseId: string | undefined) => {
+  // Show modal immediately — no API call until instructor chooses a file.
+  const onStartClick = (sectionDbId: string, courseId: string | undefined) => {
     if (!courseId) return;
     setActionError(null);
-    setStartingId(sectionDbId);
-    try {
-      const created = await startSession({ courseId, sectionId: sectionDbId });
-      setUploadState({ sessionId: created._id, sectionId: sectionDbId, courseId });
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Failed to start session";
-      setActionError(msg);
-    } finally {
-      setStartingId(null);
-    }
+    setUploadState({ sectionId: sectionDbId, courseId });
   };
 
-  const onUploadSuccess = (_material: SessionMaterial) => {
+  // Called by the modal only after the instructor has confirmed a file choice.
+  const handleStartSession = async (
+    file: File | null,
+    _lib: LibraryMaterial | null,
+    setProgress: (p: number) => void,
+  ) => {
     if (!uploadState) return;
-    router.push(`/instructor/sessions/${uploadState.sessionId}/live`);
+    const created = await startSession({ courseId: uploadState.courseId, sectionId: uploadState.sectionId });
+    if (file) {
+      await uploadFileToSession(created._id, file, setProgress);
+    }
+    setUploadState(null);
+    router.push(`/instructor/sessions/${created._id}/live`);
   };
 
   return (
     <>
-      {/* Upload modal — shown after session starts, before entering live page */}
+      {/* File picker — shown before the session is created (pre-session mode). */}
       {uploadState && (
         <UploadMaterialModal
-          sessionId={uploadState.sessionId}
           sectionId={uploadState.sectionId}
           courseId={uploadState.courseId}
-          onSuccess={onUploadSuccess}
+          onStart={handleStartSession}
           onCancel={() => setUploadState(null)}
         />
       )}
@@ -143,7 +143,6 @@ export default function InstructorCoursesPage() {
               <tbody>
                 {courses.map((c) => {
                   const live = liveBySection.get(c.sectionDbId);
-                  const isStarting = startingId === c.sectionDbId;
                   const sectionLabel = `${c.course?.code ?? "—"} · Section ${c.sectionId}`;
                   return (
                     <tr key={c.sectionDbId}>
@@ -185,10 +184,10 @@ export default function InstructorCoursesPage() {
                         ) : (
                           <button
                             className="nx-btn nx-btn-primary"
-                            onClick={() => onStart(c.sectionDbId, c.course?._id)}
-                            disabled={isStarting || !c.course?._id}
+                            onClick={() => onStartClick(c.sectionDbId, c.course?._id)}
+                            disabled={!c.course?._id}
                           >
-                            {isStarting ? "Starting…" : "Start session"}
+                            Start session
                           </button>
                         )}
                       </td>

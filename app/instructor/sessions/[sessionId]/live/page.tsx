@@ -83,6 +83,7 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
     updateQuestion,
     prependQuestion,
     setQuestionVisibility,
+    studentCount,
   } = useLiveSession(sessionId);
 
   // Materials hook — fetches uploaded PDFs for this session
@@ -155,6 +156,50 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
     if (!liveSnapshot?.meta.startedAt) return;
     setElapsedSec(Math.floor((Date.now() - new Date(liveSnapshot.meta.startedAt).getTime()) / 1000));
   }, [liveSnapshot?.meta.startedAt]);
+
+  /* — Auto-close: 10 min with no students ──────────────────────────── */
+  // autoCloseWarning: the warning banner is visible and the 60-s countdown is running.
+  // autoCloseSuppressed: instructor clicked "Keep open" — don't show again until
+  //   a student actually joins and then leaves again.
+  const [autoCloseWarning, setAutoCloseWarning]         = useState(false);
+  const [autoCloseSuppressed, setAutoCloseSuppressed]   = useState(false);
+  const [autoCloseCountdown, setAutoCloseCountdown]     = useState(60);
+
+  // Raise the warning once the session is 10 min old and no students are present.
+  useEffect(() => {
+    if (!connected) return;
+    if (studentCount > 0) {
+      // Students joined — hide warning and reset suppression so the timer can
+      // fire again if they all leave later.
+      setAutoCloseWarning(false);
+      setAutoCloseSuppressed(false);
+      setAutoCloseCountdown(60);
+      return;
+    }
+    if (elapsedSec >= 600 && !autoCloseSuppressed) {
+      setAutoCloseWarning(true);
+    }
+  }, [elapsedSec, studentCount, connected, autoCloseSuppressed]);
+
+  // Countdown ticker while the warning is visible.
+  useEffect(() => {
+    if (!autoCloseWarning) return;
+    const id = window.setInterval(() => {
+      setAutoCloseCountdown(s => {
+        if (s <= 1) { clearInterval(id); return 0; }
+        return s - 1;
+      });
+    }, 1000);
+    return () => window.clearInterval(id);
+  }, [autoCloseWarning]);
+
+  // End session automatically when the countdown hits zero.
+  useEffect(() => {
+    if (autoCloseWarning && autoCloseCountdown === 0) {
+      void onEndSession();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoCloseCountdown, autoCloseWarning]);
 
   /* — Derived helpers ─────────────────────────────────────────────── */
 
@@ -318,6 +363,40 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
           <b>This session has ended.</b>
         </div>
       )}
+
+      {/* Auto-close warning — no students after 10 min */}
+      {autoCloseWarning && (
+        <div
+          role="alert"
+          style={{
+            display: 'flex', alignItems: 'center', gap: 10,
+            padding: '10px 18px',
+            background: 'color-mix(in oklab, var(--nx-danger, #e5484d) 10%, var(--nx-surface))',
+            borderBottom: '1px solid color-mix(in oklab, var(--nx-danger, #e5484d) 30%, var(--nx-border))',
+            fontSize: 13.5,
+          }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--nx-danger, #e5484d)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <span style={{ flex: 1, color: 'var(--nx-fg)' }}>
+            <b style={{ color: 'var(--nx-danger, #e5484d)' }}>No students present.</b>
+            {' '}Session will auto-close in <b>{autoCloseCountdown}s</b>.
+          </span>
+          <button
+            className="nx-btn nx-btn-ghost"
+            style={{ flexShrink: 0, fontSize: 12.5 }}
+            onClick={() => {
+              setAutoCloseWarning(false);
+              setAutoCloseSuppressed(true);
+              setAutoCloseCountdown(60);
+            }}
+          >
+            Keep open
+          </button>
+        </div>
+      )}
+
       {/* Page head */}
       <div className="nx-page-head">
         <div>

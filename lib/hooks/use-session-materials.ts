@@ -5,6 +5,46 @@ import apiClient from '../api/client';
 import API_ENDPOINTS from '../api/endpoints';
 import type { SessionMaterial } from '../types/live-session.types';
 
+/** Upload a file to an existing session with XHR progress tracking. */
+export function uploadFileToSession(
+  sessionId: string,
+  file: File,
+  onProgress?: (pct: number) => void,
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const formData = new FormData();
+    formData.append('material', file);
+
+    const xhr = new XMLHttpRequest();
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5001';
+
+    if (onProgress) {
+      xhr.upload.addEventListener('progress', (e) => {
+        if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100));
+      });
+    }
+
+    xhr.open('POST', `${baseUrl}/sessions/${sessionId}/materials`);
+    const token = apiClient.getToken();
+    if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve();
+      } else {
+        try {
+          const body = JSON.parse(xhr.responseText);
+          reject(new Error(body.message ?? 'Upload failed'));
+        } catch {
+          reject(new Error(`Upload failed (${xhr.status})`));
+        }
+      }
+    };
+    xhr.onerror = () => reject(new Error('Network error during upload'));
+    xhr.send(formData);
+  });
+}
+
 interface ApiMaterial {
   _id: string;
   fileId: string;
@@ -28,13 +68,14 @@ function mapMaterial(m: ApiMaterial): SessionMaterial {
   };
 }
 
-export function useSessionMaterials(sessionId: string) {
+export function useSessionMaterials(sessionId: string | undefined) {
   const [materials, setMaterials] = useState<SessionMaterial[]>([]);
   const [loading, setLoading]     = useState(true);
   const [error, setError]         = useState<string | null>(null);
   const [tick, setTick]           = useState(0);
 
   useEffect(() => {
+    if (!sessionId) { setLoading(false); return; }
     let cancelled = false;
     setLoading(true);
 
@@ -55,6 +96,7 @@ export function useSessionMaterials(sessionId: string) {
   const refetch = useCallback(() => setTick(t => t + 1), []);
 
   const getSignedUrl = useCallback(async (materialId: string): Promise<string> => {
+    if (!sessionId) return Promise.reject(new Error('No session ID'));
     const res = await apiClient.get<{ signedUrl: string }>(
       API_ENDPOINTS.SESSION_MATERIAL_URL(sessionId, materialId),
     );
@@ -63,6 +105,7 @@ export function useSessionMaterials(sessionId: string) {
 
   const uploadMaterial = useCallback(
     (file: File, onProgress?: (pct: number) => void): Promise<SessionMaterial> => {
+      if (!sessionId) return Promise.reject(new Error('No session ID'));
       return new Promise((resolve, reject) => {
         const formData = new FormData();
         formData.append('material', file);
@@ -108,6 +151,7 @@ export function useSessionMaterials(sessionId: string) {
   );
 
   const deleteMaterial = useCallback(async (materialId: string): Promise<void> => {
+    if (!sessionId) return;
     await apiClient.delete(API_ENDPOINTS.SESSION_MATERIAL_DEL(sessionId, materialId));
     refetch();
   }, [sessionId, refetch]);
