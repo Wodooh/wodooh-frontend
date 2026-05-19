@@ -30,11 +30,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Close,
-  Fullscreen,
   SkipBack,
   SkipForward,
-  ZoomIn,
-  ZoomOut,
 } from "@/components/live-session/icons";
 
 import apiClient from "@/lib/api/client";
@@ -94,7 +91,6 @@ export default function StudentLiveSessionPage({ params }: PageProps) {
   /* — Slide navigation: student can follow the instructor or roam ── */
   const [followInstructor, setFollowInstructor] = useState(true);
   const [studentPage, setStudentPage] = useState<number>(1);
-  const [zoomPct, setZoomPct] = useState(100);
 
   // While "follow instructor" is on, keep the student page locked to the
   // instructor's `currentPage`. As soon as the student navigates manually,
@@ -412,26 +408,6 @@ export default function StudentLiveSessionPage({ params }: PageProps) {
                   ? `Following · slide ${snapshot.currentPage}`
                   : `Independent · catch up to ${snapshot.currentPage}`}
               </button>
-              <div className="nx-zoom-cluster">
-                <button
-                  onClick={() => setZoomPct(z => Math.max(50, z - 10))}
-                  title="Zoom out"
-                  aria-label="Zoom out"
-                >
-                  <ZoomOut size={11} />
-                </button>
-                <span className="nx-zoom-val">{zoomPct}%</span>
-                <button
-                  onClick={() => setZoomPct(z => Math.min(200, z + 10))}
-                  title="Zoom in"
-                  aria-label="Zoom in"
-                >
-                  <ZoomIn size={11} />
-                </button>
-              </div>
-              <button className="nx-icon-btn" title="Fullscreen" aria-label="Fullscreen">
-                <Fullscreen size={13} />
-              </button>
             </div>
           </div>
 
@@ -479,52 +455,7 @@ export default function StudentLiveSessionPage({ params }: PageProps) {
 
         {/* ── Right rail ── */}
         <aside style={{ display: "flex", flexDirection: "column", gap: "var(--nx-stack)" }} aria-label="Participation panel">
-          {/* Reaction submitter */}
-          <div className="nx-card nx-reactions-card" aria-label="Send reaction">
-            <div className="nx-reactions-head">
-              <span className="nx-reactions-eyebrow">
-                <span className="nx-live-mini" aria-hidden /> Send a reaction
-              </span>
-              <span className="nx-reactions-meta">slide {effectivePage}</span>
-            </div>
-            <div className="nx-reactions-grid">
-              {REACTION_BUTTONS.map(({ kind, label, hint }) => {
-                const tally = reactions[kind];
-                const mineCount = reactState.mine[kind];
-                const last = reactState.lastSubmittedAt[kind] ?? 0;
-                const onCooldown = Date.now() - last < REACTION_COOLDOWN_MS;
-                const isPulse = pulseKind === kind;
-                return (
-                  <button
-                    key={kind}
-                    type="button"
-                    className={cn(
-                      "nx-react-tile nx-react-tile-btn",
-                      isPulse && "is-incr",
-                      onCooldown && "is-cooldown",
-                    )}
-                    data-kind={kind}
-                    onClick={() => sendReaction(kind)}
-                    disabled={onCooldown}
-                    title={hint}
-                    aria-label={`Send ${label} reaction`}
-                  >
-                    <div className="nx-react-tile-lbl-row">
-                      <span className="nx-react-tile-dot" aria-hidden />
-                      <span className="nx-react-tile-lbl">{label}</span>
-                    </div>
-                    <span className="nx-react-tile-val">{tally.total}</span>
-                    <span className="nx-react-tile-delta">
-                      {mineCount > 0 ? `You · ${mineCount}` : "Tap to send"}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-            <div className="nx-react-foot">
-              Reactions are aggregated anonymously. Your instructor sees totals, not who sent them.
-            </div>
-          </div>
+          {/* Reactions — wired in FR-13 */}
 
           {/* Question composer */}
           <div className="nx-card" aria-label="Ask an anonymous question">
