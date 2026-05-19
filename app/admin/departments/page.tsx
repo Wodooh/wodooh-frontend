@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from "react";
 import { useDepartments } from "@/lib/hooks/use-departments";
 import { useColleges } from "@/lib/hooks/use-colleges";
+import { useUsersByRole } from "@/lib/hooks/use-users";
+import { useAssignChairman } from "@/lib/hooks/use-chairman";
 import type { Department, CreateDepartmentRequest } from "@/lib/types/department.types";
 
 const EMPTY_FORM: CreateDepartmentRequest = { name: "", code: "", description: "", collegeId: null };
@@ -10,11 +12,21 @@ const EMPTY_FORM: CreateDepartmentRequest = { name: "", code: "", description: "
 export default function AdminDepartmentsPage() {
   const { departments, loading, error, refetch, createDepartment, updateDepartment, deleteDepartment } = useDepartments();
   const { colleges } = useColleges();
+  const { users: chairmen } = useUsersByRole("chairman", { limit: 100 });
+  const { assign: assignChairman } = useAssignChairman();
   const collegeNameById = React.useMemo(() => {
     const m = new Map<string, string>();
     colleges.forEach(c => m.set(c._id, c.name));
     return m;
   }, [colleges]);
+  const chairmanNameById = React.useMemo(() => {
+    const m = new Map<string, string>();
+    chairmen.forEach(c => m.set(c._id, c.name));
+    return m;
+  }, [chairmen]);
+
+  const [chairmanModal, setChairmanModal] = useState<{ dept: Department } | null>(null);
+  const [chairmanSel, setChairmanSel] = useState<string>("");
 
   const [modal, setModal] = useState<{ mode: "create" | "edit"; item?: Department } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Department | null>(null);
@@ -116,10 +128,11 @@ export default function AdminDepartmentsPage() {
             <table className="nx-tbl">
               <thead>
                 <tr>
-                  <th style={{ width: "30%" }}>Name</th>
-                  <th style={{ width: "10%" }}>Code</th>
-                  <th style={{ width: "22%" }}>College</th>
-                  <th style={{ width: "22%" }}>Description</th>
+                  <th style={{ width: "24%" }}>Name</th>
+                  <th style={{ width: "8%" }}>Code</th>
+                  <th style={{ width: "18%" }}>College</th>
+                  <th style={{ width: "18%" }}>Chairman</th>
+                  <th style={{ width: "16%" }}>Description</th>
                   <th style={{ width: "16%", textAlign: "right" }}>Actions</th>
                 </tr>
               </thead>
@@ -133,9 +146,18 @@ export default function AdminDepartmentsPage() {
                     <td style={{ color: "var(--nx-fg-muted)", fontSize: 13 }}>
                       {dept.collegeId ? (collegeNameById.get(dept.collegeId) ?? "—") : "—"}
                     </td>
+                    <td style={{ color: "var(--nx-fg-muted)", fontSize: 13 }}>
+                      {dept.chairmanId ? (chairmanNameById.get(dept.chairmanId) ?? "Assigned") : "—"}
+                    </td>
                     <td style={{ color: "var(--nx-fg-muted)", fontSize: 13 }}>{dept.description || "—"}</td>
                     <td style={{ textAlign: "right" }}>
                       <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+                        <button
+                          className="nx-btn nx-btn-ghost"
+                          onClick={() => { setChairmanSel(dept.chairmanId ?? ""); setChairmanModal({ dept }); }}
+                        >
+                          Chairman
+                        </button>
                         <button className="nx-btn nx-btn-ghost" onClick={() => openEdit(dept)}>Edit</button>
                         <button className="nx-btn nx-btn-ghost" style={{ color: "var(--nx-danger)" }} onClick={() => setDeleteTarget(dept)}>Delete</button>
                       </div>
@@ -259,6 +281,59 @@ export default function AdminDepartmentsPage() {
                 onClick={confirmDelete}
               >
                 {saving ? <><span className="nx-spin" /> Deleting…</> : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {chairmanModal && (
+        <div className="nx-modal-backdrop" onClick={() => !saving && setChairmanModal(null)}>
+          <div className="nx-modal" onClick={e => e.stopPropagation()}>
+            <div className="nx-modal-head">
+              <h3 className="nx-modal-title">Department chairman</h3>
+            </div>
+            <div className="nx-modal-body">
+              <p style={{ margin: "0 0 12px", fontSize: 13 }}>
+                Assign or unassign a chairman for <strong>{chairmanModal.dept.name}</strong>. A user must already have the
+                chairman role; one chairman per department.
+              </p>
+              <div>
+                <span className="nx-field-label">Chairman</span>
+                <select
+                  className="nx-select"
+                  style={{ width: "100%" }}
+                  value={chairmanSel}
+                  onChange={e => setChairmanSel(e.target.value)}
+                >
+                  <option value="">— Unassigned —</option>
+                  {chairmen.map(c => (
+                    <option key={c._id} value={c._id}>{c.name} · {c.email}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="nx-modal-foot">
+              <button className="nx-btn nx-btn-ghost" disabled={saving} onClick={() => setChairmanModal(null)}>Cancel</button>
+              <button
+                className="nx-btn nx-btn-primary"
+                disabled={saving}
+                onClick={async () => {
+                  if (!chairmanModal) return;
+                  setSaving(true);
+                  try {
+                    await assignChairman(chairmanModal.dept._id, chairmanSel || null);
+                    setToast({ kind: "success", msg: chairmanSel ? "Chairman assigned." : "Chairman unassigned." });
+                    setChairmanModal(null);
+                    refetch();
+                  } catch (err: any) {
+                    setToast({ kind: "error", msg: err?.message || "Failed to update chairman." });
+                  } finally {
+                    setSaving(false);
+                  }
+                }}
+              >
+                {saving ? <><span className="nx-spin" /> Saving…</> : "Save"}
               </button>
             </div>
           </div>

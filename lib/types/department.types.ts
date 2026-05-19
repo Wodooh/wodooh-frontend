@@ -4,6 +4,7 @@ export interface Department {
   code: string;
   description?: string;
   collegeId?: string | null;
+  chairmanId?: string | null;
   createdAt: string;
   updatedAt: string;
 }
