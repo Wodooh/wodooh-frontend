@@ -71,12 +71,13 @@ const I = {
 };
 
 const NAV: { key: string; label: string; href: string; icon: React.FC<{ size?: number }> }[] = [
-  { key: "dashboard",   label: "Overview",    href: "/chairman/dashboard",   icon: I.Overview },
-  { key: "departments", label: "Departments", href: "/chairman/departments", icon: I.Departments },
-  { key: "faculty",     label: "Faculty",     href: "/chairman/faculty",     icon: I.Faculty },
-  { key: "students",    label: "Students",    href: "/chairman/students",    icon: I.Students },
-  { key: "reports",     label: "Reports",     href: "/chairman/reports",     icon: I.Reports },
-  { key: "policy",      label: "Policy",      href: "/chairman/policy",      icon: I.Policy },
+  { key: "dashboard",   label: "Overview",     href: "/chairman/dashboard",   icon: I.Overview },
+  { key: "department",  label: "My department", href: "/chairman/department",  icon: I.Departments },
+  { key: "faculty",     label: "Faculty",      href: "/chairman/faculty",     icon: I.Faculty },
+  { key: "students",    label: "Students",     href: "/chairman/students",    icon: I.Students },
+  { key: "reports",     label: "Reports",      href: "/chairman/reports",     icon: I.Reports },
+  { key: "alerts",      label: "Alerts",       href: "/chairman/alerts",      icon: I.Policy },
+  { key: "audit-log",   label: "Audit log",    href: "/chairman/audit-log",   icon: I.Policy },
 ];
 
 export default function ChairmanLayout({ children }: { children: React.ReactNode }) {

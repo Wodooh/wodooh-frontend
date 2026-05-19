@@ -32,6 +32,7 @@ export const API_ENDPOINTS = {
   // Admin - Departments
   DEPARTMENTS: '/admin/departments',
   DEPARTMENT: (id: string) => `/admin/departments/${id}`,
+  ADMIN_DEPARTMENT_CHAIRMAN: (id: string) => `/admin/departments/${id}/chairman`,
 
   // Admin - Courses
   ADMIN_COURSES: '/admin/courses',
@@ -60,6 +61,18 @@ export const API_ENDPOINTS = {
   // Questions
   QUESTIONS: '/questions',
   QUESTION_VISIBILITY: (id: string) => `/questions/${id}/visibility`,
+
+  // Chairman (department-scoped)
+  CHAIRMAN_ME: '/chairman/me',
+  CHAIRMAN_COURSES: '/chairman/courses',
+  CHAIRMAN_COURSE: (id: string) => `/chairman/courses/${id}`,
+  CHAIRMAN_INSTRUCTORS: '/chairman/instructors',
+  CHAIRMAN_STUDENTS: '/chairman/students',
+  CHAIRMAN_SESSIONS: '/chairman/sessions',
+  CHAIRMAN_SESSION_REPORT: (sessionId: string) => `/chairman/reports/session/${sessionId}`,
+  CHAIRMAN_ALERTS: '/chairman/alerts',
+  CHAIRMAN_DEANONYMIZE: '/chairman/deanonymize',
+  CHAIRMAN_AUDIT_LOG: '/chairman/audit-log',
 
   // Ably realtime
   ABLY_TOKEN: '/ably/token',

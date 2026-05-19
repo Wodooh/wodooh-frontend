@@ -128,6 +128,17 @@ lib/
 | GET | `/questions?sessionId=…` | `useLiveSession()` initial backfill before Ably attaches |
 | PATCH | `/questions/:id/visibility` | `useLiveSession()` instructor visibility toggle |
 | GET | `/ably/token` | `useLiveSession()` — mints a TokenRequest; client posts it to Ably to get a real token. **Never expose `ABLY_API_KEY` to the browser.** See ADR-001 and the Ably v2 subscribe-promise gotcha below. |
+| PATCH | `/admin/departments/:id/chairman` | `useAssignChairman().assign()` — body `{ chairmanUserId: string \| null }`. 409 if duplicate-chair invariant violated. |
+| GET | `/chairman/me` | `useChairmanMe()` — chairman's department + counts (courses/sections/instructors/students/live sessions). |
+| GET | `/chairman/courses` | `useChairmanCourses()` — courses in chairman's department with sectionCount. |
+| GET | `/chairman/courses/:id` | `useChairmanCourse(id)` — sections (with instructor) + enrolled students with full PII. |
+| GET | `/chairman/instructors` | `useChairmanInstructors()` — instructors teaching in the dept's sections. |
+| GET | `/chairman/students` | `useChairmanStudents({page, limit, query})` — paginated PII roster. |
+| GET | `/chairman/sessions` | `useChairmanSessions()` — sessions in dept's courses, populated. |
+| GET | `/chairman/reports/session/:sessionId` | `useChairmanSessionReport(id)` — aggregated metrics per [`api.md:137-184`](../wodooh-docs/api.md). |
+| GET | `/chairman/alerts` | `useChairmanAlerts()` — alerts scoped to chairman's dept (seeded ABSENCE_25 for the demo). |
+| POST | `/chairman/deanonymize` | `useDeanonymize().run()` — justification ≥10 chars; audit-before-disclosure; 500 `AUDIT_WRITE_FAILED` returns no PII. |
+| GET | `/chairman/audit-log` | `useChairmanAuditLog({page, limit})` — chairman's own DEANONYMIZE entries. |
 
 ## Hook Patterns
 
