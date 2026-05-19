@@ -30,6 +30,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Close,
+  FileX,
   SkipBack,
   SkipForward,
 } from "@/components/live-session/icons";
@@ -37,10 +38,12 @@ import {
 import apiClient from "@/lib/api/client";
 import API_ENDPOINTS from "@/lib/api/endpoints";
 import { useLiveSession } from "@/lib/hooks/use-live-session";
+import { useSessionMaterials } from "@/lib/hooks/use-session-materials";
 import type {
   LiveQuestion,
   LiveSessionSnapshot,
   ReactionKind,
+  SessionMaterial,
 } from "@/lib/types/live-session.types";
 import { cn } from "@/lib/utils";
 
@@ -73,6 +76,33 @@ export default function StudentLiveSessionPage({ params }: PageProps) {
     prependQuestion,
   } = useLiveSession(sessionId);
 
+  // Materials hook — fetches uploaded PDFs for this session
+  const { materials: sessionMaterials, getSignedUrl } = useSessionMaterials(sessionId);
+  const [activeMaterial, setActiveMaterial] = useState<SessionMaterial | null>(null);
+  const [pdfSignedUrl, setPdfSignedUrl]     = useState<string | null>(null);
+  const [pdfPageCount, setPdfPageCount]     = useState(0);
+
+  useEffect(() => {
+    if (sessionMaterials.length > 0 && !activeMaterial) {
+      const first = sessionMaterials[0];
+      setActiveMaterial(first);
+      if (first._id) {
+        getSignedUrl(first._id).then(setPdfSignedUrl).catch(() => { /* non-fatal */ });
+      }
+    }
+  }, [sessionMaterials, activeMaterial, getSignedUrl]);
+
+  useEffect(() => {
+    if (!activeMaterial || !activeMaterial._id) return;
+    // Refresh 10 minutes before the 1-hour signed URL expires
+    const REFRESH_MS = 50 * 60 * 1000;
+    const materialId = activeMaterial._id;
+    const id = setInterval(() => {
+      getSignedUrl(materialId).then(setPdfSignedUrl).catch(() => { /* non-fatal */ });
+    }, REFRESH_MS);
+    return () => clearInterval(id);
+  }, [activeMaterial, getSignedUrl]);
+
   // Local mirror so the existing local-only mutator (sendReaction) keeps
   // working on snapshot fields the backend doesn't surface yet. Hook
   // updates (initial fetch + Ably question events) flow into this mirror
@@ -102,7 +132,9 @@ export default function StudentLiveSessionPage({ params }: PageProps) {
 
   const goToPage = (p: number) => {
     if (!snapshot) return;
-    const clamped = Math.max(1, Math.min(snapshot.material.totalPages, p));
+    const mat = activeMaterial ?? snapshot.material;
+    const maxPage = pdfPageCount || mat.totalPages || 1;
+    const clamped = Math.max(1, Math.min(maxPage, p));
     setFollowInstructor(false);
     setStudentPage(clamped);
   };
@@ -254,7 +286,9 @@ export default function StudentLiveSessionPage({ params }: PageProps) {
   }
   if (!snapshot) return null;
 
-  const { meta, material, reactions } = snapshot;
+  const { meta, reactions } = snapshot;
+  const material = activeMaterial ?? snapshot.material;
+  const effectiveTotalPages = pdfPageCount || material.totalPages || 1;
 
   return (
     <div className="nx-portal-accent">
@@ -334,6 +368,14 @@ export default function StudentLiveSessionPage({ params }: PageProps) {
       <section className="nx-live-grid">
         {/* ── Document viewer card ── */}
         <div className="nx-card nx-viewer-card" aria-label="Lecture document viewer">
+          {!activeMaterial ? (
+            <div className="flex flex-col items-center justify-center h-full min-h-[400px] gap-3 text-muted-foreground">
+              <FileX className="h-10 w-10 opacity-40" />
+              <p className="text-sm font-medium">No slides yet</p>
+              <p className="text-xs opacity-70">The instructor hasn&apos;t uploaded materials for this session.</p>
+            </div>
+          ) : (
+          <>
           {/* Toolbar */}
           <div className="nx-doc-toolbar">
             <div className="nx-doc-file">
@@ -341,7 +383,7 @@ export default function StudentLiveSessionPage({ params }: PageProps) {
               <div className="nx-file-meta">
                 <div className="nx-file-name">{material.filename}</div>
                 <div className="nx-file-sub">
-                  {formatBytes(material.sizeBytes)} · {material.totalPages} slides
+                  {formatBytes(material.sizeBytes)} · {effectiveTotalPages} slides
                 </div>
               </div>
             </div>
@@ -367,12 +409,12 @@ export default function StudentLiveSessionPage({ params }: PageProps) {
               </button>
               <span className="nx-pg-input" aria-live="polite">
                 <b>{effectivePage}</b> <span className="nx-pg-input-sep">/</span>{" "}
-                <span style={{ color: "var(--nx-fg-muted)" }}>{material.totalPages}</span>
+                <span style={{ color: "var(--nx-fg-muted)" }}>{effectiveTotalPages}</span>
               </span>
               <button
                 className="nx-icon-btn"
                 onClick={() => goToPage(effectivePage + 1)}
-                disabled={effectivePage >= material.totalPages}
+                disabled={effectivePage >= effectiveTotalPages}
                 title="Next slide"
                 aria-label="Next slide"
               >
@@ -380,8 +422,8 @@ export default function StudentLiveSessionPage({ params }: PageProps) {
               </button>
               <button
                 className="nx-icon-btn"
-                onClick={() => goToPage(material.totalPages)}
-                disabled={effectivePage >= material.totalPages}
+                onClick={() => goToPage(effectiveTotalPages)}
+                disabled={effectivePage >= effectiveTotalPages}
                 title="Last slide"
                 aria-label="Last slide"
               >
@@ -415,8 +457,10 @@ export default function StudentLiveSessionPage({ params }: PageProps) {
           <SlideStage
             material={material}
             page={effectivePage}
+            pdfUrl={pdfSignedUrl ?? undefined}
             onPrev={() => goToPage(effectivePage - 1)}
             onNext={() => goToPage(effectivePage + 1)}
+            onPdfLoad={setPdfPageCount}
           />
 
           {/* Where-am-I strip: position relative to the instructor */}
@@ -451,6 +495,8 @@ export default function StudentLiveSessionPage({ params }: PageProps) {
             />
             <span className="nx-student-pos-toggle-lbl">Follow</span>
           </div>
+          </>
+          )}
         </div>
 
         {/* ── Right rail ── */}
