@@ -8,6 +8,8 @@ import type {
   LiveSessionSnapshot,
   LiveQuestion,
   QuestionStatus,
+  ReactionKind,
+  ReactionTallies,
 } from '../types/live-session.types';
 
 type QuestionVisibility = 'visible' | 'hidden';
@@ -72,7 +74,32 @@ function mapQuestion(q: ApiQuestion | QuestionCreatedPayload): LiveQuestion {
   };
 }
 
-function buildSnapshot(session: ApiSession, questions: ApiQuestion[]): LiveSessionSnapshot {
+interface ReactionsSummaryResponse {
+  sessionId: string;
+  totals: Record<ReactionKind, number>;
+}
+
+interface ReactionCreatedPayload {
+  sessionId: string;
+  type: ReactionKind;
+  createdAt: string;
+}
+
+function buildReactions(totals: Record<ReactionKind, number>): ReactionTallies {
+  return {
+    windowSeconds: 60,
+    too_fast:   { total: totals.too_fast,   ratePerMin: 0, trend: 'flat' },
+    too_slow:   { total: totals.too_slow,   ratePerMin: 0, trend: 'flat' },
+    understood: { total: totals.understood, ratePerMin: 0, trend: 'flat' },
+    not_clear:  { total: totals.not_clear,  ratePerMin: 0, trend: 'flat' },
+  };
+}
+
+function buildSnapshot(
+  session: ApiSession,
+  questions: ApiQuestion[],
+  reactionTotals: Record<ReactionKind, number>,
+): LiveSessionSnapshot {
   return {
     meta: {
       sessionId: session._id,
@@ -96,13 +123,7 @@ function buildSnapshot(session: ApiSession, questions: ApiQuestion[]): LiveSessi
     },
     currentPage: 1,
     followers: { onCurrent: 0, ahead: 0, behind: 0, independent: 0 },
-    reactions: {
-      windowSeconds: 60,
-      too_fast:   { total: 0, ratePerMin: 0, trend: 'flat' },
-      too_slow:   { total: 0, ratePerMin: 0, trend: 'flat' },
-      understood: { total: 0, ratePerMin: 0, trend: 'flat' },
-      not_clear:  { total: 0, ratePerMin: 0, trend: 'flat' },
-    },
+    reactions: buildReactions(reactionTotals),
     questions: questions.map(mapQuestion),
     muted: [],
     controls: {
@@ -143,8 +164,17 @@ export function useLiveSession(sessionId: string) {
           throw new Error(questionsRes.message || 'Failed to fetch questions');
         }
 
+        const reactionsRes = await apiClient.get<ReactionsSummaryResponse>(
+          API_ENDPOINTS.SESSION_REACTIONS_SUMMARY(sessionId),
+        );
+        if (cancelled) return;
+        const reactionTotals: Record<ReactionKind, number> =
+          reactionsRes.status === 'success' && reactionsRes.data
+            ? reactionsRes.data.totals
+            : { too_fast: 0, too_slow: 0, understood: 0, not_clear: 0 };
+
         if (!cancelled) {
-          setSnapshot(buildSnapshot(sessionRes.data, questionsRes.data));
+          setSnapshot(buildSnapshot(sessionRes.data, questionsRes.data, reactionTotals));
         }
       } catch (err) {
         if (cancelled) return;
@@ -222,6 +252,25 @@ export function useLiveSession(sessionId: string) {
           if (!prev) return prev;
           if (prev.questions.some(q => q.questionId === mapped.questionId)) return prev;
           return { ...prev, questions: [mapped, ...prev.questions] };
+        });
+      })
+      .catch(swallowClosed);
+
+    const reactionsChannel = client.channels.get(`session:${sessionId}:reactions`);
+    reactionsChannel
+      .subscribe('reaction.created', (msg: Ably.Message) => {
+        if (closed) return;
+        const payload = msg.data as ReactionCreatedPayload;
+        setSnapshot(prev => {
+          if (!prev) return prev;
+          const existing = prev.reactions[payload.type];
+          return {
+            ...prev,
+            reactions: {
+              ...prev.reactions,
+              [payload.type]: { ...existing, total: existing.total + 1 },
+            },
+          };
         });
       })
       .catch(swallowClosed);

@@ -118,6 +118,25 @@ export default function StudentLiveSessionPage({ params }: PageProps) {
   // POST /sessions/:id/join hands the pseudonym back up front.
   const [myAnonCourseId, setMyAnonCourseId] = useState<string | null>(null);
 
+  // Ephemeral per-session pseudonym minted by POST /sessions/:id/join.
+  const [myAnonSessionId, setMyAnonSessionId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    apiClient
+      .post<{ participantId: string; anonymousSessionId: string; sessionId: string }>(
+        API_ENDPOINTS.SESSION_JOIN(sessionId),
+      )
+      .then(res => {
+        if (cancelled) return;
+        if (res.status === "success" && res.data) {
+          setMyAnonSessionId(res.data.anonymousSessionId);
+        }
+      })
+      .catch(() => { /* non-fatal */ });
+    return () => { cancelled = true; };
+  }, [sessionId]);
+
   /* — Slide navigation: student can follow the instructor or roam ── */
   const [followInstructor, setFollowInstructor] = useState(true);
   const [studentPage, setStudentPage] = useState<number>(1);
@@ -177,21 +196,16 @@ export default function StudentLiveSessionPage({ params }: PageProps) {
     const last = reactState.lastSubmittedAt[kind] ?? 0;
     if (now - last < REACTION_COOLDOWN_MS) return;
 
-    // V2: POST /sessions/:id/reactions { kind }. Server publishes to
-    // Ably channel "session:<id>:reactions", instructor sees aggregate.
     setReactState(prev => ({
       lastSubmittedAt: { ...prev.lastSubmittedAt, [kind]: now },
       mine: { ...prev.mine, [kind]: prev.mine[kind] + 1 },
     }));
-    setSnapshot(prev => prev ? ({
-      ...prev,
-      reactions: {
-        ...prev.reactions,
-        [kind]: { ...prev.reactions[kind], total: prev.reactions[kind].total + 1 },
-      },
-    }) : prev);
     setPulseKind(kind);
     window.setTimeout(() => setPulseKind(null), 280);
+
+    void apiClient
+      .post(API_ENDPOINTS.SESSION_REACTIONS(sessionId), { type: kind })
+      .catch(() => { /* non-fatal — Ably echo will reconcile total */ });
   };
 
   /* — Anonymous question composer + submission ────────────────────── */
@@ -257,6 +271,9 @@ export default function StudentLiveSessionPage({ params }: PageProps) {
   const [leaveOpen, setLeaveOpen] = useState(false);
   const confirmLeave = () => {
     setLeaveOpen(false);
+    void apiClient
+      .post(API_ENDPOINTS.SESSION_LEAVE(sessionId))
+      .catch(() => { /* non-fatal — do not block navigation */ });
     router.push("/student/sessions");
   };
 
@@ -335,7 +352,7 @@ export default function StudentLiveSessionPage({ params }: PageProps) {
           </div>
           <div className="nx-meta-item">
             <span className="nx-meta-label">Your alias</span>
-            <span className="nx-meta-value">{myAnonCourseId ?? "—"}</span>
+            <span className="nx-meta-value">{myAnonSessionId ?? myAnonCourseId ?? "—"}</span>
           </div>
         </div>
 
