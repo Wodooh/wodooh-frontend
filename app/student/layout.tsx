@@ -27,12 +27,6 @@ const I = {
       <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z" />
     </svg>
   ),
-  Announcements: ({ size = 15 }: { size?: number }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 11v2a2 2 0 0 0 2 2h3l5 4V5L8 9H5a2 2 0 0 0-2 2Z" />
-      <path d="M19 7c1.5 1.4 1.5 8.6 0 10" />
-    </svg>
-  ),
   Sun: ({ size = 15 }: { size?: number }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="12" r="4" />
@@ -55,9 +49,8 @@ const I = {
 
 const NAV: { key: string; label: string; href: string; icon: React.FC<{ size?: number }> }[] = [
   { key: "dashboard",     label: "Dashboard",     href: "/student/dashboard",     icon: I.Dashboard },
-  { key: "sessions",      label: "Active Sessions", href: "/student/sessions",   icon: I.Sessions },
+  { key: "sessions",      label: "Sessions",      href: "/student/sessions",      icon: I.Sessions },
   { key: "courses",       label: "My Courses",    href: "/student/courses",       icon: I.Courses },
-  { key: "announcements", label: "Announcements", href: "/student/announcements", icon: I.Announcements },
 ];
 
 export default function StudentLayout({ children }: { children: React.ReactNode }) {

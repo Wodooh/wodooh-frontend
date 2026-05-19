@@ -10,6 +10,8 @@ export interface MyCourseEntry {
   sectionId: number;
   instructor: { _id: string; name: string; email: string } | null;
   course: { _id: string; name: string; code: string; credits: number | null } | null;
+  enrolledCount?: number;
+  capacity?: number | null;
 }
 
 interface MyCoursesResponse {

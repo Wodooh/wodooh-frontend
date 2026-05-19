@@ -11,17 +11,25 @@
  * instructor and student portals share the visual shell.
  */
 
+import dynamic from "next/dynamic";
 import { ChevronLeft, ChevronRight } from "./icons";
 import type { SessionMaterial } from "@/lib/types/live-session.types";
+
+const PdfViewer = dynamic(
+  () => import("@/components/lecture/pdf-viewer").then(m => ({ default: m.PdfViewer })),
+  { ssr: false, loading: () => <PdfLoadingSkeleton /> }
+);
 
 interface SlideStageProps {
   material: SessionMaterial;
   page: number;
+  pdfUrl?: string;
   onPrev?: () => void;
   onNext?: () => void;
+  onPdfLoad?: (numPages: number) => void;
 }
 
-export function SlideStage({ material, page, onPrev, onNext }: SlideStageProps) {
+export function SlideStage({ material, page, pdfUrl, onPrev, onNext, onPdfLoad }: SlideStageProps) {
   const total = material.totalPages;
   const hasImage = Boolean(material.pageImageUrls?.[page - 1]);
 
@@ -37,9 +45,12 @@ export function SlideStage({ material, page, onPrev, onNext }: SlideStageProps) 
         <ChevronLeft size={14} />
       </button>
 
-      <article className="nx-slide" aria-label={`Slide ${page} of ${total}`}>
-        {hasImage ? (
-          // V2 path — server-rendered page image.
+      <article className="nx-slide" aria-label={`Slide ${page} of ${total || '?'}`}>
+        {pdfUrl ? (
+          <div style={{ width: "100%", height: "100%", overflow: "hidden" }}>
+            <PdfViewer url={pdfUrl} page={page} onLoadSuccess={onPdfLoad} />
+          </div>
+        ) : hasImage ? (
           /* eslint-disable-next-line @next/next/no-img-element */
           <img
             src={material.pageImageUrls![page - 1]}
@@ -56,12 +67,23 @@ export function SlideStage({ material, page, onPrev, onNext }: SlideStageProps) 
       <button
         className="nx-slide-nav-arrow is-right"
         onClick={onNext}
-        disabled={page >= total}
+        disabled={page >= (total || 1)}
         aria-label="Next slide"
         title="Next slide"
       >
         <ChevronRight size={14} />
       </button>
+    </div>
+  );
+}
+
+/* ─── PDF loading skeleton ───────────────────────────────── */
+
+function PdfLoadingSkeleton() {
+  return (
+    <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, color: "var(--nx-fg-muted)" }}>
+      <span className="nx-spin" />
+      <span style={{ fontSize: 13 }}>Loading PDF…</span>
     </div>
   );
 }

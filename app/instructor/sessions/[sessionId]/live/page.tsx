@@ -52,6 +52,7 @@ import {
 import apiClient from "@/lib/api/client";
 import API_ENDPOINTS from "@/lib/api/endpoints";
 import { useLiveSession } from "@/lib/hooks/use-live-session";
+import { useSessionMaterials } from "@/lib/hooks/use-session-materials";
 import type {
   LiveQuestion,
   LiveSessionSnapshot,
@@ -59,6 +60,7 @@ import type {
   QuestionStatus,
   ReactionKind,
   SessionControls,
+  SessionMaterial,
 } from "@/lib/types/live-session.types";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -86,6 +88,24 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
     prependQuestion,
     setQuestionVisibility,
   } = useLiveSession(sessionId);
+
+  // Materials hook — fetches uploaded PDFs for this session
+  const { materials: sessionMaterials, getSignedUrl } = useSessionMaterials(sessionId);
+  const [activeMaterial, setActiveMaterial] = useState<SessionMaterial | null>(null);
+  const [pdfSignedUrl, setPdfSignedUrl]     = useState<string | null>(null);
+  const [pdfPageCount, setPdfPageCount]     = useState(0);
+
+  // Auto-load first material when the list arrives
+  useEffect(() => {
+    if (sessionMaterials.length === 0 || activeMaterial) return;
+    const first = sessionMaterials[0];
+    setActiveMaterial(first);
+    if (first._id) {
+      getSignedUrl(first._id)
+        .then(url => setPdfSignedUrl(url))
+        .catch(() => { /* non-fatal — slide placeholder shown */ });
+    }
+  }, [sessionMaterials, activeMaterial, getSignedUrl]);
 
   // Local mirror so the existing local-only mutators (setControls,
   // onMuteAuthor, onUnmute) can continue to operate on `controls` /
@@ -160,7 +180,8 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
 
   const goToPage = (p: number) => {
     if (!snapshot) return;
-    const clamped = Math.max(1, Math.min(snapshot.material.totalPages, p));
+    const maxPage = pdfPageCount || snapshot.material.totalPages || 1;
+    const clamped = Math.max(1, Math.min(maxPage, p));
     setCurrentPage(clamped);
     // V2: if `controls.broadcasting`, publish to channel "sess.<id>.page".
   };
@@ -259,7 +280,10 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
   }
   if (!snapshot) return null;
 
-  const { meta, material, reactions, muted, controls, questions } = snapshot;
+  const { meta, material: snapshotMaterial, reactions, muted, controls, questions } = snapshot;
+  // Prefer real uploaded material; fall back to snapshot placeholder
+  const material = activeMaterial ?? snapshotMaterial;
+  const effectiveTotalPages = pdfPageCount || material.totalPages || 1;
 
   return (
     <div className="nx-portal-accent">
@@ -349,7 +373,7 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
               <div className="nx-file-meta">
                 <div className="nx-file-name">{material.filename}</div>
                 <div className="nx-file-sub">
-                  {formatBytes(material.sizeBytes)} · {material.totalPages} slides
+                  {formatBytes(material.sizeBytes)} · {effectiveTotalPages > 0 ? `${effectiveTotalPages} slides` : 'Loading…'}
                 </div>
               </div>
             </div>
@@ -375,12 +399,12 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
               </button>
               <span className="nx-pg-input" aria-live="polite">
                 <b>{currentPage}</b> <span className="nx-pg-input-sep">/</span>{" "}
-                <span style={{ color: "var(--nx-fg-muted)" }}>{material.totalPages}</span>
+                <span style={{ color: "var(--nx-fg-muted)" }}>{effectiveTotalPages || '—'}</span>
               </span>
               <button
                 className="nx-icon-btn"
                 onClick={() => goToPage(currentPage + 1)}
-                disabled={currentPage >= material.totalPages}
+                disabled={currentPage >= effectiveTotalPages}
                 title="Next slide"
                 aria-label="Next slide"
               >
@@ -388,8 +412,8 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
               </button>
               <button
                 className="nx-icon-btn"
-                onClick={() => goToPage(material.totalPages)}
-                disabled={currentPage >= material.totalPages}
+                onClick={() => goToPage(effectiveTotalPages)}
+                disabled={currentPage >= effectiveTotalPages}
                 title="Last slide"
                 aria-label="Last slide"
               >
@@ -417,8 +441,10 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
           <SlideStage
             material={material}
             page={currentPage}
+            pdfUrl={pdfSignedUrl ?? undefined}
             onPrev={() => goToPage(currentPage - 1)}
             onNext={() => goToPage(currentPage + 1)}
+            onPdfLoad={setPdfPageCount}
           />
 
           {/* Thumbnail strip */}
