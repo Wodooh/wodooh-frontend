@@ -2,60 +2,62 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
 import apiClient from "@/lib/api/client";
 import API_ENDPOINTS from "@/lib/api/endpoints";
 import { useAuth } from "@/lib/auth/auth-provider";
 import { useMyCourses, type MyCourseEntry } from "@/lib/hooks/use-my-courses";
 import { UploadMaterialModal } from "@/components/lecture/upload-material-modal";
-import type { SessionMaterial } from "@/lib/types/live-session.types";
+import { uploadFileToSession } from "@/lib/hooks/use-session-materials";
+import type { LibraryMaterial } from "@/lib/hooks/use-session-materials";
 
 export default function InstructorDashboardPage() {
   const { user } = useAuth();
   const { courses, loading, error } = useMyCourses();
   const router = useRouter();
-  const [starting, setStarting] = useState<string | null>(null);
-  const [uploadState, setUploadState] = useState<{ sessionId: string; sectionId: string; courseId: string } | null>(null);
+  // Holds the entry the instructor wants to start a session for.
+  // Set immediately on button click — modal shown before any API call.
+  const [pendingEntry, setPendingEntry] = useState<MyCourseEntry | null>(null);
   const today = new Date().toLocaleDateString(undefined, {
     weekday: "long",
     month: "long",
     day: "numeric",
   });
 
-  const startSession = async (entry: MyCourseEntry) => {
-    if (!entry.course) {
-      toast.error("This section is not linked to a course.");
-      return;
+  const handleStartClick = (entry: MyCourseEntry) => {
+    if (!entry.course) return;
+    setPendingEntry(entry);
+  };
+
+  // Called by the modal only after the instructor has chosen a file.
+  const handleStartSession = async (
+    file: File | null,
+    _lib: LibraryMaterial | null,
+    setProgress: (p: number) => void,
+  ) => {
+    if (!pendingEntry?.course) return;
+    const res = await apiClient.post<{ _id: string }>(API_ENDPOINTS.SESSIONS, {
+      courseId: pendingEntry.course._id,
+      sectionId: pendingEntry.sectionDbId,
+    });
+    if (res.status !== "success" || !res.data?._id) {
+      throw new Error(res.message || "Failed to start session");
     }
-    setStarting(entry.sectionDbId);
-    try {
-      const res = await apiClient.post<{ _id: string }>(API_ENDPOINTS.SESSIONS, {
-        courseId: entry.course._id,
-        sectionId: entry.sectionDbId,
-      });
-      if (res.status === "success" && res.data?._id) {
-        setUploadState({ sessionId: res.data._id, sectionId: entry.sectionDbId, courseId: entry.course._id });
-      } else {
-        throw new Error(res.message || "Failed to start session");
-      }
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to start session");
-    } finally {
-      setStarting(null);
+    const sessionId = res.data._id;
+    if (file) {
+      await uploadFileToSession(sessionId, file, setProgress);
     }
+    setPendingEntry(null);
+    router.push(`/instructor/sessions/${sessionId}/live`);
   };
 
   return (
     <>
-      {uploadState && (
+      {pendingEntry && (
         <UploadMaterialModal
-          sessionId={uploadState.sessionId}
-          sectionId={uploadState.sectionId}
-          courseId={uploadState.courseId}
-          onSuccess={(_m: SessionMaterial) => {
-            router.push(`/instructor/sessions/${uploadState.sessionId}/live`);
-          }}
-          onCancel={() => setUploadState(null)}
+          sectionId={pendingEntry.sectionDbId}
+          courseId={pendingEntry.course?._id}
+          onStart={handleStartSession}
+          onCancel={() => setPendingEntry(null)}
         />
       )}
 
@@ -116,10 +118,10 @@ export default function InstructorDashboardPage() {
                     <td style={{ textAlign: "right" }}>
                       <button
                         className="nx-btn nx-btn-ghost"
-                        onClick={() => startSession(c)}
-                        disabled={!!starting}
+                        onClick={() => handleStartClick(c)}
+                        disabled={!c.course?._id}
                       >
-                        {starting === c.sectionDbId ? "Starting…" : "Start session"}
+                        Start session
                       </button>
                     </td>
                   </tr>

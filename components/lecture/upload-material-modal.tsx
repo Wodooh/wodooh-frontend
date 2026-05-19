@@ -8,10 +8,22 @@ import API_ENDPOINTS from '@/lib/api/endpoints';
 import type { SessionMaterial } from '@/lib/types/live-session.types';
 
 interface UploadMaterialModalProps {
-  sessionId: string;
+  /** Omit when showing the modal before a session exists (pre-session mode). */
+  sessionId?: string;
   sectionId: string;
   courseId?: string;
-  onSuccess: (material: SessionMaterial, fromLibrary?: boolean) => void;
+  /** Called after a successful upload in in-session mode. */
+  onSuccess?: (material: SessionMaterial, fromLibrary?: boolean) => void;
+  /**
+   * Pre-session mode: called when the instructor confirms a file choice.
+   * The parent must create the session, upload if `file` is provided, then navigate.
+   * Throw to show an error inside the modal.
+   */
+  onStart?: (
+    file: File | null,
+    lib: LibraryMaterial | null,
+    setProgress: (p: number) => void,
+  ) => Promise<void>;
   onCancel: () => void;
 }
 
@@ -40,7 +52,7 @@ interface SectionFolder {
   materials: LibraryMaterial[];
 }
 
-export function UploadMaterialModal({ sessionId, sectionId, courseId, onSuccess, onCancel }: UploadMaterialModalProps) {
+export function UploadMaterialModal({ sessionId, sectionId, courseId, onSuccess, onStart, onCancel }: UploadMaterialModalProps) {
   const { uploadMaterial }                                          = useSessionMaterials(sessionId);
   const { materials: libraryMaterials, loading: libLoading, getSignedUrl } = useInstructorLibrary();
 
@@ -134,11 +146,29 @@ export function UploadMaterialModal({ sessionId, sectionId, courseId, onSuccess,
     if (uploading) return;
     setError(null);
 
+    // ── Pre-session mode ────────────────────────────────────────────────────────
+    // onStart is provided: delegate session creation + upload to the parent.
+    if (onStart) {
+      setUploading(true);
+      setProgress(0);
+      try {
+        await onStart(
+          tab === 'upload' ? file : null,
+          tab === 'library' ? selectedLib : null,
+          setProgress,
+        );
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to start session.');
+        setUploading(false);
+      }
+      return;
+    }
+
+    // ── In-session mode (session already exists) ────────────────────────────────
     if (tab === 'library' && selectedLib) {
-      // Reuse existing material — just fetch signed URL and pass it through
       try {
         const url = await getSignedUrl(selectedLib.sessionId, selectedLib._id);
-        onSuccess({
+        onSuccess?.({
           _id: selectedLib._id,
           fileId: selectedLib.fileId,
           filename: selectedLib.originalName,
@@ -159,7 +189,7 @@ export function UploadMaterialModal({ sessionId, sectionId, courseId, onSuccess,
     setUploading(true);
     try {
       const material = await uploadMaterial(file, setProgress);
-      onSuccess(material, false);
+      onSuccess?.(material, false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Upload failed. Please try again.');
       setUploading(false);
@@ -167,9 +197,14 @@ export function UploadMaterialModal({ sessionId, sectionId, courseId, onSuccess,
   };
 
   const handleCancel = async () => {
+    // Pre-session mode: no session was created, nothing to end.
+    if (!sessionId) {
+      onCancel();
+      return;
+    }
+    // In-session mode: end the session that was already created.
     setCancelling(true);
     try {
-      // End the session that was just created, then exit
       await apiClient.patch(API_ENDPOINTS.SESSION_END(sessionId));
     } catch { /* if end fails, still let them go back */ }
     setCancelling(false);
@@ -537,7 +572,7 @@ export function UploadMaterialModal({ sessionId, sectionId, courseId, onSuccess,
               onClick={handleCancel}
               disabled={cancelling || uploading}
             >
-              {cancelling ? 'Cancelling…' : 'Cancel session'}
+              {cancelling ? 'Cancelling…' : sessionId ? 'Cancel session' : 'Cancel'}
             </button>
             <button
               className="nx-btn nx-btn-primary"
@@ -546,7 +581,12 @@ export function UploadMaterialModal({ sessionId, sectionId, courseId, onSuccess,
               style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
             >
               {uploading ? (
-                <><span className="nx-spin" style={{ width: 13, height: 13 }} /> Uploading…</>
+                <><span className="nx-spin" style={{ width: 13, height: 13 }} /> {onStart ? 'Starting…' : 'Uploading…'}</>
+              ) : onStart ? (
+                <>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+                  Start session
+                </>
               ) : tab === 'library' ? (
                 <>
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
