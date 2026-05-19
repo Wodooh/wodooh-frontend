@@ -2038,3 +2038,64 @@
   color: var(--nx-danger); font-weight: 600;
   box-shadow: var(--nx-shadow-sm);
 }
+
+/* ── Live-session focus mode: collapses sidebar, expands main ─────── */
+html[data-nx-focus="live"] .nx-shell {
+  grid-template-columns: 1fr;
+}
+html[data-nx-focus="live"] .nx-sidebar {
+  display: none;
+}
+html[data-nx-focus="live"] .nx-main {
+  min-width: 0;
+}
+
+/* ── Question reveal blur (instructor live page) ──────────────────── */
+.nx-qrow-text--hidden {
+  filter: blur(4px);
+  user-select: none;
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+/* ── Material switcher (instructor doc toolbar) ───────────────────── */
+.nx-material-switcher {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.nx-material-name {
+  font-size: 11px;
+  color: var(--nx-fg-muted);
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.nx-material-select {
+  font-size: 11px;
+  color: var(--nx-fg);
+  background: var(--nx-bg-elev);
+  border: 1px solid var(--nx-border);
+  border-radius: 6px;
+  padding: 2px 6px;
+  max-width: 160px;
+}
+.nx-material-upload-btn {
+  font-size: 11px;
+  color: var(--nx-fg-muted);
+  background: transparent;
+  border: 1px solid var(--nx-border);
+  border-radius: 6px;
+  padding: 2px 6px;
+  cursor: pointer;
+  line-height: 1;
+}
+.nx-material-upload-btn:hover {
+  color: var(--nx-fg);
+  border-color: var(--nx-fg-muted);
+}
+.nx-material-upload-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
