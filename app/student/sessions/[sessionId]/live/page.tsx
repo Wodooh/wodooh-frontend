@@ -103,6 +103,13 @@ export default function StudentLiveSessionPage({ params }: PageProps) {
     return () => clearInterval(id);
   }, [activeMaterial, getSignedUrl]);
 
+  useEffect(() => {
+    document.documentElement.setAttribute('data-nx-focus', 'live');
+    return () => {
+      document.documentElement.removeAttribute('data-nx-focus');
+    };
+  }, []);
+
   // Local mirror so the existing local-only mutator (sendReaction) keeps
   // working on snapshot fields the backend doesn't surface yet. Hook
   // updates (initial fetch + Ably question events) flow into this mirror
@@ -328,10 +335,6 @@ export default function StudentLiveSessionPage({ params }: PageProps) {
           <div className="nx-meta-item">
             <span className="nx-meta-label">Elapsed</span>
             <span className="nx-meta-value">{elapsedFmt}</span>
-          </div>
-          <div className="nx-meta-item">
-            <span className="nx-meta-label">In room</span>
-            <span className="nx-meta-value">{meta.joinedCount}</span>
           </div>
           <div className="nx-meta-item">
             <span className="nx-meta-label">Your alias</span>

@@ -40,13 +40,9 @@ import {
   Cluster,
   Copy,
   Eye,
-  Flag,
-  MuteIcon,
-  Search,
   SkipBack,
   SkipForward,
   StopSquare,
-  Ungroup,
 } from "@/components/live-session/icons";
 
 import apiClient from "@/lib/api/client";
@@ -96,7 +92,6 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
   const [pdfPageCount, setPdfPageCount]     = useState(0);
   const [uploading, setUploading]           = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [uploadError, setUploadError]       = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Auto-load first material when the list arrives
@@ -121,6 +116,13 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
     }, REFRESH_MS);
     return () => clearInterval(id);
   }, [activeMaterial, getSignedUrl]);
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-nx-focus', 'live');
+    return () => {
+      document.documentElement.removeAttribute('data-nx-focus');
+    };
+  }, []);
 
   // Local mirror so the existing local-only mutators (setControls,
   // onMuteAuthor, onUnmute) can continue to operate on `controls` /
@@ -206,13 +208,12 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setUploadError(null);
     setUploading(true);
     setUploadProgress(0);
     try {
       await uploadMaterial(file, setUploadProgress);
     } catch (err: unknown) {
-      setUploadError(err instanceof Error ? err.message : 'Upload failed');
+      toast.error(err instanceof Error ? err.message : 'Upload failed');
     } finally {
       setUploading(false);
       setUploadProgress(0);
@@ -366,10 +367,6 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
             <span className="nx-meta-value">{elapsedFmt}</span>
           </div>
           <div className="nx-meta-item">
-            <span className="nx-meta-label">Joined</span>
-            <span className="nx-meta-value">{meta.joinedCount}</span>
-          </div>
-          <div className="nx-meta-item">
             <span className="nx-meta-label">Join code</span>
             <span className="nx-join-code">
               <span>{meta.joinCode}</span>
@@ -474,38 +471,43 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
                 ref={fileInputRef}
                 type="file"
                 accept=".pdf,.pptx"
-                className="hidden"
+                style={{ display: 'none' }}
                 onChange={handleFileChange}
               />
 
-              {/* Upload button */}
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploading}
-                className="flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {uploading ? (
-                  <>
-                    <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 100 16v-4l-3 3 3 3v-4a8 8 0 01-8-8z"/>
-                    </svg>
-                    {uploadProgress > 0 ? `${uploadProgress}%` : 'Uploading…'}
-                  </>
+              {/* Material switcher: shows active material; lets instructor pick another when multiple exist */}
+              <div className="nx-material-switcher">
+                {sessionMaterials.length > 1 ? (
+                  <select
+                    className="nx-material-select"
+                    value={activeMaterial?._id ?? ''}
+                    onChange={(e) => {
+                      const chosen = sessionMaterials.find(m => m._id === e.target.value);
+                      if (!chosen || !chosen._id) return;
+                      setActiveMaterial(chosen);
+                      getSignedUrl(chosen._id)
+                        .then(setPdfSignedUrl)
+                        .catch(() => { /* non-fatal */ });
+                    }}
+                  >
+                    {sessionMaterials.map(m => (
+                      <option key={m._id} value={m._id ?? ''}>{m.filename}</option>
+                    ))}
+                  </select>
                 ) : (
-                  <>
-                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M12 12V4m0 0L8 8m4-4l4 4"/>
-                    </svg>
-                    Upload slides
-                  </>
+                  <span className="nx-material-name">
+                    {activeMaterial ? activeMaterial.filename : 'No slides'}
+                  </span>
                 )}
-              </button>
-
-              {/* Inline error */}
-              {uploadError && (
-                <span className="text-xs text-destructive">{uploadError}</span>
-              )}
+                <button
+                  className="nx-material-upload-btn"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  title={sessionMaterials.length > 1 ? 'Upload new slides' : 'Upload slides'}
+                >
+                  {uploading ? (uploadProgress > 0 ? `${uploadProgress}%` : '…') : '↑'}
+                </button>
+              </div>
             </div>
           </div>
 
@@ -547,37 +549,27 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
             </div>
 
             <div className="nx-filter-bar">
-              <div className="nx-input-wrap">
-                <Search size={13} />
-                <input
-                  className="nx-input"
-                  placeholder="Filter by text or alias…"
-                  value={questionSearch}
-                  onChange={e => setQuestionSearch(e.target.value)}
-                  aria-label="Filter questions"
-                />
-              </div>
               <div className="nx-tabs" role="tablist">
                 <button
                   className="nx-tab"
                   data-active={questionFilter === "all"}
                   onClick={() => setQuestionFilter("all")}
                 >
-                  All <span className="nx-filter-bar-count">{counts.all}</span>
+                  All ({counts.all})
                 </button>
                 <button
                   className="nx-tab"
                   data-active={questionFilter === "new"}
                   onClick={() => setQuestionFilter("new")}
                 >
-                  New <span className="nx-filter-bar-count">{counts.new}</span>
+                  New ({counts.new})
                 </button>
                 <button
                   className="nx-tab"
                   data-active={questionFilter === "opened"}
                   onClick={() => setQuestionFilter("opened")}
                 >
-                  Opened <span className="nx-filter-bar-count">{counts.opened}</span>
+                  Opened ({counts.opened})
                 </button>
               </div>
             </div>
@@ -702,7 +694,7 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
       {endModalOpen && (
         <EndSessionModal
           questions={questions}
-          joinedCount={meta.joinedCount}
+          joinedCount={0}
           totalPages={material.totalPages}
           slidesViewed={currentPage}
           elapsedFmt={elapsedFmt}
@@ -772,38 +764,25 @@ function QuestionRow({
         </span>
       </div>
 
-      <p className="nx-qrow-text">{q.text}</p>
+      <p
+        className={cn("nx-qrow-text", q.status === "new" && "nx-qrow-text--hidden")}
+        aria-hidden={q.status === "new"}
+      >
+        {q.text}
+      </p>
 
       <div className="nx-qrow-actions">
         <StatusBadge status={q.status} openedAt={q.openedAt} resolvedByAuthor={q.resolvedByAuthor} />
         <span className="nx-qrow-actions-spacer" />
 
         {q.status === "new" && (
-          <>
-            <button className="nx-btn nx-btn-primary" onClick={onOpen}>
-              <Eye size={11} /> Open
-            </button>
-            {q.clusterSize > 1 && (
-              <button className="nx-btn nx-btn-ghost" onClick={onUngroup} title="Ungroup cluster">
-                <Ungroup size={11} />
-              </button>
-            )}
-            <button className="nx-btn nx-btn-ghost" onClick={onMute} title="Mute anonymous author for this session">
-              <MuteIcon size={11} />
-            </button>
-            <button className="nx-btn nx-btn-ghost" onClick={onReport} title="Report abusive content" style={{ color: "var(--nx-danger)" }}>
-              <Flag size={11} />
-            </button>
-          </>
+          <button className="nx-btn nx-btn-primary" onClick={onOpen}>
+            <Eye size={11} /> Reveal
+          </button>
         )}
 
         {q.status === "opened" && (
-          <>
-            <button className="nx-btn nx-btn-primary" onClick={onResolve}>Mark resolved</button>
-            <button className="nx-btn nx-btn-ghost" onClick={onMute} title="Mute author">
-              <MuteIcon size={11} />
-            </button>
-          </>
+          <button className="nx-btn nx-btn-primary" onClick={onResolve}>Mark resolved</button>
         )}
 
         {q.status === "resolved" && (
