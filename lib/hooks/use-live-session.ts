@@ -10,6 +10,8 @@ import type {
   QuestionStatus,
 } from '../types/live-session.types';
 
+type QuestionVisibility = 'visible' | 'hidden';
+
 interface ApiSession {
   _id: string;
   status: 'live' | 'ended';
@@ -261,6 +263,59 @@ export function useLiveSession(sessionId: string) {
     });
   }, []);
 
+  // Server-backed visibility flip. Optimistically applies `optimistic` to the
+  // matching question, calls PATCH /questions/:id/visibility, and reverts the
+  // optimistic patch if the request fails. The Ably `question.visibility_changed`
+  // echo will reconcile the status field afterwards, so the optimistic patch
+  // can safely set page-only fields (`openedAt`, `resolvedAt`) too.
+  const setQuestionVisibility = useCallback(
+    async (
+      questionId: string,
+      visibilityStatus: QuestionVisibility,
+      optimistic?: Partial<LiveQuestion>,
+    ): Promise<void> => {
+      let previous: LiveQuestion | undefined;
+      if (optimistic) {
+        setSnapshot(prev => {
+          if (!prev) return prev;
+          previous = prev.questions.find(q => q.questionId === questionId);
+          if (!previous) return prev;
+          return {
+            ...prev,
+            questions: prev.questions.map(q =>
+              q.questionId === questionId ? { ...q, ...optimistic } : q,
+            ),
+          };
+        });
+      }
+
+      try {
+        const res = await apiClient.patch(
+          API_ENDPOINTS.QUESTION_VISIBILITY(questionId),
+          { visibilityStatus },
+        );
+        if (res.status !== 'success') {
+          throw new Error(res.message || 'Failed to update question visibility');
+        }
+      } catch (err) {
+        if (previous) {
+          const restore = previous;
+          setSnapshot(prev => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              questions: prev.questions.map(q =>
+                q.questionId === questionId ? restore : q,
+              ),
+            };
+          });
+        }
+        throw err;
+      }
+    },
+    [],
+  );
+
   return {
     snapshot,
     connected,
@@ -270,5 +325,6 @@ export function useLiveSession(sessionId: string) {
     refetch,
     updateQuestion,
     prependQuestion,
+    setQuestionVisibility,
   };
 }

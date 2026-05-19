@@ -41,16 +41,12 @@ import {
   Copy,
   Eye,
   Flag,
-  Fullscreen,
   MuteIcon,
-  PullUp,
   Search,
   SkipBack,
   SkipForward,
   StopSquare,
   Ungroup,
-  ZoomIn,
-  ZoomOut,
 } from "@/components/live-session/icons";
 
 import apiClient from "@/lib/api/client";
@@ -88,6 +84,7 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
     error,
     updateQuestion,
     prependQuestion,
+    setQuestionVisibility,
   } = useLiveSession(sessionId);
 
   // Local mirror so the existing local-only mutators (setControls,
@@ -104,10 +101,10 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
   // Local UI state (would later flow through Ably to followers/server).
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [questionFilter, setQuestionFilter] = useState<QuestionFilter>("all");
+  const [questionSearch, setQuestionSearch] = useState("");
   const [modTab, setModTab] = useState<ModerationTab>("muted");
   const [endModalOpen, setEndModalOpen] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [zoomPct, setZoomPct] = useState(100);
   const [elapsedSec, setElapsedSec] = useState(0);
   const [pulseKind, setPulseKind] = useState<ReactionKind | null>(null);
 
@@ -127,10 +124,20 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
 
   const filteredQuestions = useMemo(() => {
     if (!snapshot) return [];
-    if (questionFilter === "all") return snapshot.questions;
-    if (questionFilter === "new") return snapshot.questions.filter(q => q.status === "new");
-    return snapshot.questions.filter(q => q.status === "opened");
-  }, [snapshot, questionFilter]);
+    const byStatus =
+      questionFilter === "all"
+        ? snapshot.questions
+        : questionFilter === "new"
+        ? snapshot.questions.filter(q => q.status === "new")
+        : snapshot.questions.filter(q => q.status === "opened");
+    const needle = questionSearch.trim().toLowerCase();
+    if (!needle) return byStatus;
+    return byStatus.filter(
+      q =>
+        q.text.toLowerCase().includes(needle) ||
+        q.authorAnonymousCourseID.toLowerCase().includes(needle),
+    );
+  }, [snapshot, questionFilter, questionSearch]);
 
   const counts = useMemo(() => ({
     all:      snapshot?.questions.length ?? 0,
@@ -158,12 +165,29 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
     // V2: if `controls.broadcasting`, publish to channel "sess.<id>.page".
   };
 
-  const onOpen = (id: string) =>
-    updateQuestion(id, { status: "opened", openedAt: new Date().toISOString() });
+  const onOpen = (id: string) => {
+    setQuestionVisibility(id, "visible", {
+      status: "opened",
+      openedAt: new Date().toISOString(),
+    }).catch(err =>
+      toast.error(err instanceof Error ? err.message : "Failed to open question"),
+    );
+  };
+  // Resolve has no backend: there's no endpoint for `postSessionStatus`, and
+  // per the design "opening" a question marks it resolved-by-default — the
+  // final resolved/unresolved decision is made by each author in the
+  // post-session survey (not yet built). This stays a local-only mutator so
+  // the live UI still reflects the instructor's intent within the session.
   const onResolve = (id: string) =>
     updateQuestion(id, { status: "resolved", resolvedAt: new Date().toISOString() });
-  const onReopen = (id: string) =>
-    updateQuestion(id, { status: "new", resolvedAt: undefined });
+  const onReopen = (id: string) => {
+    setQuestionVisibility(id, "hidden", {
+      status: "new",
+      resolvedAt: undefined,
+    }).catch(err =>
+      toast.error(err instanceof Error ? err.message : "Failed to reopen question"),
+    );
+  };
   const onUngroup = (id: string) => updateQuestion(id, { clusterSize: 1 });
 
   const onMuteAuthor = (q: LiveQuestion) => {
@@ -236,9 +260,6 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
   if (!snapshot) return null;
 
   const { meta, material, reactions, muted, controls, questions } = snapshot;
-  const followers = snapshot.followers;
-  const followTotal = Math.max(1, followers.onCurrent + followers.ahead + followers.behind + followers.independent);
-  const pct = (n: number) => `${(n / followTotal) * 100}%`;
 
   return (
     <div className="nx-portal-accent">
@@ -252,8 +273,16 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
         <div>
           <h1 className="nx-page-title">Live session</h1>
           <p className="nx-page-sub">
-            Real-time dashboard · students join anonymously and react to{" "}
-            <span style={{ fontFamily: "'JetBrains Mono', monospace" }}>{material.filename}</span>
+            {material.filename ? (
+              <>
+                Real-time dashboard · students join anonymously and react to{" "}
+                <span style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+                  {material.filename}
+                </span>
+              </>
+            ) : (
+              "Live session in progress"
+            )}
           </p>
         </div>
       </div>
@@ -379,36 +408,7 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
                 }
                 onClick={() => setControls({ broadcasting: !controls.broadcasting })}
               >
-                {controls.broadcasting
-                  ? `Broadcasting · ${followers.onCurrent} following`
-                  : "Broadcast paused"}
-              </button>
-              <button
-                className="nx-btn nx-btn-ghost"
-                title="Force all students to your current slide (overrides follow=off)"
-              >
-                <PullUp size={12} />
-                Pull all
-              </button>
-              <div className="nx-zoom-cluster">
-                <button
-                  onClick={() => setZoomPct(z => Math.max(50, z - 10))}
-                  title="Zoom out"
-                  aria-label="Zoom out"
-                >
-                  <ZoomOut size={11} />
-                </button>
-                <span className="nx-zoom-val">{zoomPct}%</span>
-                <button
-                  onClick={() => setZoomPct(z => Math.min(200, z + 10))}
-                  title="Zoom in"
-                  aria-label="Zoom in"
-                >
-                  <ZoomIn size={11} />
-                </button>
-              </div>
-              <button className="nx-icon-btn" title="Fullscreen" aria-label="Fullscreen">
-                <Fullscreen size={13} />
+                {controls.broadcasting ? "Broadcasting" : "Broadcast paused"}
               </button>
             </div>
           </div>
@@ -420,45 +420,6 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
             onPrev={() => goToPage(currentPage - 1)}
             onNext={() => goToPage(currentPage + 1)}
           />
-
-          {/* Follower distribution strip */}
-          <div className="nx-follow-strip" aria-label="Follower distribution">
-            <div className="nx-follow-stat" title="Students viewing this exact slide">
-              <span className="nx-follow-stat-num">{followers.onCurrent}</span>
-              <span className="nx-follow-stat-lbl">On your slide</span>
-            </div>
-            <div className="nx-follow-stat" title="Students who navigated ahead">
-              <span className="nx-follow-stat-num">{followers.ahead}</span>
-              <span className="nx-follow-stat-lbl">Ahead</span>
-            </div>
-            <div className="nx-follow-stat" title="Students who navigated back">
-              <span className="nx-follow-stat-num">{followers.behind}</span>
-              <span className="nx-follow-stat-lbl">Behind</span>
-            </div>
-            <div className="nx-follow-stat" title="Students with follow turned off">
-              <span className="nx-follow-stat-num">{followers.independent}</span>
-              <span className="nx-follow-stat-lbl">Independent</span>
-            </div>
-
-            <div className="nx-follow-bar" title={`Distribution of ${followTotal} joined students`}>
-              <span className="nx-follow-bar-seg is-with"   style={{ width: pct(followers.onCurrent) }} />
-              <span className="nx-follow-bar-seg is-ahead"  style={{ width: pct(followers.ahead) }} />
-              <span className="nx-follow-bar-seg is-behind" style={{ width: pct(followers.behind) }} />
-              <span className="nx-follow-bar-seg is-idle"   style={{ width: pct(followers.independent) }} />
-            </div>
-
-            <div className="nx-follow-legend">
-              <span className="nx-follow-legend-item">
-                <span className="nx-follow-legend-sw" style={{ background: "var(--accent)" }} /> With you
-              </span>
-              <span className="nx-follow-legend-item">
-                <span className="nx-follow-legend-sw" style={{ background: "color-mix(in oklab, var(--nx-success) 80%, transparent)" }} /> Ahead
-              </span>
-              <span className="nx-follow-legend-item">
-                <span className="nx-follow-legend-sw" style={{ background: "color-mix(in oklab, var(--nx-warning) 80%, transparent)" }} /> Behind
-              </span>
-            </div>
-          </div>
 
           {/* Thumbnail strip */}
           <ThumbnailStrip
@@ -490,7 +451,13 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
             <div className="nx-filter-bar">
               <div className="nx-input-wrap">
                 <Search size={13} />
-                <input className="nx-input" placeholder="Filter…" />
+                <input
+                  className="nx-input"
+                  placeholder="Filter by text or alias…"
+                  value={questionSearch}
+                  onChange={e => setQuestionSearch(e.target.value)}
+                  aria-label="Filter questions"
+                />
               </div>
               <div className="nx-tabs" role="tablist">
                 <button
@@ -870,13 +837,11 @@ function EndSessionModal({
             </div>
             <div className="nx-report-stat">
               <div className="nx-report-stat-lbl">Reactions</div>
-              <div className="nx-report-stat-val">259</div>
-              <div className="nx-report-stat-delta">6.2 / min avg</div>
+              <div className="nx-report-stat-val">—</div>
             </div>
             <div className="nx-report-stat">
               <div className="nx-report-stat-lbl">Slides viewed</div>
               <div className="nx-report-stat-val">{slidesViewed} / {totalPages}</div>
-              <div className="nx-report-stat-delta">avg 3.5m / slide</div>
             </div>
             <div className="nx-report-stat">
               <div className="nx-report-stat-lbl">Joined</div>
@@ -885,33 +850,10 @@ function EndSessionModal({
             </div>
           </div>
 
-          <h4 className="nx-report-section-title">Engagement timeline · session-long</h4>
-          <EngagementChart />
-
-          <h4 className="nx-report-section-title" style={{ marginTop: 14 }}>
-            Top 3 confusion peaks
-          </h4>
-          <Peak
-            ts="34:00"
-            title='Spike in "Not clear" · slide 11'
-            note="20 students, ~110s — clustered with 12 questions on master theorem boundary cases"
-            sparkColor="var(--nx-danger)"
-            points="2,18 10,17 18,15 26,12 34,6 42,4 50,8 58,12"
-          />
-          <Peak
-            ts="22:30"
-            title='Spike in "Too slow" · slide 7'
-            note="11 students, ~90s — corresponded to amortized analysis worked example"
-            sparkColor="#C77B0F"
-            points="2,18 10,14 18,8 26,4 34,8 42,12 50,15 58,18"
-          />
-          <Peak
-            ts="40:30"
-            title='Spike in "Not clear" · slide 12'
-            note="14 students, ~80s — second wave of master theorem confusion"
-            sparkColor="var(--nx-danger)"
-            points="2,18 10,17 18,14 26,10 34,6 42,4 50,3 58,4"
-          />
+          <h4 className="nx-report-section-title">Engagement timeline</h4>
+          <p className="nx-card-sub" style={{ margin: "4px 0 0" }}>
+            Engagement timeline coming soon.
+          </p>
         </div>
 
         <div
@@ -945,75 +887,6 @@ function EndSessionModal({
         </div>
       </div>
     </div>
-  );
-}
-
-function Peak({
-  ts, title, note, sparkColor, points,
-}: { ts: string; title: string; note: string; sparkColor: string; points: string }) {
-  return (
-    <div className="nx-peak">
-      <span className="nx-peak-ts">{ts}</span>
-      <div className="nx-peak-text">
-        {title}
-        <small>{note}</small>
-      </div>
-      <svg className="nx-peak-spark" viewBox="0 0 64 22" preserveAspectRatio="none" aria-hidden>
-        <polyline
-          points={points}
-          fill="none"
-          stroke={sparkColor}
-          strokeWidth="1.5"
-          strokeLinejoin="round"
-          strokeLinecap="round"
-        />
-      </svg>
-    </div>
-  );
-}
-
-function EngagementChart() {
-  // Hand-rolled stacked-area chart of the four reactions over the session.
-  // Only rendered at session end (inside the End modal) — per the
-  // "report appears only at end" design constraint.
-  const X = [30, 56, 84, 110, 136, 162, 190, 216, 244, 270, 296, 322, 350, 376, 402, 428, 456, 482, 508, 536, 562, 590];
-  const NC = [120, 99,  89,  83,  76,  70,  60,  47,  47,  47,  44,  37,  41,  34,  37,  34,  34,  31,  28,  37,  24,  21];
-  const TF = [120, 99,  93,  87,  84,  76,  70,  60,  63,  66,  70,  73,  84,  80,  87,  90,  93,  96,  96,  99,  96,  99];
-  const TS = [120, 102, 96,  93,  87,  76,  70,  63,  66,  70,  73,  80,  87,  84,  87,  90,  96,  99,  99, 102,  96, 102];
-  const U  = [120, 108, 102, 96,  90,  84,  80,  76,  84,  90,  90,  93,  96,  93,  93,  96,  99, 102, 105, 105, 102, 105];
-
-  const path = (ys: number[]) => {
-    const parts = ys.map((y, i) => `${i === 0 ? "M" : "L"} ${X[i]} ${y}`);
-    return `${parts.join(" ")} L ${X[X.length - 1]} 120 L ${X[0]} 120 Z`;
-  };
-  const line = (ys: number[]) => ys.map((y, i) => `${X[i]},${y}`).join(" ");
-
-  return (
-    <svg className="nx-report-chart" viewBox="0 0 600 140" preserveAspectRatio="none" aria-hidden>
-      <line className="nx-report-chart-grid" x1="30" y1="100" x2="590" y2="100" />
-      <line className="nx-report-chart-grid" x1="30" y1="60"  x2="590" y2="60" />
-      <line className="nx-report-chart-grid" x1="30" y1="20"  x2="590" y2="20" />
-      <line className="nx-report-chart-axis" x1="30" y1="120" x2="590" y2="120" />
-      <line className="nx-report-chart-axis" x1="30" y1="10"  x2="30"  y2="120" />
-
-      <text x="25" y="123" textAnchor="end">0</text>
-      <text x="25" y="103" textAnchor="end">10</text>
-      <text x="25" y="63"  textAnchor="end">20</text>
-      <text x="25" y="23"  textAnchor="end">30</text>
-      <text x="30"  y="135">0m</text>
-      <text x="170" y="135">10m</text>
-      <text x="310" y="135">20m</text>
-      <text x="450" y="135">30m</text>
-      <text x="585" y="135" textAnchor="end">42m</text>
-
-      <path d={path(NC)} fill="var(--nx-danger-soft)" />
-      <path d={path(TF)} fill="var(--nx-warning-soft)" opacity="0.85" />
-      <path d={path(TS)} fill="var(--nx-warning-soft)" />
-      <path d={path(U)}  fill="var(--nx-success-soft)" />
-
-      <polyline points={line(NC)} fill="none" stroke="var(--nx-danger)"  strokeWidth="1.4" />
-      <polyline points={line(U)}  fill="none" stroke="var(--nx-success)" strokeWidth="1.2" />
-    </svg>
   );
 }
 
