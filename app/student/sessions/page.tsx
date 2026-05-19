@@ -7,36 +7,25 @@
  * US-D5 / FR-15 (mark my submitted questions resolved/unresolved after the
  * session ends — reached via the per-session "review" page).
  *
- * The list is filtered client-side to sessions whose section the current
- * student is enrolled in (the backend `GET /sessions` is JWT-only and does
- * not pre-filter by enrollment yet).
+ * Backed by `GET /me/sessions?status=...` which scopes by the student's
+ * enrolled sections server-side.
  */
 
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
-import { useMyCourses } from "@/lib/hooks/use-my-courses";
-import { useSessions } from "@/lib/hooks/use-sessions";
-import type { SessionPopulated } from "@/lib/types/session.types";
+import { useMySessions, type MySession } from "@/lib/hooks/use-my-sessions";
 
 type Tab = "live" | "ended";
 
-function pickId(field: SessionPopulated["sectionId"] | SessionPopulated["courseId"]): string | null {
-  if (!field) return null;
-  return typeof field === "string" ? field : field._id;
-}
-
-function courseLabel(s: SessionPopulated): string {
-  if (!s.courseId || typeof s.courseId === "string") return "Course";
+function courseLabel(s: MySession): string {
   return `${s.courseId.code ?? ""} · ${s.courseId.name ?? ""}`.trim();
 }
 
-function sectionLabel(s: SessionPopulated): string {
-  if (!s.sectionId || typeof s.sectionId === "string") return "—";
+function sectionLabel(s: MySession): string {
   return String(s.sectionId.sectionId);
 }
 
-function instructorName(s: SessionPopulated): string {
-  if (!s.instructorId || typeof s.instructorId === "string") return "—";
+function instructorName(s: MySession): string {
   return s.instructorId.name;
 }
 
@@ -55,32 +44,12 @@ function durationFmt(startIso: string, endIso?: string): string {
 
 export default function StudentSessionsPage() {
   const [tab, setTab] = useState<Tab>("live");
-  const { courses, loading: coursesLoading } = useMyCourses();
-  const { sessions, loading, error } = useSessions();
+  const { sessions: liveSessions,  loading: liveLoading,  error: liveError  } = useMySessions("live");
+  const { sessions: endedSessions, loading: endedLoading, error: endedError } = useMySessions("ended");
 
-  const enrolledSectionIds = useMemo(
-    () => new Set(courses.map((c) => c.sectionDbId)),
-    [courses],
-  );
-
-  const myCourseIds = useMemo(
-    () => new Set(courses.map((c) => c.course?._id).filter(Boolean) as string[]),
-    [courses],
-  );
-
-  const mine = useMemo(() => {
-    return sessions.filter((s) => {
-      const sectionId = pickId(s.sectionId);
-      const courseId = pickId(s.courseId);
-      if (sectionId && enrolledSectionIds.has(sectionId)) return true;
-      if (!sectionId && courseId && myCourseIds.has(courseId)) return true;
-      return false;
-    });
-  }, [sessions, enrolledSectionIds, myCourseIds]);
-
-  const live = mine.filter((s) => s.status === "live");
-  const ended = mine.filter((s) => s.status === "ended");
-  const visible = tab === "live" ? live : ended;
+  const loading = liveLoading || endedLoading;
+  const error = liveError || endedError;
+  const visible = tab === "live" ? liveSessions : endedSessions;
 
   return (
     <>
@@ -98,14 +67,14 @@ export default function StudentSessionsPage() {
             data-active={tab === "live"}
             onClick={() => setTab("live")}
           >
-            Live <span className="nx-filter-bar-count">{live.length}</span>
+            Live <span className="nx-filter-bar-count">{liveSessions.length}</span>
           </button>
           <button
             className="nx-tab"
             data-active={tab === "ended"}
             onClick={() => setTab("ended")}
           >
-            Ended <span className="nx-filter-bar-count">{ended.length}</span>
+            Ended <span className="nx-filter-bar-count">{endedSessions.length}</span>
           </button>
         </div>
       </div>
@@ -122,7 +91,7 @@ export default function StudentSessionsPage() {
           </div>
         </div>
 
-        {loading || coursesLoading ? (
+        {loading ? (
           <div className="nx-empty"><span className="nx-spin" /></div>
         ) : error ? (
           <div className="nx-empty">
