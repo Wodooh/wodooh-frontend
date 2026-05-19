@@ -75,7 +75,7 @@ export default function StudentSessionReviewPage({ params }: PageProps) {
             ) : error ? (
               error
             ) : (
-              "Session review"
+              "Session unavailable"
             )}
           </p>
         </div>

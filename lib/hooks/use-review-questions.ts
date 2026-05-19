@@ -55,6 +55,7 @@ export function useReviewQuestions(sessionId: string) {
   const [sessionError, setSessionError] = useState<string | null>(null);
   const [questionsError, setQuestionsError] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
+  const hasStaleSession = session != null && session._id !== sessionId;
 
   useEffect(() => {
     let cancelled = false;
@@ -162,7 +163,7 @@ export function useReviewQuestions(sessionId: string) {
     questions,
     session,
     sessionLoading,
-    isLoading: sessionLoading || questionsLoading,
+    isLoading: sessionLoading || questionsLoading || hasStaleSession,
     error: sessionError ?? questionsError,
     refetch,
     updateStatus,
