@@ -5,10 +5,10 @@ import { useSections } from "@/lib/hooks/use-sections";
 import { useCourses } from "@/lib/hooks/use-courses";
 
 export default function AdminSectionsPage() {
-  const [page, setPage] = useState(1);
   const [courseId, setCourseId] = useState<string>("");
-  const { sections, pagination, loading, error, refetch } = useSections({ page, limit: 20, courseId: courseId || undefined });
-  const { courses } = useCourses({ limit: 100 });
+  const { courses, loading: coursesLoading } = useCourses({ limit: 100 });
+  const selectedCourseId = courseId;
+  const { sections, loading, error, refetch } = useSections(selectedCourseId);
 
   const courseLabel = (id?: string) => {
     if (!id) return "—";
@@ -16,7 +16,7 @@ export default function AdminSectionsPage() {
     return c ? `${c.code} · ${c.name}` : id;
   };
 
-  const total = pagination?.totalUsers ?? sections.length;
+  const total = sections.length;
 
   return (
     <>
@@ -31,10 +31,10 @@ export default function AdminSectionsPage() {
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <select
             className="nx-select"
-            value={courseId}
-            onChange={e => { setPage(1); setCourseId(e.target.value); }}
+            value={selectedCourseId}
+            onChange={e => { setCourseId(e.target.value); }}
           >
-            <option value="">All courses</option>
+            <option value="">Select a course</option>
             {courses.map(c => <option key={c._id} value={c._id}>{c.code} · {c.name}</option>)}
           </select>
           <button className="nx-btn nx-btn-ghost" disabled={loading} onClick={refetch}>
@@ -44,7 +44,12 @@ export default function AdminSectionsPage() {
       </div>
 
       <div className="nx-card">
-        {loading ? (
+        {!selectedCourseId ? (
+          <div className="nx-empty">
+            <div className="nx-empty-title">{coursesLoading ? "Loading courses…" : "Select a course"}</div>
+            <div className="nx-empty-sub">Choose a course to view its sections.</div>
+          </div>
+        ) : loading ? (
           <div className="nx-loading"><span className="nx-spin" /> Loading sections…</div>
         ) : error ? (
           <div className="nx-empty">
@@ -61,35 +66,27 @@ export default function AdminSectionsPage() {
             <table className="nx-tbl">
               <thead>
                 <tr>
-                  <th style={{ width: "14%" }}>Code</th>
-                  <th style={{ width: "32%" }}>Course</th>
-                  <th style={{ width: "24%" }}>Schedule</th>
-                  <th style={{ width: "16%" }}>Room</th>
-                  <th style={{ width: "14%", textAlign: "right" }}>Capacity</th>
+                  <th style={{ width: "18%" }}>Section ID</th>
+                  <th style={{ width: "44%" }}>Course</th>
+                  <th style={{ width: "20%" }}>Instructor</th>
+                  <th style={{ width: "18%" }}>Created</th>
                 </tr>
               </thead>
               <tbody>
                 {sections.map(s => (
                   <tr key={s._id}>
-                    <td><span className="nx-tbl-mono">{s.code}</span></td>
+                    <td><span className="nx-tbl-mono">{s.sectionId}</span></td>
                     <td style={{ color: "var(--nx-fg-muted)" }}>{courseLabel(s.courseId)}</td>
-                    <td>{s.schedule ?? "—"}</td>
-                    <td className="nx-tbl-mono">{s.room ?? "—"}</td>
-                    <td className="nx-tbl-mono" style={{ textAlign: "right" }}>{s.capacity ?? "—"}</td>
+                    <td>
+                      {s.instructorId && typeof s.instructorId === "object" && "name" in s.instructorId
+                        ? s.instructorId.name
+                        : "—"}
+                    </td>
+                    <td className="nx-tbl-mono">{new Date(s.createdAt).toLocaleDateString()}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </div>
-        )}
-
-        {pagination && pagination.totalPages > 1 && (
-          <div className="nx-pagination">
-            <span className="nx-pagination-info">Page {pagination.currentPage} of {pagination.totalPages}</span>
-            <div style={{ display: "flex", gap: 6 }}>
-              <button className="nx-btn nx-btn-ghost" disabled={!pagination.hasPrevPage} onClick={() => setPage(p => p - 1)}>Prev</button>
-              <button className="nx-btn nx-btn-ghost" disabled={!pagination.hasNextPage}  onClick={() => setPage(p => p + 1)}>Next</button>
-            </div>
           </div>
         )}
       </div>
