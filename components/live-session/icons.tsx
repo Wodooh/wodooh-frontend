@@ -46,3 +46,4 @@ export const StopSquare   = (p: IconProps) => <Base {...p}><rect x="6" y="6" wid
 export const Check        = (p: IconProps) => <Base {...p}><path d="m5 13 4 4 10-10" /></Base>;
 export const Close        = (p: IconProps) => <Base {...p}><path d="M6 6l12 12M18 6 6 18" /></Base>;
 export const AlertCircle  = (p: IconProps) => <Base {...p}><circle cx="12" cy="12" r="9" /><path d="M12 8v4M12 16h.01" /></Base>;
+export const FileX        = (p: IconProps) => <Base {...p}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /><path d="m9.5 12.5 5 5M14.5 12.5l-5 5" /></Base>;

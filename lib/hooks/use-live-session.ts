@@ -198,6 +198,17 @@ export function useLiveSession(sessionId: string) {
       })
       .catch(swallowClosed);
 
+    stateChannel
+      .subscribe('session.page_changed', (msg: Ably.Message) => {
+        if (closed) return;
+        const data = msg.data as { page: number };
+        setSnapshot(prev => {
+          if (!prev) return prev;
+          return { ...prev, currentPage: data.page };
+        });
+      })
+      .catch(swallowClosed);
+
     const questionsChannel = client.channels.get(`session:${sessionId}:questions`);
 
     questionsChannel

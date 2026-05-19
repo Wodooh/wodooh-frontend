@@ -56,6 +56,7 @@ export const API_ENDPOINTS = {
   SESSIONS: '/sessions',
   SESSION: (id: string) => `/sessions/${id}`,
   SESSION_END: (id: string) => `/sessions/${id}/end`,
+  SESSION_PAGE: (sessionId: string) => `/sessions/${sessionId}/page`,
 
   // Questions
   QUESTIONS: '/questions',
