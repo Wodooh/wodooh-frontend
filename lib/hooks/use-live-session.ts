@@ -263,12 +263,16 @@ export function useLiveSession(sessionId: string) {
         const payload = msg.data as ReactionCreatedPayload;
         setSnapshot(prev => {
           if (!prev) return prev;
-          const existing = prev.reactions[payload.type];
+          const reactionType = payload.type as keyof typeof prev.reactions;
+          if (!Object.prototype.hasOwnProperty.call(prev.reactions, reactionType)) {
+            return prev;
+          }
+          const existing = prev.reactions[reactionType];
           return {
             ...prev,
             reactions: {
               ...prev.reactions,
-              [payload.type]: { ...existing, total: existing.total + 1 },
+              [reactionType]: { ...existing, total: existing.total + 1 },
             },
           };
         });
