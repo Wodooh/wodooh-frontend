@@ -47,8 +47,8 @@ export default function StudentSessionsPage() {
   const { sessions: liveSessions,  loading: liveLoading,  error: liveError  } = useMySessions("live");
   const { sessions: endedSessions, loading: endedLoading, error: endedError } = useMySessions("ended");
 
-  const loading = liveLoading || endedLoading;
-  const error = liveError || endedError;
+  const loading = tab === "live" ? liveLoading : endedLoading;
+  const error = tab === "live" ? liveError : endedError;
   const visible = tab === "live" ? liveSessions : endedSessions;
 
   return (
