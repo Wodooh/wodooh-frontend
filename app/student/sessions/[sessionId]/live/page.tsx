@@ -121,7 +121,14 @@ export default function StudentLiveSessionPage({ params }: PageProps) {
   // Ephemeral per-session pseudonym minted by POST /sessions/:id/join.
   const [myAnonSessionId, setMyAnonSessionId] = useState<string | null>(null);
 
+  // Guard against React Strict Mode double-invoke to prevent duplicate join requests
+  const joinAttemptedRef = useRef<string | null>(null);
+
   useEffect(() => {
+    // Skip if we've already attempted to join this session
+    if (joinAttemptedRef.current === sessionId) return;
+    joinAttemptedRef.current = sessionId;
+
     let cancelled = false;
     apiClient
       .post<{ participantId: string; anonymousSessionId: string; sessionId: string }>(
