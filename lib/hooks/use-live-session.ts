@@ -85,13 +85,13 @@ interface ReactionCreatedPayload {
   createdAt: string;
 }
 
-function buildReactions(totals: Record<ReactionKind, number>): ReactionTallies {
+function buildReactions(totals: Partial<Record<ReactionKind, number>>): ReactionTallies {
   return {
     windowSeconds: 60,
-    too_fast:   { total: totals.too_fast,   ratePerMin: 0, trend: 'flat' },
-    too_slow:   { total: totals.too_slow,   ratePerMin: 0, trend: 'flat' },
-    understood: { total: totals.understood, ratePerMin: 0, trend: 'flat' },
-    not_clear:  { total: totals.not_clear,  ratePerMin: 0, trend: 'flat' },
+    too_fast:   { total: totals.too_fast ?? 0,   ratePerMin: 0, trend: 'flat' },
+    too_slow:   { total: totals.too_slow ?? 0,   ratePerMin: 0, trend: 'flat' },
+    understood: { total: totals.understood ?? 0, ratePerMin: 0, trend: 'flat' },
+    not_clear:  { total: totals.not_clear ?? 0,  ratePerMin: 0, trend: 'flat' },
   };
 }
 
