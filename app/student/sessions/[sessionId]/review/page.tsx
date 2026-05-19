@@ -1,12 +1,10 @@
 "use client";
 
-import { use, useEffect, useMemo, useState } from "react";
+import { use, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { Check, Close } from "@/components/live-session/icons";
 
-import apiClient from "@/lib/api/client";
-import API_ENDPOINTS from "@/lib/api/endpoints";
 import {
   useReviewQuestions,
   type ReviewQuestion,
@@ -14,15 +12,6 @@ import {
 
 interface PageProps {
   params: Promise<{ sessionId: string }>;
-}
-
-interface ApiSessionMeta {
-  _id: string;
-  status: "live" | "ended";
-  startedAt: string;
-  endedAt?: string;
-  courseId: { _id: string; name: string; code: string };
-  sectionId?: { _id: string; sectionId: number };
 }
 
 function formatDateTime(iso?: string): string {
@@ -48,29 +37,8 @@ export default function StudentSessionReviewPage({ params }: PageProps) {
   const { sessionId } = use(params);
   const router = useRouter();
 
-  const { questions, loading, error, updateStatus } = useReviewQuestions(sessionId);
-
-  const [session, setSession] = useState<ApiSessionMeta | null>(null);
-  const [sessionError, setSessionError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    apiClient
-      .get<ApiSessionMeta>(API_ENDPOINTS.SESSION(sessionId))
-      .then(res => {
-        if (cancelled) return;
-        if (res.status === "success" && res.data) {
-          setSession(res.data);
-        } else {
-          setSessionError(res.message || "Failed to fetch session");
-        }
-      })
-      .catch(err => {
-        if (cancelled) return;
-        setSessionError(err instanceof Error ? err.message : "Failed to fetch session");
-      });
-    return () => { cancelled = true; };
-  }, [sessionId]);
+  const { questions, session, sessionLoading, loading, error, updateStatus } =
+    useReviewQuestions(sessionId);
 
   const isLive = session?.status === "live";
 
@@ -102,10 +70,12 @@ export default function StudentSessionReviewPage({ params }: PageProps) {
                   ? "Session is still live"
                   : `Session ended ${formatDateTime(session.endedAt)}`}
               </>
-            ) : sessionError ? (
-              sessionError
-            ) : (
+            ) : sessionLoading ? (
               "Loading…"
+            ) : error ? (
+              error
+            ) : (
+              "Session review"
             )}
           </p>
         </div>
@@ -169,7 +139,7 @@ export default function StudentSessionReviewPage({ params }: PageProps) {
               <ReviewQuestionRow
                 key={q._id}
                 question={q}
-                disabled={session == null || !!isLive}
+                disabled={sessionLoading || session == null || !!isLive}
                 onChange={status => updateStatus(q._id, status)}
               />
             ))}

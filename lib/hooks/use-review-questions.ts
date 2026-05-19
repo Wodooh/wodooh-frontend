@@ -19,9 +19,22 @@ export interface ReviewQuestion {
   updatedAt: string;
 }
 
+export interface ReviewSessionMeta {
+  _id: string;
+  status: 'live' | 'ended';
+  startedAt: string;
+  endedAt?: string;
+  courseId: { _id: string; name: string; code: string };
+  sectionId?: { _id: string; sectionId: number };
+}
+
 interface ApiSession {
   _id: string;
-  courseId: { _id: string } | string;
+  status: 'live' | 'ended';
+  startedAt: string;
+  endedAt?: string;
+  courseId: { _id: string; name?: string; code?: string } | string;
+  sectionId?: { _id: string; sectionId: number };
 }
 
 async function deriveAuthorAnonymousCourseId(userId: string, courseId: string): Promise<string> {
@@ -35,14 +48,23 @@ async function deriveAuthorAnonymousCourseId(userId: string, courseId: string): 
 
 export function useReviewQuestions(sessionId: string) {
   const [questions, setQuestions] = useState<ReviewQuestion[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [session, setSession] = useState<ReviewSessionMeta | null>(null);
+  const [authorAnonymousCourseId, setAuthorAnonymousCourseId] = useState<string | null>(null);
+  const [sessionLoading, setSessionLoading] = useState(true);
+  const [questionsLoading, setQuestionsLoading] = useState(true);
+  const [sessionError, setSessionError] = useState<string | null>(null);
+  const [questionsError, setQuestionsError] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
-    setError(null);
+    setSessionLoading(true);
+    setSessionError(null);
+    setQuestionsError(null);
+    setQuestionsLoading(true);
+    setSession(null);
+    setAuthorAnonymousCourseId(null);
+    setQuestions([]);
 
     (async () => {
       try {
@@ -60,7 +82,45 @@ export function useReviewQuestions(sessionId: string) {
             : sessionRes.data.courseId._id;
 
         const pseudonym = await deriveAuthorAnonymousCourseId(user.userId, courseId);
+        if (cancelled) return;
 
+        setSession({
+          ...sessionRes.data,
+          courseId:
+            typeof sessionRes.data.courseId === 'string'
+              ? { _id: sessionRes.data.courseId, code: '', name: '' }
+              : {
+                  _id: sessionRes.data.courseId._id,
+                  code: sessionRes.data.courseId.code ?? '',
+                  name: sessionRes.data.courseId.name ?? '',
+                },
+        });
+        setAuthorAnonymousCourseId(pseudonym);
+      } catch (err) {
+        if (cancelled) return;
+        setSessionError(err instanceof Error ? err.message : 'Failed to load review questions');
+        setQuestions([]);
+      } finally {
+        if (!cancelled) setSessionLoading(false);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [sessionId]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!authorAnonymousCourseId || session?._id !== sessionId) {
+      setQuestionsLoading(false);
+      return () => { cancelled = true; };
+    }
+
+    setQuestionsLoading(true);
+    setQuestionsError(null);
+
+    (async () => {
+      try {
         const qRes = await apiClient.get<ReviewQuestion[]>(
           `${API_ENDPOINTS.QUESTIONS}?sessionId=${encodeURIComponent(sessionId)}`,
         );
@@ -69,18 +129,18 @@ export function useReviewQuestions(sessionId: string) {
           throw new Error(qRes.message || 'Failed to fetch questions');
         }
 
-        setQuestions(qRes.data.filter(q => q.authorAnonymousCourseId === pseudonym));
+        setQuestions(qRes.data.filter(q => q.authorAnonymousCourseId === authorAnonymousCourseId));
       } catch (err) {
         if (cancelled) return;
-        setError(err instanceof Error ? err.message : 'Failed to load review questions');
+        setQuestionsError(err instanceof Error ? err.message : 'Failed to load review questions');
         setQuestions([]);
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) setQuestionsLoading(false);
       }
     })();
 
     return () => { cancelled = true; };
-  }, [sessionId, tick]);
+  }, [authorAnonymousCourseId, session, sessionId, tick]);
 
   const refetch = useCallback(() => setTick(t => t + 1), []);
 
@@ -98,5 +158,13 @@ export function useReviewQuestions(sessionId: string) {
     [],
   );
 
-  return { questions, loading, error, refetch, updateStatus };
+  return {
+    questions,
+    session,
+    sessionLoading,
+    loading: sessionLoading || questionsLoading,
+    error: sessionError ?? questionsError,
+    refetch,
+    updateStatus,
+  };
 }

@@ -85,6 +85,12 @@ interface ReactionCreatedPayload {
   createdAt: string;
 }
 
+const REACTION_KINDS = ['too_fast', 'too_slow', 'understood', 'not_clear'] as const;
+
+function isReactionKind(value: unknown): value is ReactionKind {
+  return typeof value === 'string' && REACTION_KINDS.includes(value as ReactionKind);
+}
+
 function buildReactions(totals: Partial<Record<ReactionKind, number>>): ReactionTallies {
   return {
     windowSeconds: 60,
@@ -263,16 +269,15 @@ export function useLiveSession(sessionId: string) {
         const payload = msg.data as ReactionCreatedPayload;
         setSnapshot(prev => {
           if (!prev) return prev;
-          const reactionType = payload.type as keyof typeof prev.reactions;
-          if (!Object.prototype.hasOwnProperty.call(prev.reactions, reactionType)) {
+          if (!isReactionKind(payload.type)) {
             return prev;
           }
-          const existing = prev.reactions[reactionType];
+          const existing = prev.reactions[payload.type];
           return {
             ...prev,
             reactions: {
               ...prev.reactions,
-              [reactionType]: { ...existing, total: existing.total + 1 },
+              [payload.type]: { ...existing, total: existing.total + 1 },
             },
           };
         });
