@@ -579,6 +579,21 @@
   box-shadow: 0 0 0 3px color-mix(in oklab, var(--nx-accent) 22%, transparent);
 }
 
+.nx-input-wrap.has-error {
+  border-color: var(--nx-danger);
+}
+
+.nx-input-wrap.has-error:focus-within {
+  border-color: var(--nx-danger);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--nx-danger) 22%, transparent);
+}
+
+.nx-field-error {
+  font-size: 12px;
+  color: var(--nx-danger);
+  margin-top: 4px;
+}
+
 .nx-input {
   flex: 1; min-width: 0;
   border: 0;
