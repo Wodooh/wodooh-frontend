@@ -130,12 +130,16 @@ export interface ReactionTallies {
   not_clear: ReactionTally;
 }
 
-/** Server-side moderation knobs the instructor toggles during a session. */
+/** Per-session toggles the instructor flips during a live session.
+ *  Currently only the page-change broadcast pill in the doc bar is wired
+ *  through this. The old `questionsPaused` / `profanityStrictness` /
+ *  `sessionLocked` fields were UI theater (no backend gate ever read
+ *  them) and were removed when the Muted/Controls tab pair was deleted.
+ *  Re-add a field here when (and only when) a real backend control lands. */
 export interface SessionControls {
-  questionsPaused: boolean;      // pauses new student submissions
-  profanityStrictness: "off" | "std" | "strict";
-  sessionLocked: boolean;        // blocks new student joins
-  broadcasting: boolean;         // page-change broadcast to followers
+  /** Whether instructor page changes are broadcast to followers. Drives the
+   *  doc-bar "Broadcasting / Broadcast paused" pill. */
+  broadcasting: boolean;
 }
 
 /** Snapshot the live page consumes — V1 ships this from a mock fixture. */

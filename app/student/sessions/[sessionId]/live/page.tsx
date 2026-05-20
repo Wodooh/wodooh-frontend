@@ -267,8 +267,7 @@ export default function StudentLiveSessionPage({ params }: PageProps) {
   const trimmed = draft.trim();
   const charsLeft = QUESTION_MAX_LEN - draft.length;
   const isMuted = false;
-  const isPaused = snapshot?.controls.questionsPaused ?? false;
-  const canSubmit = trimmed.length > 0 && trimmed.length <= QUESTION_MAX_LEN && !isMuted && !isPaused && !submitting;
+  const canSubmit = trimmed.length > 0 && trimmed.length <= QUESTION_MAX_LEN && !isMuted && !submitting;
 
   const submitQuestion = async () => {
     if (!canSubmit) return;
@@ -424,13 +423,6 @@ export default function StudentLiveSessionPage({ params }: PageProps) {
           and send reactions, but new questions are blocked until your instructor unmutes you.
         </div>
       )}
-      {!isMuted && isPaused && (
-        <div className="nx-student-banner" role="status">
-          <b>Questions are paused.</b> Your instructor will reopen the question
-          channel shortly — reactions still work.
-        </div>
-      )}
-
       {/* Main grid: viewer + right rail */}
       <section className="nx-live-grid">
         {/* ── Document viewer card ── */}
@@ -619,13 +611,11 @@ export default function StudentLiveSessionPage({ params }: PageProps) {
                 placeholder={
                   isMuted
                     ? "You are muted in this session."
-                    : isPaused
-                    ? "Questions are paused — try a reaction instead."
                     : "Type your question… plain text, up to 500 chars."
                 }
                 value={draft}
                 onChange={e => setDraft(e.target.value.slice(0, QUESTION_MAX_LEN))}
-                disabled={isMuted || isPaused || submitting}
+                disabled={isMuted || submitting}
                 rows={3}
                 maxLength={QUESTION_MAX_LEN}
                 onKeyDown={e => {

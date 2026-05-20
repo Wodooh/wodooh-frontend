@@ -27,9 +27,7 @@ import type { KeyboardEvent as ReactKeyboardEvent, MouseEvent as ReactMouseEvent
 import { use, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { AnonChip } from "@/components/live-session/anon-chip";
 import { FileGlyph } from "@/components/live-session/file-glyph";
-import { NxToggle } from "@/components/live-session/nx-toggle";
 import { ReactionsDisplay } from "@/components/live-session/reactions-display";
 import { SlideStage } from "@/components/live-session/slide-stage";
 import {
@@ -53,7 +51,6 @@ import type {
   LiveQuestion,
   LiveQuestionCluster,
   LiveSessionSnapshot,
-  MutedParticipant,
   QuestionStatus,
   ReactionKind,
   SessionControls,
@@ -63,7 +60,6 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 type QuestionFilter = "needs-attention" | "done";
-type ModerationTab = "muted" | "controls";
 
 interface PageProps {
   params: Promise<{ sessionId: string }>;
@@ -124,12 +120,10 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
     };
   }, []);
 
-  // Local mirror so the existing local-only mutators (setControls,
-  // onMuteAuthor, onUnmute) can continue to operate on `controls` /
-  // `muted` without backend wiring. Hook updates (initial fetch + Ably
-  // events) flow into this mirror via the effect below. Local mutations
-  // to `controls` / `muted` get overwritten on the next hook-driven sync
-  // — those handlers need to be backend-wired in a follow-up.
+  // Local mirror so the doc-bar Broadcasting toggle (`setControls`) can
+  // operate on `controls.broadcasting` without backend wiring. Hook updates
+  // (initial fetch + Ably events) flow into this mirror via the effect
+  // below; local mutations get overwritten on the next hook-driven sync.
   const [snapshot, setSnapshot] = useState<LiveSessionSnapshot | null>(null);
   useEffect(() => {
     setSnapshot(liveSnapshot);
@@ -138,7 +132,6 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
   // Local UI state (would later flow through Ably to followers/server).
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [questionFilter, setQuestionFilter] = useState<QuestionFilter>("needs-attention");
-  const [modTab, setModTab] = useState<ModerationTab>("muted");
   const [endModalOpen, setEndModalOpen] = useState(false);
   const [elapsedSec, setElapsedSec] = useState(0);
   const [pulseKind, setPulseKind] = useState<ReactionKind | null>(null);
@@ -269,27 +262,6 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
     );
   };
 
-  const onMuteAuthor = (q: LiveQuestion) => {
-    // The mute uses the ephemeral `anonymousSessionId`, NOT the question's
-    // `authorAnonymousCourseID` (privacy invariant). V2: server resolves
-    // current session pseudonym from the question id. Here we synthesize
-    // a believable `sess-` id from the question for the demo.
-    if (!snapshot) return;
-    const sessionPseudonym = `sess-${q.authorAnonymousCourseID.slice(-4)}`;
-    if (snapshot.muted.some(m => m.anonymousSessionId === sessionPseudonym)) return;
-    const next: MutedParticipant = {
-      anonymousSessionId: sessionPseudonym,
-      mutedAt: new Date().toISOString(),
-      reason: "muted from question stream",
-    };
-    setSnapshot(prev => (prev ? { ...prev, muted: [next, ...prev.muted] } : prev));
-  };
-
-  const onUnmute = (id: string) =>
-    setSnapshot(prev =>
-      prev ? { ...prev, muted: prev.muted.filter(m => m.anonymousSessionId !== id) } : prev,
-    );
-
   const onEndSession = async () => {
     setEndModalOpen(false);
     try {
@@ -323,7 +295,7 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
   }
   if (!snapshot) return null;
 
-  const { meta, material: snapshotMaterial, reactions, muted, controls, questions } = snapshot;
+  const { meta, material: snapshotMaterial, reactions, controls, questions } = snapshot;
   // Prefer real uploaded material; fall back to snapshot placeholder
   const material = activeMaterial ?? snapshotMaterial;
   const effectiveTotalPages = pdfPageCount || material.totalPages || 1;
@@ -629,95 +601,6 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
             </div>
           </div>
 
-          {/* Moderation card */}
-          <div className="nx-card" aria-label="Moderation">
-            <div className="nx-mod-tabs" role="tablist">
-              <button
-                className="nx-mod-tab"
-                data-active={modTab === "muted"}
-                onClick={() => setModTab("muted")}
-              >
-                Muted <span className="nx-mod-tab-count">{muted.length}</span>
-              </button>
-              <button
-                className="nx-mod-tab"
-                data-active={modTab === "controls"}
-                onClick={() => setModTab("controls")}
-              >
-                Controls
-              </button>
-            </div>
-
-            {modTab === "muted" ? (
-              muted.length === 0 ? (
-                <div className="nx-empty">
-                  <div className="nx-empty-title">No one is muted</div>
-                  <div className="nx-empty-sub">Mute disruptive participants from the question stream.</div>
-                </div>
-              ) : (
-                <div>
-                  {muted.map(m => (
-                    <div key={m.anonymousSessionId} className="nx-muted-row">
-                      <AnonChip id={m.anonymousSessionId} />
-                      <div className="nx-muted-row-meta">
-                        <b>{m.reason ?? "muted"}</b>
-                        <span>{relativeTime(m.mutedAt)}</span>
-                      </div>
-                      <button
-                        className="nx-btn nx-btn-ghost"
-                        onClick={() => onUnmute(m.anonymousSessionId)}
-                      >
-                        Unmute
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )
-            ) : (
-              <div>
-                <div className="nx-qc-row">
-                  <div className="nx-qc-row-label">
-                    <b>Pause new questions</b>
-                    <span>Students see &ldquo;instructor catching up&rdquo;</span>
-                  </div>
-                  <NxToggle
-                    on={controls.questionsPaused}
-                    onChange={v => setControls({ questionsPaused: v })}
-                    ariaLabel="Pause new questions"
-                  />
-                </div>
-                <div className="nx-qc-row">
-                  <div className="nx-qc-row-label">
-                    <b>Profanity filter</b>
-                    <span>EN + AR · server-side</span>
-                  </div>
-                  <div className="nx-segmented-inline" role="radiogroup" aria-label="Profanity strictness">
-                    {(["off", "std", "strict"] as const).map(level => (
-                      <button
-                        key={level}
-                        type="button"
-                        data-active={controls.profanityStrictness === level}
-                        onClick={() => setControls({ profanityStrictness: level })}
-                      >
-                        {level === "off" ? "Off" : level === "std" ? "Std" : "Strict"}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div className="nx-qc-row">
-                  <div className="nx-qc-row-label">
-                    <b>Lock session</b>
-                    <span>Blocks late joins</span>
-                  </div>
-                  <NxToggle
-                    on={controls.sessionLocked}
-                    onChange={v => setControls({ sessionLocked: v })}
-                    ariaLabel="Lock session"
-                  />
-                </div>
-              </div>
-            )}
-          </div>
         </aside>
       </section>
 

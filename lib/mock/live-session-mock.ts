@@ -137,9 +137,6 @@ export const LIVE_SESSION_MOCK: LiveSessionSnapshot = {
     },
   ],
   controls: {
-    questionsPaused: false,
-    profanityStrictness: "std",
-    sessionLocked: false,
     broadcasting: true,
   },
 };

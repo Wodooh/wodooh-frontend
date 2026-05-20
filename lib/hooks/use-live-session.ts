@@ -268,9 +268,6 @@ function buildSnapshot(
     })),
     muted: [],
     controls: {
-      questionsPaused: false,
-      profanityStrictness: 'std',
-      sessionLocked: false,
       broadcasting: true,
     },
   };
