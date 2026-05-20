@@ -39,7 +39,6 @@ export function ReactionsDisplay({ tallies, contextLabel, incrementedKind }: Rea
         {ORDER.map(({ kind, label }) => {
           const tally = tallies[kind];
           const isPulse = incrementedKind === kind;
-          const arrow = tally.trend === "up" ? " ↑" : tally.trend === "down" ? " ↓" : "";
           // Key includes the running total so React remounts the tile on each
           // increment — that re-runs the CSS keyframe animation without any
           // imperative state. The total alone is enough; `isPulse` decides
@@ -56,7 +55,7 @@ export function ReactionsDisplay({ tallies, contextLabel, incrementedKind }: Rea
               </div>
               <span className="nx-react-tile-val">{tally.total}</span>
               <span className="nx-react-tile-delta">
-                {tally.ratePerMin.toFixed(1)} / min{arrow}
+                {tally.recent60s} in last 60s
               </span>
             </div>
           );

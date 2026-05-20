@@ -23,6 +23,7 @@
  * over Ably + the backend `/sessions/:id/...` endpoints in a follow-up.
  */
 
+import type { KeyboardEvent as ReactKeyboardEvent, MouseEvent as ReactMouseEvent } from "react";
 import { use, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -38,7 +39,6 @@ import {
   ChevronRight,
   Close,
   Cluster,
-  Copy,
   Eye,
   SkipBack,
   SkipForward,
@@ -51,6 +51,7 @@ import { useLiveSession } from "@/lib/hooks/use-live-session";
 import { useSessionMaterials } from "@/lib/hooks/use-session-materials";
 import type {
   LiveQuestion,
+  LiveQuestionCluster,
   LiveSessionSnapshot,
   MutedParticipant,
   QuestionStatus,
@@ -61,7 +62,7 @@ import type {
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
-type QuestionFilter = "all" | "new" | "opened";
+type QuestionFilter = "needs-attention" | "done";
 type ModerationTab = "muted" | "controls";
 
 interface PageProps {
@@ -80,9 +81,7 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
     ended,
     loading,
     error,
-    updateQuestion,
-    prependQuestion,
-    setQuestionVisibility,
+    setClusterVisibility,
     studentCount,
   } = useLiveSession(sessionId);
 
@@ -138,10 +137,9 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
 
   // Local UI state (would later flow through Ably to followers/server).
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [questionFilter, setQuestionFilter] = useState<QuestionFilter>("all");
+  const [questionFilter, setQuestionFilter] = useState<QuestionFilter>("needs-attention");
   const [modTab, setModTab] = useState<ModerationTab>("muted");
   const [endModalOpen, setEndModalOpen] = useState(false);
-  const [copied, setCopied] = useState(false);
   const [elapsedSec, setElapsedSec] = useState(0);
   const [pulseKind, setPulseKind] = useState<ReactionKind | null>(null);
 
@@ -203,21 +201,28 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
 
   /* — Derived helpers ─────────────────────────────────────────────── */
 
-  const filteredQuestions = useMemo(() => {
+  /** Resolve a question by id when rendering cluster members. */
+  const questionsById = useMemo(() => {
+    const map = new Map<string, LiveQuestion>();
+    snapshot?.questions.forEach(q => map.set(q.questionId, q));
+    return map;
+  }, [snapshot?.questions]);
+
+  const filteredClusters = useMemo(() => {
     if (!snapshot) return [];
-    return questionFilter === "all"
-      ? snapshot.questions
-      : questionFilter === "new"
-      ? snapshot.questions.filter(q => q.status === "new")
-      : snapshot.questions.filter(q => q.status === "opened");
+    const wantHidden = questionFilter === "needs-attention";
+    return snapshot.clusters.filter(c =>
+      wantHidden ? c.visibilityStatus === "hidden" : c.visibilityStatus === "visible",
+    );
   }, [snapshot, questionFilter]);
 
-  const counts = useMemo(() => ({
-    all:      snapshot?.questions.length ?? 0,
-    new:      snapshot?.questions.filter(q => q.status === "new").length ?? 0,
-    opened:   snapshot?.questions.filter(q => q.status === "opened").length ?? 0,
-    resolved: snapshot?.questions.filter(q => q.status === "resolved").length ?? 0,
-  }), [snapshot]);
+  const counts = useMemo(() => {
+    const clusters = snapshot?.clusters ?? [];
+    return {
+      needsAttention: clusters.filter(c => c.visibilityStatus === "hidden").length,
+      done:           clusters.filter(c => c.visibilityStatus === "visible").length,
+    };
+  }, [snapshot]);
 
   const elapsedFmt = useMemo(() => {
     const h = String(Math.floor(elapsedSec / 3600)).padStart(2, "0");
@@ -257,30 +262,12 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
     }
   };
 
-  const onOpen = (id: string) => {
-    setQuestionVisibility(id, "visible", {
-      status: "opened",
-      openedAt: new Date().toISOString(),
-    }).catch(err =>
-      toast.error(err instanceof Error ? err.message : "Failed to open question"),
+  /** Reveal every member question of a cluster in one atomic backend call. */
+  const onRevealCluster = (clusterId: string) => {
+    setClusterVisibility(clusterId, "visible").catch(err =>
+      toast.error(err instanceof Error ? err.message : "Failed to reveal cluster"),
     );
   };
-  // Resolve has no backend: there's no endpoint for `postSessionStatus`, and
-  // per the design "opening" a question marks it resolved-by-default — the
-  // final resolved/unresolved decision is made by each author in the
-  // post-session survey (not yet built). This stays a local-only mutator so
-  // the live UI still reflects the instructor's intent within the session.
-  const onResolve = (id: string) =>
-    updateQuestion(id, { status: "resolved", resolvedAt: new Date().toISOString() });
-  const onReopen = (id: string) => {
-    setQuestionVisibility(id, "hidden", {
-      status: "new",
-      resolvedAt: undefined,
-    }).catch(err =>
-      toast.error(err instanceof Error ? err.message : "Failed to reopen question"),
-    );
-  };
-  const onUngroup = (id: string) => updateQuestion(id, { clusterSize: 1 });
 
   const onMuteAuthor = (q: LiveQuestion) => {
     // The mute uses the ephemeral `anonymousSessionId`, NOT the question's
@@ -302,21 +289,6 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
     setSnapshot(prev =>
       prev ? { ...prev, muted: prev.muted.filter(m => m.anonymousSessionId !== id) } : prev,
     );
-
-  const onReport = (id: string) => {
-    // V2: POST /sessions/:id/questions/:qid/report. For V1 just visually
-    // mark the row by setting status to resolved (out-of-stream).
-    updateQuestion(id, { status: "resolved", resolvedAt: new Date().toISOString() });
-  };
-
-  const onCopyJoinCode = async () => {
-    if (!snapshot) return;
-    try {
-      await navigator.clipboard.writeText(snapshot.meta.joinCode);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1600);
-    } catch { /* clipboard blocked — silent in V1 */ }
-  };
 
   const onEndSession = async () => {
     setEndModalOpen(false);
@@ -437,18 +409,8 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
             <span className="nx-meta-value">{elapsedFmt}</span>
           </div>
           <div className="nx-meta-item">
-            <span className="nx-meta-label">Join code</span>
-            <span className="nx-join-code">
-              <span>{meta.joinCode}</span>
-              <button
-                className="nx-join-code-copy"
-                onClick={onCopyJoinCode}
-                title={copied ? "Copied" : "Copy join code"}
-                aria-label="Copy join code"
-              >
-                {copied ? <Check size={12} /> : <Copy size={12} />}
-              </button>
-            </span>
+            <span className="nx-meta-label">Joined</span>
+            <span className="nx-meta-value">{studentCount}</span>
           </div>
         </div>
 
@@ -609,59 +571,58 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
           />
 
           {/* Question stream */}
-          <div className="nx-card" aria-label="Anonymous questions">
+          <div className="nx-card" aria-label="Student questions">
             <div className="nx-card-head">
               <div>
-                <h3 className="nx-card-title">Anonymous questions</h3>
-                <p className="nx-card-sub">Grouped by similarity · cosine ≥ 0.75</p>
+                <h3 className="nx-card-title">Student questions</h3>
+                <p className="nx-card-sub">Showing similar questions together.</p>
               </div>
-              <span className="nx-filter-bar-count">{counts.all} total · {counts.resolved} resolved</span>
             </div>
 
             <div className="nx-filter-bar">
               <div className="nx-tabs" role="tablist">
                 <button
                   className="nx-tab"
-                  data-active={questionFilter === "all"}
-                  onClick={() => setQuestionFilter("all")}
+                  data-active={questionFilter === "needs-attention"}
+                  onClick={() => setQuestionFilter("needs-attention")}
                 >
-                  All ({counts.all})
+                  Needs attention ({counts.needsAttention})
                 </button>
                 <button
                   className="nx-tab"
-                  data-active={questionFilter === "new"}
-                  onClick={() => setQuestionFilter("new")}
+                  data-active={questionFilter === "done"}
+                  onClick={() => setQuestionFilter("done")}
                 >
-                  New ({counts.new})
-                </button>
-                <button
-                  className="nx-tab"
-                  data-active={questionFilter === "opened"}
-                  onClick={() => setQuestionFilter("opened")}
-                >
-                  Opened ({counts.opened})
+                  Done ({counts.done})
                 </button>
               </div>
             </div>
 
             <div className="nx-stream-list" role="list">
-              {filteredQuestions.length === 0 ? (
+              {filteredClusters.length === 0 ? (
                 <div className="nx-empty">
-                  <div className="nx-empty-title">No questions match</div>
-                  <div className="nx-empty-sub">Adjust the filter to see other questions.</div>
+                  <div className="nx-empty-title">
+                    {questionFilter === "needs-attention"
+                      ? "Nothing waiting"
+                      : "No questions yet"}
+                  </div>
+                  <div className="nx-empty-sub">
+                    {questionFilter === "needs-attention"
+                      ? "When students send questions, they'll appear here for you to review."
+                      : "Questions you've shown to the class will appear here."}
+                  </div>
                 </div>
               ) : (
-                filteredQuestions.map(q => (
-                  <QuestionRow
-                    key={q.questionId}
-                    question={q}
-                    onOpen={() => onOpen(q.questionId)}
-                    onResolve={() => onResolve(q.questionId)}
-                    onReopen={() => onReopen(q.questionId)}
-                    onMute={() => onMuteAuthor(q)}
-                    onReport={() => onReport(q.questionId)}
-                    onUngroup={() => onUngroup(q.questionId)}
-                    onJumpToSlide={() => goToPage(q.fromPage)}
+                filteredClusters.map(c => (
+                  <ClusterRow
+                    key={c.clusterId}
+                    cluster={c}
+                    head={questionsById.get(c.headQuestionId)}
+                    members={c.memberIds
+                      .map(id => questionsById.get(id))
+                      .filter((q): q is LiveQuestion => Boolean(q))}
+                    onReveal={() => onRevealCluster(c.clusterId)}
+                    onJumpToSlide={page => goToPage(page)}
                   />
                 ))
               )}
@@ -783,21 +744,22 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
 /* doesn't accidentally pick them up.                                   */
 /* ─────────────────────────────────────────────────────────────────── */
 
-interface QuestionRowProps {
-  question: LiveQuestion;
-  onOpen: () => void;
-  onResolve: () => void;
-  onReopen: () => void;
-  onMute: () => void;
-  onReport: () => void;
-  onUngroup: () => void;
-  onJumpToSlide: () => void;
+interface ClusterRowProps {
+  cluster: LiveQuestionCluster;
+  /** Head question resolved from snapshot.questions; may be undefined briefly
+   *  if a realtime cluster event arrived before the question.created event. */
+  head: LiveQuestion | undefined;
+  /** All member questions for the expanded "see all" panel. Singletons → 1 entry. */
+  members: LiveQuestion[];
+  /** Show every member of the cluster to the class atomically. */
+  onReveal: () => void;
+  /** Jump to a member question's source slide page. */
+  onJumpToSlide: (page: number) => void;
 }
 
-function QuestionRow({
-  question: q,
-  onOpen, onResolve, onReopen, onMute, onReport, onUngroup, onJumpToSlide,
-}: QuestionRowProps) {
+function ClusterRow({
+  cluster, head, members, onReveal, onJumpToSlide,
+}: ClusterRowProps) {
   // Briefly add `is-new` on first mount so the row slide-in plays once.
   const [isFresh, setIsFresh] = useState(true);
   useEffect(() => {
@@ -805,82 +767,135 @@ function QuestionRow({
     return () => window.clearTimeout(t);
   }, []);
 
+  const [expanded, setExpanded] = useState(false);
+
+  const isHidden = cluster.visibilityStatus === "hidden";
+  const isCluster = cluster.size > 1;
+  const status: QuestionStatus = isHidden ? "new" : "opened";
+
+  const onRowKey = (e: ReactKeyboardEvent) => {
+    if (!isHidden) return;
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      onReveal();
+    }
+  };
+
+  const stop = (handler: () => void) => (e: ReactMouseEvent) => {
+    e.stopPropagation();
+    handler();
+  };
+
+  // The head text is the cluster's denormalized headText; fall back to the
+  // resolved head question's text if it's available locally.
+  const headText = cluster.headText || head?.text || "";
+  const headPage = head?.fromPage ?? 1;
+  const headPostedAt = head?.postedAt;
+
   return (
     <div
       className={cn("nx-qrow",
-        q.status === "opened"   && "is-opened",
-        q.status === "resolved" && "is-resolved",
-        isFresh                 && "is-new",
+        !isHidden && "is-opened",
+        isFresh   && "is-new",
+        isHidden  && "is-revealable",
       )}
-      role="listitem"
+      role={isHidden ? "button" : "listitem"}
+      tabIndex={isHidden ? 0 : undefined}
+      aria-label={
+        isHidden
+          ? isCluster
+            ? `${cluster.size} students asked this — show to class`
+            : "Click to show this question to the class"
+          : undefined
+      }
+      onClick={isHidden ? onReveal : undefined}
+      onKeyDown={isHidden ? onRowKey : undefined}
     >
       <div className="nx-qrow-head">
-        <AnonChip id={q.authorAnonymousCourseID} />
-        {q.clusterSize > 1 && (
+        {isCluster && (
           <span className="nx-cluster-pill">
-            <Cluster size={10} />
-            <span className="nx-cluster-pill-count">{q.clusterSize}</span> similar
+            <span className="nx-cluster-pill-count">{cluster.size}</span> students asked this
           </span>
         )}
-        <button
-          className="nx-slide-tag"
-          onClick={onJumpToSlide}
-          title={`Jump to slide ${q.fromPage}`}
-        >
-          ↳ slide {q.fromPage}
-        </button>
-        <span className="nx-qrow-meta" style={{ marginLeft: "auto" }}>
-          {relativeTime(q.postedAt)}
-        </span>
+        {head && (
+          <button
+            className="nx-slide-tag"
+            onClick={stop(() => onJumpToSlide(headPage))}
+          >
+            slide {headPage}
+          </button>
+        )}
+        {headPostedAt && (
+          <span className="nx-qrow-meta" style={{ marginLeft: "auto" }}>
+            {relativeTime(headPostedAt)}
+          </span>
+        )}
       </div>
 
-      <p
-        className={cn("nx-qrow-text", q.status === "new" && "nx-qrow-text--hidden")}
-        aria-hidden={q.status === "new"}
-      >
-        {q.text}
+      <p className={cn("nx-qrow-text", isHidden && "nx-qrow-text--hidden")}>
+        {headText}
       </p>
 
       <div className="nx-qrow-actions">
-        <StatusBadge status={q.status} openedAt={q.openedAt} resolvedByAuthor={q.resolvedByAuthor} />
+        <StatusBadge status={status} />
         <span className="nx-qrow-actions-spacer" />
 
-        {q.status === "new" && (
-          <button className="nx-btn nx-btn-primary" onClick={onOpen}>
-            <Eye size={11} /> Reveal
+        {isCluster && (
+          <button
+            className="nx-cluster-disclosure"
+            onClick={stop(() => setExpanded(e => !e))}
+            aria-expanded={expanded}
+          >
+            {expanded
+              ? "Hide other questions"
+              : `See all ${cluster.size} questions`}
           </button>
         )}
 
-        {q.status === "opened" && (
-          <button className="nx-btn nx-btn-primary" onClick={onResolve}>Mark resolved</button>
-        )}
-
-        {q.status === "resolved" && (
-          <button className="nx-btn nx-btn-ghost" onClick={onReopen}>Reopen</button>
+        {isHidden && (
+          <button className="nx-btn nx-btn-primary" onClick={stop(onReveal)}>
+            <Eye size={12} /> Show to class
+          </button>
         )}
       </div>
+
+      {isCluster && expanded && (
+        <ul className="nx-cluster-members" role="list">
+          {members.map(m => (
+            <li key={m.questionId} className="nx-cluster-member">
+              <p className={cn("nx-cluster-member-text", isHidden && "nx-qrow-text--hidden")}>
+                {m.text}
+              </p>
+              <div className="nx-cluster-member-meta">
+                <button
+                  className="nx-slide-tag"
+                  onClick={stop(() => onJumpToSlide(m.fromPage))}
+                >
+                  slide {m.fromPage}
+                </button>
+                <span>{relativeTime(m.postedAt)}</span>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
 
-function StatusBadge({
-  status, openedAt, resolvedByAuthor,
-}: { status: QuestionStatus; openedAt?: string; resolvedByAuthor?: boolean }) {
+function StatusBadge({ status }: { status: QuestionStatus }) {
   if (status === "new") {
-    return <span className="nx-badge nx-role-student"><span className="nx-badge-dot" />New</span>;
-  }
-  if (status === "opened") {
     return (
-      <span className="nx-badge nx-role-admin">
+      <span className="nx-badge nx-role-student">
         <span className="nx-badge-dot" />
-        {openedAt ? `Opened ${relativeTime(openedAt)}` : "Opened"}
+        Needs attention
       </span>
     );
   }
   return (
-    <span className="nx-badge nx-role-instructor">
+    <span className="nx-badge nx-role-admin">
       <span className="nx-badge-dot" />
-      Resolved{resolvedByAuthor ? " by author" : ""}
+      Shown to class
     </span>
   );
 }
@@ -944,8 +959,7 @@ function EndSessionModal({
     return () => window.removeEventListener("keydown", onKey);
   }, [onCancel]);
 
-  const open     = questions.filter(q => q.status !== "resolved").length;
-  const resolved = questions.filter(q => q.status === "resolved").length;
+  const revealed = questions.filter(q => q.status === "opened").length;
 
   return (
     <div className="nx-modal-backdrop" onClick={onCancel}>
@@ -980,7 +994,7 @@ function EndSessionModal({
             <div className="nx-report-stat">
               <div className="nx-report-stat-lbl">Questions</div>
               <div className="nx-report-stat-val">{questions.length}</div>
-              <div className="nx-report-stat-delta">{open} open · {resolved} resolved</div>
+              <div className="nx-report-stat-delta">{revealed} revealed</div>
             </div>
             <div className="nx-report-stat">
               <div className="nx-report-stat-lbl">Reactions</div>

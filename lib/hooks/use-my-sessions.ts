@@ -26,11 +26,11 @@ export function useMySessions(status?: SessionStatus) {
     setLoading(true);
     setError(null);
 
-    apiClient.get<MySession[]>(API_ENDPOINTS.MY_SESSIONS(status))
+    apiClient.get<{ role: string; sessions: MySession[] }>(API_ENDPOINTS.MY_SESSIONS(status))
       .then(res => {
         if (cancelled) return;
         if (res.status === 'success' && res.data) {
-          setSessions(res.data);
+          setSessions(res.data.sessions ?? []);
         } else {
           throw new Error(res.message || 'Failed to fetch sessions');
         }

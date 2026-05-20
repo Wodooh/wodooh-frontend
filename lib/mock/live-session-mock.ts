@@ -47,10 +47,10 @@ export const LIVE_SESSION_MOCK: LiveSessionSnapshot = {
   },
   reactions: {
     windowSeconds: 60,
-    too_fast:   { total: 11,  ratePerMin: 0.3, trend: "flat" },
-    too_slow:   { total: 19,  ratePerMin: 1.1, trend: "up" },
-    understood: { total: 142, ratePerMin: 4.2, trend: "down" },
-    not_clear:  { total: 87,  ratePerMin: 6.8, trend: "up" },
+    too_fast:   { total: 11,  recent60s: 0 },
+    too_slow:   { total: 19,  recent60s: 1 },
+    understood: { total: 142, recent60s: 4 },
+    not_clear:  { total: 87,  recent60s: 7 },
   },
   questions: [
     {
@@ -123,6 +123,7 @@ export const LIVE_SESSION_MOCK: LiveSessionSnapshot = {
       resolvedByAuthor: true,
     },
   ],
+  clusters: [],
   muted: [
     {
       anonymousSessionId: "sess-x4f2",

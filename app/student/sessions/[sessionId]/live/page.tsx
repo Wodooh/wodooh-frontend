@@ -54,10 +54,11 @@ interface PageProps {
 }
 
 interface LocalReactionState {
-  /** When the student last submitted each kind — for cooldown UI. */
+  /** When the student last submitted each kind on the current slide — for
+   *  the cooldown UI. Mirrors the backend's per-(student, slide, type)
+   *  dedup window. Cleared on slide change so each new slide gets a fresh
+   *  signal opportunity. */
   lastSubmittedAt: Partial<Record<ReactionKind, number>>;
-  /** Counts of the student's own submissions, this session. */
-  mine: Record<ReactionKind, number>;
 }
 
 export default function StudentLiveSessionPage({ params }: PageProps) {
@@ -76,6 +77,7 @@ export default function StudentLiveSessionPage({ params }: PageProps) {
     error,
     updateQuestion,
     prependQuestion,
+    studentCount,
   } = useLiveSession(sessionId, true);
 
   // Materials hook — fetches uploaded PDFs for this session
@@ -198,30 +200,62 @@ export default function StudentLiveSessionPage({ params }: PageProps) {
     return `${h}:${m}:${s}`;
   }, [elapsedSec]);
 
-  /* — Reactions: send + local tally ───────────────────────────────── */
-  const [reactState, setReactState] = useState<LocalReactionState>({
-    lastSubmittedAt: {},
-    mine: { too_fast: 0, too_slow: 0, understood: 0, not_clear: 0 },
-  });
-  const [pulseKind, setPulseKind] = useState<ReactionKind | null>(null);
+  /* — Reactions: send + per-slide cooldown + "Sent ✓" confirmation ── */
+  // Cooldown matches the backend's REACTION_COOLDOWN_MS in
+  // controller/reactions.ts. Spamming a single (slide, type) is silently
+  // deduped server-side; the client UI also disables the button for the
+  // same window so the student sees the throttling rather than being
+  // confused by no-op taps.
+  const REACTION_COOLDOWN_MS = 8000;
+  const SENT_CONFIRM_MS = 1000;
 
-  const REACTION_COOLDOWN_MS = 1500;
+  const [reactState, setReactState] = useState<LocalReactionState>({ lastSubmittedAt: {} });
+  /** Buttons currently showing the "Sent ✓" overlay (≤1s after tap). */
+  const [sentKinds, setSentKinds] = useState<Set<ReactionKind>>(new Set());
+
+  // Slide change → reset every per-button cooldown. The backend's dedup key
+  // includes slidePage, so a new slide is a new "voting window" and the
+  // student should be able to react fresh.
+  useEffect(() => {
+    setReactState({ lastSubmittedAt: {} });
+    setSentKinds(new Set());
+  }, [effectivePage]);
 
   const sendReaction = (kind: ReactionKind) => {
-    const now = Date.now();
-    const last = reactState.lastSubmittedAt[kind] ?? 0;
-    if (now - last < REACTION_COOLDOWN_MS) return;
+    if (reactState.lastSubmittedAt[kind]) return; // still cooling
 
+    const now = Date.now();
     setReactState(prev => ({
       lastSubmittedAt: { ...prev.lastSubmittedAt, [kind]: now },
-      mine: { ...prev.mine, [kind]: prev.mine[kind] + 1 },
     }));
-    setPulseKind(kind);
-    window.setTimeout(() => setPulseKind(null), 280);
+    setSentKinds(prev => new Set(prev).add(kind));
+
+    // Clear the "Sent ✓" overlay after the confirmation window.
+    window.setTimeout(() => {
+      setSentKinds(prev => {
+        if (!prev.has(kind)) return prev;
+        const next = new Set(prev);
+        next.delete(kind);
+        return next;
+      });
+    }, SENT_CONFIRM_MS);
+
+    // Clear the per-button cooldown after the full window.
+    window.setTimeout(() => {
+      setReactState(prev => {
+        if (!prev.lastSubmittedAt[kind]) return prev;
+        const nextLast = { ...prev.lastSubmittedAt };
+        delete nextLast[kind];
+        return { lastSubmittedAt: nextLast };
+      });
+    }, REACTION_COOLDOWN_MS);
 
     void apiClient
-      .post(API_ENDPOINTS.SESSION_REACTIONS(sessionId), { type: kind })
-      .catch(() => { /* non-fatal — Ably echo will reconcile total */ });
+      .post(API_ENDPOINTS.SESSION_REACTIONS(sessionId), {
+        type: kind,
+        slidePage: effectivePage,
+      })
+      .catch(() => { /* non-fatal — backend dedup is the source of truth */ });
   };
 
   /* — Anonymous question composer + submission ────────────────────── */
@@ -363,6 +397,10 @@ export default function StudentLiveSessionPage({ params }: PageProps) {
             <span className="nx-meta-value">{elapsedFmt}</span>
           </div>
           <div className="nx-meta-item">
+            <span className="nx-meta-label">Joined</span>
+            <span className="nx-meta-value">{studentCount}</span>
+          </div>
+          <div className="nx-meta-item">
             <span className="nx-meta-label">Your alias</span>
             <span className="nx-meta-value">{myAnonSessionId ?? myAnonCourseId ?? "—"}</span>
           </div>
@@ -492,6 +530,39 @@ export default function StudentLiveSessionPage({ params }: PageProps) {
             onPdfLoad={setPdfPageCount}
           />
 
+          {/* Reactions row (FR-13). Private signal — students don't see
+              counts or the instructor's panel. Per-slide cooldown matches
+              the backend dedup window. */}
+          <div className="nx-reactions-row" aria-label="React to the lecture">
+            {REACTION_BUTTONS.map(({ kind, label, hint }) => {
+              const isCooling = !!reactState.lastSubmittedAt[kind];
+              const isSent = sentKinds.has(kind);
+              return (
+                <button
+                  key={kind}
+                  type="button"
+                  className={cn(
+                    "nx-react-btn",
+                    `nx-react-btn--${kind.replace("_", "-")}`,
+                    isCooling && "is-cooling",
+                    isSent && "is-sent",
+                  )}
+                  disabled={isCooling && !isSent}
+                  onClick={() => sendReaction(kind)}
+                  aria-label={`${label} — ${hint.replace(/&rsquo;/g, "'")}`}
+                  title={hint.replace(/&rsquo;/g, "'")}
+                >
+                  <span className="nx-react-btn-label">{label}</span>
+                  {isSent && (
+                    <span className="nx-react-btn-sent" aria-live="polite">
+                      Sent ✓
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
           {/* Where-am-I strip: position relative to the instructor */}
           <div className="nx-student-pos-strip" aria-label="Your position relative to the instructor">
             <div className="nx-student-pos-stat">
@@ -530,8 +601,6 @@ export default function StudentLiveSessionPage({ params }: PageProps) {
 
         {/* ── Right rail ── */}
         <aside style={{ display: "flex", flexDirection: "column", gap: "var(--nx-stack)" }} aria-label="Participation panel">
-          {/* Reactions — wired in FR-13 */}
-
           {/* Question composer */}
           <div className="nx-card" aria-label="Ask an anonymous question">
             <div className="nx-card-head">

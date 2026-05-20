@@ -1678,39 +1678,91 @@
   border-left: 3px solid var(--accent); padding-left: 11px;
 }
 .nx-qrow.is-resolved .nx-qrow-text { color: var(--nx-fg-muted); }
-.nx-qrow-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.nx-qrow-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .nx-qrow-text {
-  margin: 0; font-size: 12px; color: var(--nx-fg); line-height: 1.5;
-  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
-  overflow: hidden;
+  margin: 0;
+  font-size: 18px;
+  color: var(--nx-fg);
+  line-height: 1.45;
+  word-break: break-word;
 }
 .nx-qrow-meta {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px; color: var(--nx-fg-subtle);
+  font-size: 12px; color: var(--nx-fg-subtle);
 }
 .nx-qrow-actions {
-  display: flex; gap: 6px; align-items: center; flex-wrap: wrap;
+  display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
 }
-.nx-qrow-actions .nx-btn { height: 24px; padding: 0 9px; font-size: 11px; }
+.nx-qrow-actions .nx-btn { height: 32px; padding: 0 14px; font-size: 14px; }
 .nx-qrow-actions .nx-qrow-actions-spacer { flex: 1; }
 
 .nx-cluster-pill {
-  display: inline-flex; align-items: center; gap: 5px;
+  display: inline-flex; align-items: center; gap: 6px;
   background: color-mix(in oklab, var(--accent) 16%, transparent);
   color: var(--accent-hover);
   border: 1px solid color-mix(in oklab, var(--accent) 40%, transparent);
-  border-radius: 999px; padding: 1px 7px 1px 6px;
-  font-size: 10px; font-weight: 500;
+  border-radius: 999px; padding: 3px 12px;
+  font-size: 13px; font-weight: 500;
 }
 .nx-cluster-pill .nx-cluster-pill-count {
   font-family: 'JetBrains Mono', ui-monospace, monospace; font-weight: 600;
+  font-size: 14px;
 }
+
+/* ── Cluster "see all" disclosure + nested-evidence member list ──── */
+/* Text-button form is intentional: a plain-language affordance reads as
+ * an action to non-technical instructors better than a chevron icon. */
+.nx-cluster-disclosure {
+  font: inherit;
+  font-size: 13px;
+  color: var(--nx-fg-muted);
+  background: transparent;
+  border: none;
+  padding: 4px 6px;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.nx-cluster-disclosure:hover { color: var(--nx-fg); }
+.nx-cluster-disclosure:focus-visible {
+  outline: 2px solid var(--nx-accent, #6366f1);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+/* Members render as quote-like nested evidence, not duplicate cards.
+ * No background, no card border, no big head row — just the text indented
+ * under a single accent rail to make it clear they're variants of the
+ * head question. */
+.nx-cluster-members {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 4px 0 0 14px;
+  border-left: 3px solid var(--nx-border);
+  display: flex; flex-direction: column; gap: 10px;
+}
+.nx-cluster-member {
+  display: flex; flex-direction: column; gap: 4px;
+}
+.nx-cluster-member-text {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--nx-fg);
+  word-break: break-word;
+}
+.nx-cluster-member-meta {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12px;
+  color: var(--nx-fg-subtle);
+}
+
 .nx-slide-tag {
   display: inline-flex; align-items: center; gap: 4px;
-  font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12px;
   color: var(--nx-fg-muted);
   border: 1px dashed var(--nx-border-strong);
-  border-radius: 4px; padding: 1px 6px; cursor: pointer;
+  border-radius: 4px; padding: 2px 8px; cursor: pointer;
   background: transparent;
   transition: color 80ms, border-color 80ms;
 }
@@ -1939,6 +1991,106 @@
   font-size: 11px; color: var(--nx-fg-muted); line-height: 1.55;
 }
 
+/* ── Student reactions row (below slide viewer) ───────────────────── */
+/* Private student signal — full-width below the slide stage, NOT in the
+ * right rail. Buttons are large (44px+ tall) for tablet/phone thumbs.
+ * Color coding mirrors the instructor's reactions panel:
+ *   too_fast   → warning yellow
+ *   too_slow   → deeper amber
+ *   understood → success teal
+ *   not_clear  → danger red
+ * The instructor's aggregate panel is intentionally NOT shown to students
+ * (showing counts creates herd voting). */
+.nx-reactions-row {
+  display: flex; gap: 10px; flex-wrap: wrap;
+  margin-top: 12px;
+}
+.nx-react-btn {
+  position: relative;
+  flex: 1 1 160px;
+  min-height: 48px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: var(--nx-bg-elev);
+  border: 1.5px solid var(--nx-border-strong);
+  color: var(--nx-fg);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  transition: background 100ms, border-color 100ms, color 100ms, transform 120ms ease;
+  touch-action: manipulation; /* avoid double-tap zoom on mobile */
+  user-select: none;
+}
+.nx-react-btn:hover:not(:disabled) {
+  background: var(--nx-bg-hover);
+  transform: translateY(-1px);
+}
+.nx-react-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+.nx-react-btn:focus-visible {
+  outline: 2px solid var(--nx-accent, #6366f1);
+  outline-offset: 2px;
+}
+.nx-react-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+/* Color rails (left border) — visual anchor matching the instructor panel */
+.nx-react-btn--too-fast   { border-left: 4px solid var(--nx-warning); }
+.nx-react-btn--too-slow   { border-left: 4px solid #C77B0F; }
+.nx-react-btn--understood { border-left: 4px solid var(--nx-success); }
+.nx-react-btn--not-clear  { border-left: 4px solid var(--nx-danger); }
+
+/* On hover, color-fill matches the rail */
+.nx-react-btn--too-fast:hover:not(:disabled)   { border-color: var(--nx-warning); }
+.nx-react-btn--too-slow:hover:not(:disabled)   { border-color: #C77B0F; }
+.nx-react-btn--understood:hover:not(:disabled) { border-color: var(--nx-success); }
+.nx-react-btn--not-clear:hover:not(:disabled)  { border-color: var(--nx-danger); }
+
+/* Sent state: brief pulse + persistent "Sent ✓" overlay */
+.nx-react-btn.is-sent {
+  animation: nx-react-pulse 280ms ease-out;
+  opacity: 1;
+}
+.nx-react-btn--too-fast.is-sent   { background: color-mix(in oklab, var(--nx-warning) 18%, var(--nx-bg-elev)); border-color: var(--nx-warning); }
+.nx-react-btn--too-slow.is-sent   { background: color-mix(in oklab, #C77B0F 18%, var(--nx-bg-elev)); border-color: #C77B0F; }
+.nx-react-btn--understood.is-sent { background: color-mix(in oklab, var(--nx-success) 18%, var(--nx-bg-elev)); border-color: var(--nx-success); }
+.nx-react-btn--not-clear.is-sent  { background: color-mix(in oklab, var(--nx-danger) 18%, var(--nx-bg-elev)); border-color: var(--nx-danger); }
+.nx-react-btn-label { transition: opacity 120ms ease; }
+.nx-react-btn.is-sent .nx-react-btn-label { opacity: 0; }
+.nx-react-btn-sent {
+  position: absolute;
+  font-size: 16px;
+  font-weight: 700;
+  animation: nx-react-sent-in 120ms ease-out;
+}
+
+/* Cooling state (after the 1s "Sent" overlay fades, the button stays
+ * disabled until the full cooldown elapses). Subtle muted appearance,
+ * no pulse, no overlay. */
+.nx-react-btn.is-cooling:not(.is-sent) {
+  background: var(--nx-bg-sub);
+}
+
+@keyframes nx-react-pulse {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.04); }
+  100% { transform: scale(1); }
+}
+@keyframes nx-react-sent-in {
+  from { opacity: 0; transform: scale(0.9); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* Phone breakpoint: stack 2×2 instead of 1×4 to keep tap targets wide */
+@media (max-width: 540px) {
+  .nx-react-btn { flex-basis: calc(50% - 5px); }
+}
+
 /* — Question composer — */
 .nx-composer { padding: 12px 14px 14px; }
 .nx-composer-textarea {
@@ -2065,12 +2217,29 @@ html[data-nx-focus="live"] .nx-main {
   min-width: 0;
 }
 
-/* ── Question reveal blur (instructor live page) ──────────────────── */
+/* ── Hidden question blur (instructor live page) ──────────────────── */
+/* The real question text is in the DOM; CSS just blurs it so the instructor
+ * can see the question's length and shape but can't read it until they
+ * click Reveal. Selection disabled so dragging won't easily lift the
+ * pre-moderation text. */
 .nx-qrow-text--hidden {
-  filter: blur(4px);
+  filter: blur(5px);
   user-select: none;
-  pointer-events: none;
-  opacity: 0.5;
+  cursor: pointer;
+  opacity: 0.85;
+  transition: filter 140ms ease, opacity 140ms ease;
+}
+.nx-qrow.is-revealable {
+  cursor: pointer;
+}
+.nx-qrow.is-revealable:hover .nx-qrow-text--hidden,
+.nx-qrow.is-revealable:focus-visible .nx-qrow-text--hidden {
+  filter: blur(3px);
+  opacity: 1;
+}
+.nx-qrow.is-revealable:focus-visible {
+  outline: 2px solid var(--nx-accent, #6366f1);
+  outline-offset: 2px;
 }
 
 /* ── Material switcher (instructor doc toolbar) ───────────────────── */
