@@ -96,6 +96,14 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
     );
   }
 
+  // Live-session routes own the entire viewport via LiveSessionFrame —
+  // bypass the role shell (sidebar + topbar) so the slide isn't competing
+  // for space with chrome.
+  const isLiveRoute = /^\/student\/sessions\/[^/]+\/live(\/|$)/.test(pathname);
+  if (isLiveRoute) {
+    return <>{children}</>;
+  }
+
   const initials = user.name.split(" ").map(p => p[0]).join("").slice(0, 2).toUpperCase();
   const activeKey = (() => {
     for (const item of [...NAV].sort((a, b) => b.href.length - a.href.length)) {
