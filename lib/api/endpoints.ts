@@ -66,10 +66,16 @@ export const API_ENDPOINTS = {
   SESSION: (id: string) => `/sessions/${id}`,
   SESSION_END: (id: string) => `/sessions/${id}/end`,
   SESSION_PAGE: (sessionId: string) => `/sessions/${sessionId}/page`,
+  SESSION_JOIN: (sessionId: string) => `/sessions/${sessionId}/join`,
+  SESSION_LEAVE: (sessionId: string) => `/sessions/${sessionId}/leave`,
+  SESSION_REACTIONS: (sessionId: string) => `/sessions/${sessionId}/reactions`,
+  SESSION_REACTIONS_SUMMARY: (sessionId: string) => `/sessions/${sessionId}/reactions/summary`,
 
   // Questions
   QUESTIONS: '/questions',
   QUESTION_VISIBILITY: (id: string) => `/questions/${id}/visibility`,
+  QUESTION_POST_SESSION_STATUS: (questionId: string) =>
+    `/questions/${questionId}/post-session-status`,
 
   // Chairman (department-scoped)
   CHAIRMAN_ME: '/chairman/me',
