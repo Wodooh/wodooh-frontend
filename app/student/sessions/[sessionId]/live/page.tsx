@@ -19,7 +19,7 @@
  * `useLiveSession(sessionId)` over the backend + Ably channels.
  */
 
-import { use, useEffect, useMemo, useState } from "react";
+import { use, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { AnonChip } from "@/components/live-session/anon-chip";
