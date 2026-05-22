@@ -44,12 +44,14 @@ export default function StudentSessionReviewPage({ params }: PageProps) {
 
   const counts = useMemo(() => {
     let resolved = 0;
+    let autoResolved = 0;
     let open = 0;
     for (const q of questions) {
       if (q.postSessionStatus === "resolved") resolved++;
+      else if (q.postSessionStatus === "auto-resolved") autoResolved++;
       else open++;
     }
-    return { resolved, open, total: questions.length };
+    return { resolved, autoResolved, open, total: questions.length };
   }, [questions]);
 
   return (
@@ -103,6 +105,10 @@ export default function StudentSessionReviewPage({ params }: PageProps) {
           <div className="nx-review-summary-stat">
             <span className="nx-review-summary-num">{counts.resolved}</span>
             <span className="nx-review-summary-lbl">Resolved</span>
+          </div>
+          <div className="nx-review-summary-stat">
+            <span className="nx-review-summary-num">{counts.autoResolved}</span>
+            <span className="nx-review-summary-lbl">Auto-resolved</span>
           </div>
           <div className="nx-review-summary-stat">
             <span className="nx-review-summary-num">{counts.open}</span>
@@ -198,11 +204,19 @@ function ReviewQuestionRow({ question, disabled, onChange }: ReviewQuestionRowPr
     );
 
   const isResolved = question.postSessionStatus === "resolved";
+  const isUnresolved = question.postSessionStatus === "open";
+  const isAutoResolved = question.postSessionStatus === "auto-resolved";
 
   return (
     <div className="nx-review-q" role="listitem">
       <div className="nx-review-q-head">
         {instructorBadge}
+        {isAutoResolved && (
+          <span className="nx-badge" title="Marked resolved by default because you didn't respond — confirm or change below.">
+            <span className="nx-badge-dot" />
+            Auto-resolved
+          </span>
+        )}
         <span className="nx-qrow-meta" style={{ marginLeft: "auto" }}>
           {relativeTime(question.createdAt)}
         </span>
@@ -227,8 +241,8 @@ function ReviewQuestionRow({ question, disabled, onChange }: ReviewQuestionRowPr
           </button>
           <button
             type="button"
-            data-active={!isResolved ? "unresolved" : undefined}
-            aria-pressed={!isResolved}
+            data-active={isUnresolved ? "unresolved" : undefined}
+            aria-pressed={isUnresolved}
             disabled={disabled || pending}
             onClick={() => apply("open")}
           >

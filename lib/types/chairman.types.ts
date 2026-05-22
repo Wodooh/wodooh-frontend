@@ -88,7 +88,12 @@ export interface SessionReport {
   sessionId: string;
   questionCount: number;
   openedCount: number;
+  /** Student explicitly confirmed resolved. */
   resolvedCount: number;
+  /** Defaulted to resolved by the end-of-session sweep — student never responded. */
+  autoResolvedCount: number;
+  /** Student explicitly marked unresolved. */
+  unresolvedCount: number;
   reactionCounts: {
     TooFast: number;
     TooSlow: number;

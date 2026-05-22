@@ -82,7 +82,7 @@ interface ApiQuestion {
   content: string;
   authorAnonymousCourseId: string;
   visibilityStatus: 'visible' | 'hidden';
-  postSessionStatus: 'open' | 'resolved' | 'archived';
+  postSessionStatus: 'open' | 'resolved' | 'archived' | 'auto-resolved';
   clusterId?: string;
   createdAt: string;
   updatedAt: string;
@@ -106,7 +106,7 @@ interface QuestionCreatedPayload {
   content: string;
   authorAnonymousCourseId: string;
   visibilityStatus: 'visible' | 'hidden';
-  postSessionStatus: 'open' | 'resolved' | 'archived';
+  postSessionStatus: 'open' | 'resolved' | 'archived' | 'auto-resolved';
   clusterId?: string;
   createdAt: string;
 }
@@ -153,9 +153,9 @@ interface QuestionVisibilityChangedPayload {
 
 function deriveQuestionStatus(
   visibilityStatus: 'visible' | 'hidden',
-  postSessionStatus: 'open' | 'resolved' | 'archived',
+  postSessionStatus: 'open' | 'resolved' | 'archived' | 'auto-resolved',
 ): QuestionStatus {
-  if (postSessionStatus === 'resolved') return 'resolved';
+  if (postSessionStatus === 'resolved' || postSessionStatus === 'auto-resolved') return 'resolved';
   if (visibilityStatus === 'visible') return 'opened';
   return 'new';
 }
