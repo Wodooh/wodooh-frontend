@@ -77,14 +77,16 @@ export default function ChairmanReportsPage() {
             <div style={{ padding: 16, color: "var(--nx-fg-muted)" }}>Loading…</div>
           ) : !report ? null : (
             <div style={{ padding: 16, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12 }}>
-              <Metric label="Questions"   value={report.questionCount} />
-              <Metric label="Participants" value={report.participantCount} />
-              <Metric label="Opened"      value={report.openedCount} />
-              <Metric label="Resolved"    value={report.resolvedCount} />
-              <Metric label="TooFast"     value={report.reactionCounts.TooFast} />
-              <Metric label="TooSlow"     value={report.reactionCounts.TooSlow} />
-              <Metric label="Understood"  value={report.reactionCounts.Understood} />
-              <Metric label="NotClear"    value={report.reactionCounts.NotClear} />
+              <Metric label="Questions"     value={report.questionCount} />
+              <Metric label="Participants"  value={report.participantCount} />
+              <Metric label="Opened"        value={report.openedCount} />
+              <Metric label="Resolved"      value={report.resolvedCount} />
+              <Metric label="Auto-resolved" value={report.autoResolvedCount} />
+              <Metric label="Unresolved"    value={report.unresolvedCount} />
+              <Metric label="TooFast"       value={report.reactionCounts.TooFast} />
+              <Metric label="TooSlow"       value={report.reactionCounts.TooSlow} />
+              <Metric label="Understood"    value={report.reactionCounts.Understood} />
+              <Metric label="NotClear"      value={report.reactionCounts.NotClear} />
             </div>
           )}
         </div>

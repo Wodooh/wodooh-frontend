@@ -5,7 +5,7 @@ import apiClient from '../api/client';
 import API_ENDPOINTS from '../api/endpoints';
 import { getUserFromToken } from '../auth/jwt-manager';
 
-export type PostSessionStatus = 'open' | 'resolved' | 'archived';
+export type PostSessionStatus = 'open' | 'resolved' | 'archived' | 'auto-resolved';
 export type VisibilityStatus = 'visible' | 'hidden';
 
 export interface ReviewQuestion {
