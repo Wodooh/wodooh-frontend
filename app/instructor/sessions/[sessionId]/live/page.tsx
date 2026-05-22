@@ -128,6 +128,17 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
   const [elapsedSec, setElapsedSec] = useState(0);
   const [pulseKind] = useState<ReactionKind | null>(null);
 
+  // Clusters that the instructor just opened on this tab. They remain visible
+  // in "Needs attention" even after their visibilityStatus flips, so the
+  // instructor has time to read and answer verbally before the row re-buckets
+  // to "Done" on the next tab switch.
+  const [pinnedOnNeedsAttention, setPinnedOnNeedsAttention] = useState<Set<string>>(new Set());
+
+  const handleFilterChange = (next: QuestionFilter) => {
+    if (next !== questionFilter) setPinnedOnNeedsAttention(new Set());
+    setQuestionFilter(next);
+  };
+
   /* — Elapsed timer ─────────────────────────────────────────────────── */
   useEffect(() => {
     const id = window.setInterval(() => setElapsedSec(s => s + 1), 1000);
@@ -186,11 +197,13 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
 
   const filteredClusters = useMemo(() => {
     if (!snapshot) return [];
-    const wantHidden = questionFilter === "needs-attention";
-    return snapshot.clusters.filter(c =>
-      wantHidden ? c.visibilityStatus === "hidden" : c.visibilityStatus === "visible",
-    );
-  }, [snapshot, questionFilter]);
+    if (questionFilter === "needs-attention") {
+      return snapshot.clusters.filter(
+        c => c.visibilityStatus === "hidden" || pinnedOnNeedsAttention.has(c.clusterId),
+      );
+    }
+    return snapshot.clusters.filter(c => c.visibilityStatus === "visible");
+  }, [snapshot, questionFilter, pinnedOnNeedsAttention]);
 
   const counts = useMemo(() => {
     const clusters = snapshot?.clusters ?? [];
@@ -248,6 +261,12 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
   };
 
   const onRevealCluster = (clusterId: string) => {
+    setPinnedOnNeedsAttention(prev => {
+      if (prev.has(clusterId)) return prev;
+      const next = new Set(prev);
+      next.add(clusterId);
+      return next;
+    });
     setClusterVisibility(clusterId, "visible").catch(err =>
       toast.error(err instanceof Error ? err.message : "Failed to reveal cluster"),
     );
@@ -509,14 +528,14 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
                   <button
                     className="nx-tab"
                     data-active={questionFilter === "needs-attention"}
-                    onClick={() => setQuestionFilter("needs-attention")}
+                    onClick={() => handleFilterChange("needs-attention")}
                   >
                     Needs attention ({counts.needsAttention})
                   </button>
                   <button
                     className="nx-tab"
                     data-active={questionFilter === "done"}
-                    onClick={() => setQuestionFilter("done")}
+                    onClick={() => handleFilterChange("done")}
                   >
                     Done ({counts.done})
                   </button>
