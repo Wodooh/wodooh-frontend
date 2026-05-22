@@ -9,14 +9,12 @@
  *   - US-D3 / FR-13 — submit "Too fast / Too slow / Understood / Not clear" reactions
  *   - US-C4 / FR-09 — view available section material (lecture file co-viewer)
  *
- * Privacy invariant: this page shows the student their own `anonymousCourseId`
- * (course-stable pseudonym used for authored questions) and their ephemeral
- * `anonymousSessionId` (used by the instructor's mute action). Real student
- * identity (name / studentNumber) is intentionally absent from the surface.
+ * Privacy invariant: shows the student their own `anonymousCourseId` and the
+ * ephemeral `anonymousSessionId`. Real student identity is never on-screen.
  *
- * Data: V1 reads the same mock fixture the instructor page uses so the two
- * surfaces feel like the same session. V2 will replace this with
- * `useLiveSession(sessionId)` over the backend + Ably channels.
+ * Layout: renders inside `LiveSessionFrame` (shared with the instructor page).
+ * The role shell is short-circuited on /live routes; this page owns the
+ * entire viewport.
  */
 
 import { use, useEffect, useMemo, useRef, useState } from "react";
@@ -24,7 +22,7 @@ import { useRouter } from "next/navigation";
 
 import { AnonChip } from "@/components/live-session/anon-chip";
 import { FileGlyph } from "@/components/live-session/file-glyph";
-import { NxToggle } from "@/components/live-session/nx-toggle";
+import { LiveSessionFrame } from "@/components/live-session/live-session-frame";
 import { SlideStage } from "@/components/live-session/slide-stage";
 import {
   ChevronLeft,
@@ -54,31 +52,22 @@ interface PageProps {
 }
 
 interface LocalReactionState {
-  /** When the student last submitted each kind — for cooldown UI. */
   lastSubmittedAt: Partial<Record<ReactionKind, number>>;
-  /** Counts of the student's own submissions, this session. */
-  mine: Record<ReactionKind, number>;
 }
 
 export default function StudentLiveSessionPage({ params }: PageProps) {
-  // Next.js 16: params is a Promise; `use()` unwraps it.
   const { sessionId } = use(params);
   const router = useRouter();
 
-  // Hook owns the session, questions, and Ably realtime subscription.
-  // enterPresence: true — any user on this page (any account role) is counted
-  // as "present" so the instructor's auto-close timer reflects real attendance.
   const {
     snapshot: liveSnapshot,
-    connected,
     ended,
     loading,
     error,
-    updateQuestion,
     prependQuestion,
+    studentCount,
   } = useLiveSession(sessionId, true);
 
-  // Materials hook — fetches uploaded PDFs for this session
   const { materials: sessionMaterials, getSignedUrl } = useSessionMaterials(sessionId);
   const [activeMaterial, setActiveMaterial] = useState<SessionMaterial | null>(null);
   const [pdfSignedUrl, setPdfSignedUrl]     = useState<string | null>(null);
@@ -96,7 +85,6 @@ export default function StudentLiveSessionPage({ params }: PageProps) {
 
   useEffect(() => {
     if (!activeMaterial || !activeMaterial._id) return;
-    // Refresh 10 minutes before the 1-hour signed URL expires
     const REFRESH_MS = 50 * 60 * 1000;
     const materialId = activeMaterial._id;
     const id = setInterval(() => {
@@ -105,36 +93,16 @@ export default function StudentLiveSessionPage({ params }: PageProps) {
     return () => clearInterval(id);
   }, [activeMaterial, getSignedUrl]);
 
-  useEffect(() => {
-    document.documentElement.setAttribute('data-nx-focus', 'live');
-    return () => {
-      document.documentElement.removeAttribute('data-nx-focus');
-    };
-  }, []);
-
-  // Local mirror so the existing local-only mutator (sendReaction) keeps
-  // working on snapshot fields the backend doesn't surface yet. Hook
-  // updates (initial fetch + Ably question events) flow into this mirror
-  // via the effect below. Local-only mutations to `reactions` get
-  // overwritten on the next hook-driven sync.
   const [snapshot, setSnapshot] = useState<LiveSessionSnapshot | null>(null);
   useEffect(() => {
     setSnapshot(liveSnapshot);
   }, [liveSnapshot]);
 
-  // Captured from the backend on the first successful question submission;
-  // used to identify "my questions" in the stream until a real
-  // POST /sessions/:id/join hands the pseudonym back up front.
   const [myAnonCourseId, setMyAnonCourseId] = useState<string | null>(null);
-
-  // Ephemeral per-session pseudonym minted by POST /sessions/:id/join.
   const [myAnonSessionId, setMyAnonSessionId] = useState<string | null>(null);
-
-  // Guard against React Strict Mode double-invoke to prevent duplicate join requests
   const joinAttemptedRef = useRef<string | null>(null);
 
   useEffect(() => {
-    // Skip if we've already attempted to join this session
     if (joinAttemptedRef.current === sessionId) return;
     joinAttemptedRef.current = sessionId;
 
@@ -153,13 +121,10 @@ export default function StudentLiveSessionPage({ params }: PageProps) {
     return () => { cancelled = true; };
   }, [sessionId]);
 
-  /* — Slide navigation: student can follow the instructor or roam ── */
+  /* — Slide navigation: follow instructor or roam independently ── */
   const [followInstructor, setFollowInstructor] = useState(true);
   const [studentPage, setStudentPage] = useState<number>(1);
 
-  // While "follow instructor" is on, keep the student page locked to the
-  // instructor's `currentPage`. As soon as the student navigates manually,
-  // we flip the toggle off so they don't get yanked back on the next tick.
   const currentInstructorPage = snapshot?.currentPage ?? 1;
   const effectivePage = followInstructor ? currentInstructorPage : studentPage;
   const isBehindInstructor = !followInstructor && studentPage < currentInstructorPage;
@@ -186,7 +151,6 @@ export default function StudentLiveSessionPage({ params }: PageProps) {
     const id = window.setInterval(() => setElapsedSec(s => s + 1), 1000);
     return () => window.clearInterval(id);
   }, []);
-  // Hydrate elapsedSec from the real session start once the snapshot arrives.
   useEffect(() => {
     if (!liveSnapshot?.meta.startedAt) return;
     setElapsedSec(Math.floor((Date.now() - new Date(liveSnapshot.meta.startedAt).getTime()) / 1000));
@@ -198,30 +162,51 @@ export default function StudentLiveSessionPage({ params }: PageProps) {
     return `${h}:${m}:${s}`;
   }, [elapsedSec]);
 
-  /* — Reactions: send + local tally ───────────────────────────────── */
-  const [reactState, setReactState] = useState<LocalReactionState>({
-    lastSubmittedAt: {},
-    mine: { too_fast: 0, too_slow: 0, understood: 0, not_clear: 0 },
-  });
-  const [pulseKind, setPulseKind] = useState<ReactionKind | null>(null);
+  /* — Reactions: send + per-slide cooldown + "Sent ✓" confirmation ── */
+  const REACTION_COOLDOWN_MS = 8000;
+  const SENT_CONFIRM_MS = 1000;
 
-  const REACTION_COOLDOWN_MS = 1500;
+  const [reactState, setReactState] = useState<LocalReactionState>({ lastSubmittedAt: {} });
+  const [sentKinds, setSentKinds] = useState<Set<ReactionKind>>(new Set());
+
+  useEffect(() => {
+    setReactState({ lastSubmittedAt: {} });
+    setSentKinds(new Set());
+  }, [effectivePage]);
 
   const sendReaction = (kind: ReactionKind) => {
-    const now = Date.now();
-    const last = reactState.lastSubmittedAt[kind] ?? 0;
-    if (now - last < REACTION_COOLDOWN_MS) return;
+    if (reactState.lastSubmittedAt[kind]) return;
 
+    const now = Date.now();
     setReactState(prev => ({
       lastSubmittedAt: { ...prev.lastSubmittedAt, [kind]: now },
-      mine: { ...prev.mine, [kind]: prev.mine[kind] + 1 },
     }));
-    setPulseKind(kind);
-    window.setTimeout(() => setPulseKind(null), 280);
+    setSentKinds(prev => new Set(prev).add(kind));
+
+    window.setTimeout(() => {
+      setSentKinds(prev => {
+        if (!prev.has(kind)) return prev;
+        const next = new Set(prev);
+        next.delete(kind);
+        return next;
+      });
+    }, SENT_CONFIRM_MS);
+
+    window.setTimeout(() => {
+      setReactState(prev => {
+        if (!prev.lastSubmittedAt[kind]) return prev;
+        const nextLast = { ...prev.lastSubmittedAt };
+        delete nextLast[kind];
+        return { lastSubmittedAt: nextLast };
+      });
+    }, REACTION_COOLDOWN_MS);
 
     void apiClient
-      .post(API_ENDPOINTS.SESSION_REACTIONS(sessionId), { type: kind })
-      .catch(() => { /* non-fatal — Ably echo will reconcile total */ });
+      .post(API_ENDPOINTS.SESSION_REACTIONS(sessionId), {
+        type: kind,
+        slidePage: effectivePage,
+      })
+      .catch(() => { /* non-fatal — backend dedup is the source of truth */ });
   };
 
   /* — Anonymous question composer + submission ────────────────────── */
@@ -233,8 +218,7 @@ export default function StudentLiveSessionPage({ params }: PageProps) {
   const trimmed = draft.trim();
   const charsLeft = QUESTION_MAX_LEN - draft.length;
   const isMuted = false;
-  const isPaused = snapshot?.controls.questionsPaused ?? false;
-  const canSubmit = trimmed.length > 0 && trimmed.length <= QUESTION_MAX_LEN && !isMuted && !isPaused && !submitting;
+  const canSubmit = trimmed.length > 0 && trimmed.length <= QUESTION_MAX_LEN && !isMuted && !submitting;
 
   const submitQuestion = async () => {
     if (!canSubmit) return;
@@ -283,13 +267,19 @@ export default function StudentLiveSessionPage({ params }: PageProps) {
     }
   };
 
+  /* — Auto-bounce to review when the instructor ends the session ──── */
+  useEffect(() => {
+    if (!ended) return;
+    router.replace(`/student/sessions/${sessionId}/review`);
+  }, [ended, sessionId, router]);
+
   /* — Leave session ──────────────────────────────────────────────── */
   const [leaveOpen, setLeaveOpen] = useState(false);
   const confirmLeave = () => {
     setLeaveOpen(false);
     void apiClient
       .post(API_ENDPOINTS.SESSION_LEAVE(sessionId))
-      .catch(() => { /* non-fatal — do not block navigation */ });
+      .catch(() => { /* non-fatal */ });
     router.push("/student/sessions");
   };
 
@@ -319,105 +309,113 @@ export default function StudentLiveSessionPage({ params }: PageProps) {
   }
   if (!snapshot) return null;
 
-  const { meta, reactions } = snapshot;
+  const { meta, controls } = snapshot;
   const material = activeMaterial ?? snapshot.material;
   const effectiveTotalPages = pdfPageCount || material.totalPages || 1;
+  const followLabel = followInstructor
+    ? `Following · slide ${snapshot.currentPage}`
+    : isBehindInstructor
+    ? `Behind by ${snapshot.currentPage - studentPage} · catch up`
+    : isAheadOfInstructor
+    ? `Ahead by ${studentPage - snapshot.currentPage} · jump back`
+    : "Independent";
 
-  return (
-    <div className="nx-portal-accent">
+  const banner = (ended || isMuted) ? (
+    <>
       {ended && (
         <div className="nx-student-banner is-warn" role="alert">
           <b>This session has ended.</b>
         </div>
       )}
-      {/* Page head */}
-      <div className="nx-page-head">
-        <div>
-          <h1 className="nx-page-title">Live session</h1>
-          <p className="nx-page-sub">
-            You are participating anonymously as{" "}
-            <span style={{ fontFamily: "'JetBrains Mono', monospace" }}>{myAnonCourseId ?? "—"}</span>
-            {" · "}your real name is never sent with your questions or reactions.
-          </p>
-        </div>
-      </div>
-
-      {/* Session header strip — student variant (no join code, leave button) */}
-      <section className="nx-session-strip" aria-label="Session header">
-        <div className="nx-session-id">
-          <div className="nx-session-id-crumb">
-            <span className="nx-live-dot">Live</span>
-            <span>·</span>
-            <span>Section {meta.sectionNumber}</span>
-            <span>·</span>
-            <span>{meta.scheduleLabel}</span>
-          </div>
-          <h2 className="nx-session-id-title">
-            <span className="nx-mono">{meta.courseCode}</span> · {meta.courseName}
-          </h2>
-        </div>
-
-        <div className="nx-session-meta">
-          <div className="nx-meta-item">
-            <span className="nx-meta-label">Elapsed</span>
-            <span className="nx-meta-value">{elapsedFmt}</span>
-          </div>
-          <div className="nx-meta-item">
-            <span className="nx-meta-label">Your alias</span>
-            <span className="nx-meta-value">{myAnonSessionId ?? myAnonCourseId ?? "—"}</span>
-          </div>
-        </div>
-
-        <div style={{ display: "flex", gap: 8 }}>
-          <button
-            className="nx-btn nx-btn-ghost nx-btn-danger"
-            onClick={() => setLeaveOpen(true)}
-          >
-            <Close size={13} />
-            Leave session
-          </button>
-        </div>
-      </section>
-
-      {/* Mute / pause banners — surface server-side moderation state */}
       {isMuted && (
         <div className="nx-student-banner is-warn" role="alert">
           <b>You have been muted in this session.</b> You can still view the slides
           and send reactions, but new questions are blocked until your instructor unmutes you.
         </div>
       )}
-      {!isMuted && isPaused && (
-        <div className="nx-student-banner" role="status">
-          <b>Questions are paused.</b> Your instructor will reopen the question
-          channel shortly — reactions still work.
-        </div>
-      )}
+    </>
+  ) : undefined;
 
-      {/* Main grid: viewer + right rail */}
-      <section className="nx-live-grid">
-        {/* ── Document viewer card ── */}
-        <div className="nx-card nx-viewer-card" aria-label="Lecture document viewer">
-          {!activeMaterial ? (
-            <div className="flex flex-col items-center justify-center h-full min-h-[400px] gap-3 text-muted-foreground">
-              <FileX className="h-10 w-10 opacity-40" />
-              <p className="text-sm font-medium">No slides yet</p>
-              <p className="text-xs opacity-70">The instructor hasn&apos;t uploaded materials for this session.</p>
+  return (
+    <>
+      <LiveSessionFrame
+        banner={banner}
+        topBar={
+          <>
+            <div className="nx-lsf-topbar-left">
+              <span className="nx-lsf-live-pill">Live</span>
+              <span className="nx-lsf-course">
+                <span className="nx-mono">{meta.courseCode}</span>
+                {" · Section "}{meta.sectionNumber}
+                {" · "}{meta.courseName}
+              </span>
+            </div>
+            <div className="nx-lsf-topbar-right">
+              <span className="nx-lsf-meta" title="Elapsed">
+                <ClockIcon /> {elapsedFmt}
+              </span>
+              <span className="nx-lsf-meta" title="Students joined">
+                <PersonIcon /> {studentCount}
+              </span>
+              <span
+                className="nx-lsf-meta"
+                title="Your anonymous alias for this session"
+                style={{ fontFamily: "'JetBrains Mono', monospace" }}
+              >
+                {myAnonSessionId ?? myAnonCourseId ?? "—"}
+              </span>
+              <button
+                className="nx-btn nx-btn-ghost nx-btn-danger"
+                onClick={() => setLeaveOpen(true)}
+              >
+                <Close size={13} />
+                Leave session
+              </button>
+            </div>
+          </>
+        }
+        slide={
+          !activeMaterial ? (
+            <div className="nx-lsf-slide-empty">
+              <FileX size={36} />
+              <p className="nx-lsf-slide-empty-title">No slides yet</p>
+              <p className="nx-lsf-slide-empty-sub">
+                The instructor hasn&apos;t uploaded materials for this session.
+              </p>
             </div>
           ) : (
+            <>
+              <DeckPositionHairline
+                studentPage={effectivePage}
+                instructorPage={currentInstructorPage}
+                totalPages={effectiveTotalPages}
+              />
+              <SlideStage
+                material={material}
+                page={effectivePage}
+                pdfUrl={pdfSignedUrl ?? undefined}
+                onPrev={() => goToPage(effectivePage - 1)}
+                onNext={() => goToPage(effectivePage + 1)}
+                onPdfLoad={setPdfPageCount}
+              />
+            </>
+          )
+        }
+        bottomStrip={
           <>
-          {/* Toolbar */}
-          <div className="nx-doc-toolbar">
-            <div className="nx-doc-file">
-              <FileGlyph format={material.format} />
-              <div className="nx-file-meta">
-                <div className="nx-file-name">{material.filename}</div>
-                <div className="nx-file-sub">
-                  {formatBytes(material.sizeBytes)} · {effectiveTotalPages} slides
-                </div>
-              </div>
+            <div className="nx-lsf-bottom-left">
+              {activeMaterial && (
+                <span className="nx-lsf-bottom-filename" title={material.filename}>
+                  <FileGlyph format={material.format} />
+                  <span>{material.filename}</span>
+                  <span className="nx-lsf-bottom-filename-sub">
+                    · {effectiveTotalPages} slides
+                  </span>
+                </span>
+              )}
             </div>
 
-            <div className="nx-doc-pagenav">
+            <div className="nx-lsf-bottom-center">
               <button
                 className="nx-icon-btn"
                 onClick={() => goToPage(1)}
@@ -436,9 +434,15 @@ export default function StudentLiveSessionPage({ params }: PageProps) {
               >
                 <ChevronLeft size={13} />
               </button>
-              <span className="nx-pg-input" aria-live="polite">
-                <b>{effectivePage}</b> <span className="nx-pg-input-sep">/</span>{" "}
-                <span style={{ color: "var(--nx-fg-muted)" }}>{effectiveTotalPages}</span>
+              <span
+                className="nx-lsf-pageind"
+                aria-live="polite"
+                aria-label={`Slide ${effectivePage} of ${effectiveTotalPages}`}
+                style={{ cursor: "default" }}
+              >
+                <b>{effectivePage}</b>
+                <span className="nx-lsf-pageind-sep">/</span>
+                <span className="nx-lsf-pageind-total">{effectiveTotalPages}</span>
               </span>
               <button
                 className="nx-icon-btn"
@@ -460,180 +464,169 @@ export default function StudentLiveSessionPage({ params }: PageProps) {
               </button>
             </div>
 
-            <div className="nx-doc-actions">
+            <div className="nx-lsf-bottom-right">
+              <span
+                className="nx-lsf-broadcast-state"
+                data-on={controls.broadcasting ? "true" : "false"}
+                title={
+                  controls.broadcasting
+                    ? "Instructor is broadcasting page changes"
+                    : "Instructor has paused broadcasting"
+                }
+              >
+                {controls.broadcasting ? "Broadcasting" : "Broadcast paused"}
+              </span>
               <button
+                type="button"
                 className="nx-broadcast-pill"
                 data-on={followInstructor ? "true" : "false"}
-                title={
-                  followInstructor
-                    ? "You are following the instructor — click to roam independently"
-                    : "Click to snap back to the instructor's slide"
-                }
                 onClick={() =>
                   followInstructor
                     ? setFollowInstructor(false)
                     : catchUpToInstructor()
                 }
+                title={
+                  followInstructor
+                    ? "You are following the instructor — click to roam independently"
+                    : "Click to catch up to the instructor's slide"
+                }
               >
-                {followInstructor
-                  ? `Following · slide ${snapshot.currentPage}`
-                  : `Independent · catch up to ${snapshot.currentPage}`}
+                {followLabel}
               </button>
             </div>
-          </div>
-
-          {/* Slide stage — read-only view of the instructor's material */}
-          <SlideStage
-            material={material}
-            page={effectivePage}
-            pdfUrl={pdfSignedUrl ?? undefined}
-            onPrev={() => goToPage(effectivePage - 1)}
-            onNext={() => goToPage(effectivePage + 1)}
-            onPdfLoad={setPdfPageCount}
-          />
-
-          {/* Where-am-I strip: position relative to the instructor */}
-          <div className="nx-student-pos-strip" aria-label="Your position relative to the instructor">
-            <div className="nx-student-pos-stat">
-              <span className="nx-student-pos-num">{effectivePage}</span>
-              <span className="nx-student-pos-lbl">Your slide</span>
-            </div>
-            <div className="nx-student-pos-stat">
-              <span className="nx-student-pos-num">{snapshot.currentPage}</span>
-              <span className="nx-student-pos-lbl">Instructor</span>
-            </div>
-            <div className="nx-student-pos-msg">
-              {followInstructor && <span className="nx-pos-msg is-with">You are following the instructor.</span>}
-              {isBehindInstructor && (
-                <span className="nx-pos-msg is-behind">
-                  You&rsquo;re {snapshot.currentPage - studentPage} slide(s) behind ·{" "}
-                  <button className="nx-link-btn" onClick={catchUpToInstructor}>catch up</button>
-                </span>
-              )}
-              {isAheadOfInstructor && (
-                <span className="nx-pos-msg is-ahead">
-                  You&rsquo;re {studentPage - snapshot.currentPage} slide(s) ahead ·{" "}
-                  <button className="nx-link-btn" onClick={catchUpToInstructor}>jump back</button>
-                </span>
-              )}
-            </div>
-            <NxToggle
-              on={followInstructor}
-              onChange={v => (v ? catchUpToInstructor() : setFollowInstructor(false))}
-              ariaLabel="Follow instructor"
-            />
-            <span className="nx-student-pos-toggle-lbl">Follow</span>
-          </div>
           </>
-          )}
-        </div>
-
-        {/* ── Right rail ── */}
-        <aside style={{ display: "flex", flexDirection: "column", gap: "var(--nx-stack)" }} aria-label="Participation panel">
-          {/* Reactions — wired in FR-13 */}
-
-          {/* Question composer */}
-          <div className="nx-card" aria-label="Ask an anonymous question">
-            <div className="nx-card-head">
-              <div>
-                <h3 className="nx-card-title">Ask anonymously</h3>
-                <p className="nx-card-sub">
-                  Tagged from slide {effectivePage} · only your alias is attached
-                </p>
-              </div>
-              <AnonChip id={myAnonCourseId ?? "—"} />
-            </div>
-
-            <div className="nx-composer">
-              <textarea
-                className="nx-composer-textarea"
-                placeholder={
-                  isMuted
-                    ? "You are muted in this session."
-                    : isPaused
-                    ? "Questions are paused — try a reaction instead."
-                    : "Type your question… plain text, up to 500 chars."
-                }
-                value={draft}
-                onChange={e => setDraft(e.target.value.slice(0, QUESTION_MAX_LEN))}
-                disabled={isMuted || isPaused || submitting}
-                rows={3}
-                maxLength={QUESTION_MAX_LEN}
-                onKeyDown={e => {
-                  // ⌘/Ctrl + Enter submits.
-                  if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
-                    e.preventDefault();
-                    submitQuestion();
-                  }
-                }}
-              />
-              <div className="nx-composer-foot">
-                <span
-                  className={cn(
-                    "nx-composer-counter",
-                    charsLeft < 50 && "is-warn",
-                    charsLeft <= 0 && "is-err",
-                  )}
-                >
-                  {charsLeft} characters left
-                </span>
-                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                  {showRecentSubmit && (
-                    <span className="nx-composer-status">
-                      Sent — your instructor will see it in their stream.
-                    </span>
-                  )}
-                  {submitError && (
-                    <span className="nx-composer-status is-err">{submitError}</span>
-                  )}
-                  <button
-                    className="nx-btn nx-btn-primary"
-                    onClick={submitQuestion}
-                    disabled={!canSubmit}
-                    title="Send (⌘/Ctrl + Enter)"
-                  >
-                    {submitting ? "Sending…" : "Send anonymously"}
-                  </button>
+        }
+        rail={
+          <>
+            <div className="nx-card" aria-label="Ask an anonymous question">
+              <div className="nx-card-head">
+                <div>
+                  <h3 className="nx-card-title">Ask anonymously</h3>
+                  <p className="nx-card-sub">
+                    Tagged from slide {effectivePage} · only your alias is attached
+                  </p>
                 </div>
+                <AnonChip id={myAnonCourseId ?? "—"} />
               </div>
-            </div>
-          </div>
 
-          {/* My questions list */}
-          <div className="nx-card" aria-label="Your questions this session">
-            <div className="nx-card-head">
-              <div>
-                <h3 className="nx-card-title">Your questions</h3>
-                <p className="nx-card-sub">
-                  Visible only to you here · the instructor sees them with your
-                  alias only
-                </p>
-              </div>
-              <span className="nx-filter-bar-count">{myQuestions.length} sent</span>
-            </div>
-
-            <div className="nx-stream-list" role="list">
-              {myQuestions.length === 0 ? (
-                <div className="nx-empty">
-                  <div className="nx-empty-title">You haven&rsquo;t asked anything yet</div>
-                  <div className="nx-empty-sub">
-                    Send a question or use a reaction — the instructor sees the
-                    room&rsquo;s pulse in real time.
+              <div className="nx-composer">
+                <textarea
+                  className="nx-composer-textarea"
+                  placeholder={
+                    isMuted
+                      ? "You are muted in this session."
+                      : "Type your question… plain text, up to 500 chars."
+                  }
+                  value={draft}
+                  onChange={e => setDraft(e.target.value.slice(0, QUESTION_MAX_LEN))}
+                  disabled={isMuted || submitting}
+                  rows={3}
+                  maxLength={QUESTION_MAX_LEN}
+                  onKeyDown={e => {
+                    if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+                      e.preventDefault();
+                      submitQuestion();
+                    }
+                  }}
+                />
+                <div className="nx-composer-foot">
+                  <span
+                    className={cn(
+                      "nx-composer-counter",
+                      charsLeft < 50 && "is-warn",
+                      charsLeft <= 0 && "is-err",
+                    )}
+                  >
+                    {charsLeft} characters left
+                  </span>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                    {showRecentSubmit && (
+                      <span className="nx-composer-status">
+                        Sent — your instructor will see it in their stream.
+                      </span>
+                    )}
+                    {submitError && (
+                      <span className="nx-composer-status is-err">{submitError}</span>
+                    )}
+                    <button
+                      className="nx-btn nx-btn-primary"
+                      onClick={submitQuestion}
+                      disabled={!canSubmit}
+                      title="Send (⌘/Ctrl + Enter)"
+                    >
+                      {submitting ? "Sending…" : "Send anonymously"}
+                    </button>
                   </div>
                 </div>
-              ) : (
-                myQuestions.map(q => <MyQuestionRow key={q.questionId} question={q} />)
-              )}
+              </div>
             </div>
-            <div className="nx-mine-foot">
-              After the session ends you can mark each question{" "}
-              <b>resolved</b> or <b>unresolved</b> on the review page.
-            </div>
-          </div>
-        </aside>
-      </section>
 
-      {/* Leave-session confirmation */}
+            <div className="nx-card" aria-label="Your questions this session">
+              <div className="nx-card-head">
+                <div>
+                  <h3 className="nx-card-title">Your questions</h3>
+                  <p className="nx-card-sub">
+                    Visible only to you here · the instructor sees them with your
+                    alias only
+                  </p>
+                </div>
+                <span className="nx-filter-bar-count">{myQuestions.length} sent</span>
+              </div>
+
+              <div className="nx-stream-list" role="list">
+                {myQuestions.length === 0 ? (
+                  <div className="nx-empty">
+                    <div className="nx-empty-title">You haven&rsquo;t asked anything yet</div>
+                    <div className="nx-empty-sub">
+                      Send a question or use a reaction — the instructor sees the
+                      room&rsquo;s pulse in real time.
+                    </div>
+                  </div>
+                ) : (
+                  myQuestions.map(q => <MyQuestionRow key={q.questionId} question={q} />)
+                )}
+              </div>
+              <div className="nx-mine-foot">
+                After the session ends you can mark each question{" "}
+                <b>resolved</b> or <b>unresolved</b> on the review page.
+              </div>
+            </div>
+
+            <div className="nx-card" aria-label="React to the lecture">
+              <div className="nx-reactions-row" style={{ borderTop: "none" }}>
+                {REACTION_BUTTONS.map(({ kind, label, hint }) => {
+                  const isCooling = !!reactState.lastSubmittedAt[kind];
+                  const isSent = sentKinds.has(kind);
+                  return (
+                    <button
+                      key={kind}
+                      type="button"
+                      className={cn(
+                        "nx-react-btn",
+                        `nx-react-btn--${kind.replace("_", "-")}`,
+                        isCooling && "is-cooling",
+                        isSent && "is-sent",
+                      )}
+                      disabled={isCooling && !isSent}
+                      onClick={() => sendReaction(kind)}
+                      aria-label={`${label} — ${hint.replace(/&rsquo;/g, "'")}`}
+                      title={hint.replace(/&rsquo;/g, "'")}
+                    >
+                      <span className="nx-react-btn-label">{label}</span>
+                      {isSent && (
+                        <span className="nx-react-btn-sent" aria-live="polite">
+                          Sent ✓
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </>
+        }
+      />
+
       {leaveOpen && (
         <LeaveSessionModal
           courseCode={meta.courseCode}
@@ -641,7 +634,29 @@ export default function StudentLiveSessionPage({ params }: PageProps) {
           onConfirm={confirmLeave}
         />
       )}
-    </div>
+    </>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────── */
+/* Top-bar metas                                                        */
+/* ─────────────────────────────────────────────────────────────────── */
+
+function ClockIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 2" />
+    </svg>
+  );
+}
+
+function PersonIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </svg>
   );
 }
 
@@ -655,6 +670,58 @@ const REACTION_BUTTONS: { kind: ReactionKind; label: string; hint: string }[] = 
   { kind: "understood", label: "Understood", hint: "You&rsquo;re tracking the current point" },
   { kind: "not_clear",  label: "Not clear",  hint: "Something just lost you — instructor sees a spike" },
 ];
+
+/** Ambient overlay at the top of the slide area showing where the
+ *  student is vs. where the instructor is across the whole deck. Replaces
+ *  the old `.nx-student-pos-strip` bar — same signal, no carved-out row. */
+function DeckPositionHairline({
+  studentPage,
+  instructorPage,
+  totalPages,
+}: {
+  studentPage: number;
+  instructorPage: number;
+  totalPages: number;
+}) {
+  if (!totalPages || totalPages <= 1) return null;
+  const pct = (p: number) =>
+    Math.max(0, Math.min(100, ((p - 1) / (totalPages - 1)) * 100));
+  const studentPct = pct(studentPage);
+  const instructorPct = pct(instructorPage);
+  const gapLeft = Math.min(studentPct, instructorPct);
+  const gapRight = Math.max(studentPct, instructorPct);
+  const gapWidth = gapRight - gapLeft;
+  const aligned = Math.abs(studentPage - instructorPage) < 1;
+  return (
+    <div
+      className="nx-lsf-deck-pos"
+      aria-label={
+        aligned
+          ? `On the instructor's slide (${studentPage} of ${totalPages})`
+          : `You are on slide ${studentPage}, instructor is on slide ${instructorPage}`
+      }
+    >
+      {!aligned && (
+        <span
+          className="nx-lsf-deck-pos-gap"
+          style={{ left: `${gapLeft}%`, width: `${gapWidth}%` }}
+        />
+      )}
+      <span
+        className="nx-lsf-deck-pos-mark"
+        data-who="instructor"
+        style={{ left: `${instructorPct}%` }}
+        title={`Instructor: slide ${instructorPage} of ${totalPages}`}
+      />
+      <span
+        className="nx-lsf-deck-pos-mark"
+        data-who="student"
+        style={{ left: `${studentPct}%` }}
+        title={`You: slide ${studentPage} of ${totalPages}`}
+      />
+    </div>
+  );
+}
 
 function MyQuestionRow({ question: q }: { question: LiveQuestion }) {
   return (
@@ -769,14 +836,6 @@ function LeaveSessionModal({ courseCode, onCancel, onConfirm }: LeaveSessionModa
 /* ─────────────────────────────────────────────────────────────────── */
 /* Helpers                                                              */
 /* ─────────────────────────────────────────────────────────────────── */
-
-function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  const units = ["KB", "MB", "GB"];
-  let v = bytes / 1024, i = 0;
-  while (v >= 1024 && i < units.length - 1) { v /= 1024; i++; }
-  return `${v.toFixed(v >= 10 ? 0 : 1)} ${units[i]}`;
-}
 
 function relativeTime(iso: string): string {
   const diff = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 1000));

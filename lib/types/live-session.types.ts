@@ -75,9 +75,33 @@ export interface LiveQuestion {
   fromPage: number;              // 1-based page the student was viewing
   status: QuestionStatus;
   clusterSize: number;           // 1 when not grouped; >1 for cluster heads
+  /** The cluster this question belongs to. Always present after the backend
+   *  assigns one in submitQuestion; optional only because pre-clustering
+   *  question fixtures (mocks/tests) may lack it. */
+  clusterId?: string;
   openedAt?: string;
   resolvedAt?: string;
   resolvedByAuthor?: boolean;
+}
+
+/**
+ * A semantic grouping of questions in a session. The "comprehensive
+ * question" (head text) is currently the longest member's content —
+ * selection, not synthesis. Singletons are clusters of `size === 1`
+ * and render without the pill or expand affordance.
+ */
+export interface LiveQuestionCluster {
+  clusterId: string;
+  /** The member question whose text is the head. */
+  headQuestionId: string;
+  /** Denormalized longest-member text. */
+  headText: string;
+  /** All member question ids; resolve text against snapshot.questions. */
+  memberIds: string[];
+  size: number;
+  /** Mirrors "any member visible" — true once an instructor reveals the
+   *  cluster via the bulk endpoint. Frozen against further joins thereafter. */
+  visibilityStatus: "hidden" | "visible";
 }
 
 /** Per-session ephemeral pseudonym muted by the instructor. */
@@ -88,9 +112,14 @@ export interface MutedParticipant {
 }
 
 export interface ReactionTally {
-  total: number;                 // cumulative since session start
-  ratePerMin: number;            // rolling rate over `windowSeconds`
-  trend: "up" | "down" | "flat";
+  /** Cumulative since session start. */
+  total: number;
+  /** Count of distinct reactions of this type submitted in the rolling
+   *  `windowSeconds` window. Replaces the previous `ratePerMin` (a derived
+   *  value that was never actually computed — it shipped as 0.0 for the
+   *  panel's entire lifetime). A raw 60s count is what a lecturer can
+   *  glance at mid-class and act on. */
+  recent60s: number;
 }
 
 export interface ReactionTallies {
@@ -101,12 +130,16 @@ export interface ReactionTallies {
   not_clear: ReactionTally;
 }
 
-/** Server-side moderation knobs the instructor toggles during a session. */
+/** Per-session toggles the instructor flips during a live session.
+ *  Currently only the page-change broadcast pill in the doc bar is wired
+ *  through this. The old `questionsPaused` / `profanityStrictness` /
+ *  `sessionLocked` fields were UI theater (no backend gate ever read
+ *  them) and were removed when the Muted/Controls tab pair was deleted.
+ *  Re-add a field here when (and only when) a real backend control lands. */
 export interface SessionControls {
-  questionsPaused: boolean;      // pauses new student submissions
-  profanityStrictness: "off" | "std" | "strict";
-  sessionLocked: boolean;        // blocks new student joins
-  broadcasting: boolean;         // page-change broadcast to followers
+  /** Whether instructor page changes are broadcast to followers. Drives the
+   *  doc-bar "Broadcasting / Broadcast paused" pill. */
+  broadcasting: boolean;
 }
 
 /** Snapshot the live page consumes — V1 ships this from a mock fixture. */
@@ -116,7 +149,13 @@ export interface LiveSessionSnapshot {
   currentPage: number;           // instructor's current 1-based page
   followers: FollowerDistribution;
   reactions: ReactionTallies;
+  /** Flat list of every question. Source of truth for individual text;
+   *  the instructor dashboard reads clusters and resolves member text by
+   *  questionId against this list. */
   questions: LiveQuestion[];
+  /** Cluster index (instructor/admin view only — students get an empty array).
+   *  Order is most-recently-modified first. */
+  clusters: LiveQuestionCluster[];
   muted: MutedParticipant[];
   controls: SessionControls;
 }

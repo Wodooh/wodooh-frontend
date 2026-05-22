@@ -127,6 +127,10 @@ lib/
 | POST | `/questions` | `useLiveSession()` student question submit |
 | GET | `/questions?sessionId=…` | `useLiveSession()` initial backfill before Ably attaches |
 | PATCH | `/questions/:id/visibility` | `useLiveSession()` instructor visibility toggle |
+| GET | `/clusters?sessionId=…` | `useLiveSession()` instructor/admin only — cluster backfill before Ably attaches. 403 for students; hook silently treats as empty. |
+| PATCH | `/clusters/:clusterId/visibility` | `useLiveSession().setClusterVisibility()` — bulk reveal of every member question, atomic `updateMany` + one `cluster.visibility_changed` broadcast. |
+| POST | `/sessions/:id/reactions` | Student live page — body `{ type, slidePage }`. Backend enforces per-(student, slide, type) cooldown of `REACTION_COOLDOWN_MS` (8s); within the window the response is `200 { deduped: true }` and no Ably event fires. |
+| GET | `/sessions/:id/reactions/summary` | `useLiveSession()` initial backfill — **instructor/admin only** (403 for students). Hook skips this fetch when `enterPresence === true`. Reactions are a private student signal; counts are never shown to students. |
 | GET | `/ably/token` | `useLiveSession()` — mints a TokenRequest; client posts it to Ably to get a real token. **Never expose `ABLY_API_KEY` to the browser.** See ADR-001 and the Ably v2 subscribe-promise gotcha below. |
 | PATCH | `/admin/departments/:id/chairman` | `useAssignChairman().assign()` — body `{ chairmanUserId: string \| null }`. 409 if duplicate-chair invariant violated. |
 | GET | `/chairman/me` | `useChairmanMe()` — chairman's department + counts (courses/sections/instructors/students/live sessions). |

@@ -77,6 +77,10 @@ export const API_ENDPOINTS = {
   QUESTION_POST_SESSION_STATUS: (questionId: string) =>
     `/questions/${questionId}/post-session-status`,
 
+  // Clusters (instructor / admin only)
+  CLUSTERS: '/clusters',
+  CLUSTER_VISIBILITY: (clusterId: string) => `/clusters/${clusterId}/visibility`,
+
   // Chairman (department-scoped)
   CHAIRMAN_ME: '/chairman/me',
   CHAIRMAN_COURSES: '/chairman/courses',

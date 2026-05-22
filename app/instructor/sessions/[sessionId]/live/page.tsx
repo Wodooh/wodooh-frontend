@@ -12,23 +12,22 @@
  *   - US-D8 (semantically grouped questions, cluster heads carry size)
  *   - US-E1 (post-session engagement report — rendered inside the End modal)
  *
- * The student live-session page will be a sibling under `/student/...` and
- * will reuse the shared atoms in `components/live-session/` (SlideStage,
- * ReactionsDisplay, AnonChip, FileGlyph, NxToggle, icons). Instructor-only
- * chrome (Broadcasting pill, Follower strip, moderation actions, End modal)
- * lives inline in this page and is NOT exported.
+ * Layout: this page (and the student counterpart) renders inside
+ * `LiveSessionFrame` — a slide-first viewport-filling skeleton. The role
+ * shell (sidebar + topbar) is short-circuited on /live routes; this page
+ * owns the entire viewport.
  *
  * Data: V1 reads a static fixture from `lib/mock/live-session-mock.ts`.
  * Realtime + REST will replace this with a `useLiveSession(sessionId)` hook
  * over Ably + the backend `/sessions/:id/...` endpoints in a follow-up.
  */
 
+import type { KeyboardEvent as ReactKeyboardEvent, MouseEvent as ReactMouseEvent } from "react";
 import { use, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { AnonChip } from "@/components/live-session/anon-chip";
 import { FileGlyph } from "@/components/live-session/file-glyph";
-import { NxToggle } from "@/components/live-session/nx-toggle";
+import { LiveSessionFrame } from "@/components/live-session/live-session-frame";
 import { ReactionsDisplay } from "@/components/live-session/reactions-display";
 import { SlideStage } from "@/components/live-session/slide-stage";
 import {
@@ -37,8 +36,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Close,
-  Cluster,
-  Copy,
   Eye,
   SkipBack,
   SkipForward,
@@ -51,8 +48,8 @@ import { useLiveSession } from "@/lib/hooks/use-live-session";
 import { useSessionMaterials } from "@/lib/hooks/use-session-materials";
 import type {
   LiveQuestion,
+  LiveQuestionCluster,
   LiveSessionSnapshot,
-  MutedParticipant,
   QuestionStatus,
   ReactionKind,
   SessionControls,
@@ -61,8 +58,7 @@ import type {
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
-type QuestionFilter = "all" | "new" | "opened";
-type ModerationTab = "muted" | "controls";
+type QuestionFilter = "needs-attention" | "done";
 
 interface PageProps {
   params: Promise<{ sessionId: string }>;
@@ -80,9 +76,7 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
     ended,
     loading,
     error,
-    updateQuestion,
-    prependQuestion,
-    setQuestionVisibility,
+    setClusterVisibility,
     studentCount,
   } = useLiveSession(sessionId);
 
@@ -118,19 +112,10 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
     return () => clearInterval(id);
   }, [activeMaterial, getSignedUrl]);
 
-  useEffect(() => {
-    document.documentElement.setAttribute('data-nx-focus', 'live');
-    return () => {
-      document.documentElement.removeAttribute('data-nx-focus');
-    };
-  }, []);
-
-  // Local mirror so the existing local-only mutators (setControls,
-  // onMuteAuthor, onUnmute) can continue to operate on `controls` /
-  // `muted` without backend wiring. Hook updates (initial fetch + Ably
-  // events) flow into this mirror via the effect below. Local mutations
-  // to `controls` / `muted` get overwritten on the next hook-driven sync
-  // — those handlers need to be backend-wired in a follow-up.
+  // Local mirror so the bottom-strip Broadcasting toggle (`setControls`) can
+  // operate on `controls.broadcasting` without backend wiring. Hook updates
+  // (initial fetch + Ably events) flow into this mirror via the effect
+  // below; local mutations get overwritten on the next hook-driven sync.
   const [snapshot, setSnapshot] = useState<LiveSessionSnapshot | null>(null);
   useEffect(() => {
     setSnapshot(liveSnapshot);
@@ -138,12 +123,10 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
 
   // Local UI state (would later flow through Ably to followers/server).
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [questionFilter, setQuestionFilter] = useState<QuestionFilter>("all");
-  const [modTab, setModTab] = useState<ModerationTab>("muted");
+  const [questionFilter, setQuestionFilter] = useState<QuestionFilter>("needs-attention");
   const [endModalOpen, setEndModalOpen] = useState(false);
-  const [copied, setCopied] = useState(false);
   const [elapsedSec, setElapsedSec] = useState(0);
-  const [pulseKind, setPulseKind] = useState<ReactionKind | null>(null);
+  const [pulseKind] = useState<ReactionKind | null>(null);
 
   /* — Elapsed timer ─────────────────────────────────────────────────── */
   useEffect(() => {
@@ -158,19 +141,13 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
   }, [liveSnapshot?.meta.startedAt]);
 
   /* — Auto-close: 10 min with no students ──────────────────────────── */
-  // autoCloseWarning: the warning banner is visible and the 60-s countdown is running.
-  // autoCloseSuppressed: instructor clicked "Keep open" — don't show again until
-  //   a student actually joins and then leaves again.
   const [autoCloseWarning, setAutoCloseWarning]         = useState(false);
   const [autoCloseSuppressed, setAutoCloseSuppressed]   = useState(false);
   const [autoCloseCountdown, setAutoCloseCountdown]     = useState(60);
 
-  // Raise the warning once the session is 10 min old and no students are present.
   useEffect(() => {
     if (!connected) return;
     if (studentCount > 0) {
-      // Students joined — hide warning and reset suppression so the timer can
-      // fire again if they all leave later.
       setAutoCloseWarning(false);
       setAutoCloseSuppressed(false);
       setAutoCloseCountdown(60);
@@ -181,7 +158,6 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
     }
   }, [elapsedSec, studentCount, connected, autoCloseSuppressed]);
 
-  // Countdown ticker while the warning is visible.
   useEffect(() => {
     if (!autoCloseWarning) return;
     const id = window.setInterval(() => {
@@ -193,7 +169,6 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
     return () => window.clearInterval(id);
   }, [autoCloseWarning]);
 
-  // End session automatically when the countdown hits zero.
   useEffect(() => {
     if (autoCloseWarning && autoCloseCountdown === 0) {
       void onEndSession();
@@ -203,21 +178,27 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
 
   /* — Derived helpers ─────────────────────────────────────────────── */
 
-  const filteredQuestions = useMemo(() => {
+  const questionsById = useMemo(() => {
+    const map = new Map<string, LiveQuestion>();
+    snapshot?.questions.forEach(q => map.set(q.questionId, q));
+    return map;
+  }, [snapshot?.questions]);
+
+  const filteredClusters = useMemo(() => {
     if (!snapshot) return [];
-    return questionFilter === "all"
-      ? snapshot.questions
-      : questionFilter === "new"
-      ? snapshot.questions.filter(q => q.status === "new")
-      : snapshot.questions.filter(q => q.status === "opened");
+    const wantHidden = questionFilter === "needs-attention";
+    return snapshot.clusters.filter(c =>
+      wantHidden ? c.visibilityStatus === "hidden" : c.visibilityStatus === "visible",
+    );
   }, [snapshot, questionFilter]);
 
-  const counts = useMemo(() => ({
-    all:      snapshot?.questions.length ?? 0,
-    new:      snapshot?.questions.filter(q => q.status === "new").length ?? 0,
-    opened:   snapshot?.questions.filter(q => q.status === "opened").length ?? 0,
-    resolved: snapshot?.questions.filter(q => q.status === "resolved").length ?? 0,
-  }), [snapshot]);
+  const counts = useMemo(() => {
+    const clusters = snapshot?.clusters ?? [];
+    return {
+      needsAttention: clusters.filter(c => c.visibilityStatus === "hidden").length,
+      done:           clusters.filter(c => c.visibilityStatus === "visible").length,
+    };
+  }, [snapshot]);
 
   const elapsedFmt = useMemo(() => {
     const h = String(Math.floor(elapsedSec / 3600)).padStart(2, "0");
@@ -241,6 +222,15 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
       .catch(() => { /* Non-fatal: student page sync fails silently */ });
   };
 
+  const promptJump = () => {
+    if (!snapshot) return;
+    const maxPage = pdfPageCount || snapshot.material.totalPages || 1;
+    const raw = window.prompt(`Jump to slide (1–${maxPage})`, String(currentPage));
+    if (!raw) return;
+    const n = parseInt(raw, 10);
+    if (Number.isFinite(n)) goToPage(n);
+  };
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -257,65 +247,10 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
     }
   };
 
-  const onOpen = (id: string) => {
-    setQuestionVisibility(id, "visible", {
-      status: "opened",
-      openedAt: new Date().toISOString(),
-    }).catch(err =>
-      toast.error(err instanceof Error ? err.message : "Failed to open question"),
+  const onRevealCluster = (clusterId: string) => {
+    setClusterVisibility(clusterId, "visible").catch(err =>
+      toast.error(err instanceof Error ? err.message : "Failed to reveal cluster"),
     );
-  };
-  // Resolve has no backend: there's no endpoint for `postSessionStatus`, and
-  // per the design "opening" a question marks it resolved-by-default — the
-  // final resolved/unresolved decision is made by each author in the
-  // post-session survey (not yet built). This stays a local-only mutator so
-  // the live UI still reflects the instructor's intent within the session.
-  const onResolve = (id: string) =>
-    updateQuestion(id, { status: "resolved", resolvedAt: new Date().toISOString() });
-  const onReopen = (id: string) => {
-    setQuestionVisibility(id, "hidden", {
-      status: "new",
-      resolvedAt: undefined,
-    }).catch(err =>
-      toast.error(err instanceof Error ? err.message : "Failed to reopen question"),
-    );
-  };
-  const onUngroup = (id: string) => updateQuestion(id, { clusterSize: 1 });
-
-  const onMuteAuthor = (q: LiveQuestion) => {
-    // The mute uses the ephemeral `anonymousSessionId`, NOT the question's
-    // `authorAnonymousCourseID` (privacy invariant). V2: server resolves
-    // current session pseudonym from the question id. Here we synthesize
-    // a believable `sess-` id from the question for the demo.
-    if (!snapshot) return;
-    const sessionPseudonym = `sess-${q.authorAnonymousCourseID.slice(-4)}`;
-    if (snapshot.muted.some(m => m.anonymousSessionId === sessionPseudonym)) return;
-    const next: MutedParticipant = {
-      anonymousSessionId: sessionPseudonym,
-      mutedAt: new Date().toISOString(),
-      reason: "muted from question stream",
-    };
-    setSnapshot(prev => (prev ? { ...prev, muted: [next, ...prev.muted] } : prev));
-  };
-
-  const onUnmute = (id: string) =>
-    setSnapshot(prev =>
-      prev ? { ...prev, muted: prev.muted.filter(m => m.anonymousSessionId !== id) } : prev,
-    );
-
-  const onReport = (id: string) => {
-    // V2: POST /sessions/:id/questions/:qid/report. For V1 just visually
-    // mark the row by setting status to resolved (out-of-stream).
-    updateQuestion(id, { status: "resolved", resolvedAt: new Date().toISOString() });
-  };
-
-  const onCopyJoinCode = async () => {
-    if (!snapshot) return;
-    try {
-      await navigator.clipboard.writeText(snapshot.meta.joinCode);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1600);
-    } catch { /* clipboard blocked — silent in V1 */ }
   };
 
   const onEndSession = async () => {
@@ -351,20 +286,17 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
   }
   if (!snapshot) return null;
 
-  const { meta, material: snapshotMaterial, reactions, muted, controls, questions } = snapshot;
-  // Prefer real uploaded material; fall back to snapshot placeholder
+  const { meta, material: snapshotMaterial, reactions, controls, questions } = snapshot;
   const material = activeMaterial ?? snapshotMaterial;
   const effectiveTotalPages = pdfPageCount || material.totalPages || 1;
 
-  return (
-    <div className="nx-portal-accent">
+  const banner = (ended || autoCloseWarning) ? (
+    <>
       {ended && (
         <div className="nx-student-banner is-warn" role="alert">
           <b>This session has ended.</b>
         </div>
       )}
-
-      {/* Auto-close warning — no students after 10 min */}
       {autoCloseWarning && (
         <div
           role="alert"
@@ -396,90 +328,63 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
           </button>
         </div>
       )}
+    </>
+  ) : undefined;
 
-      {/* Page head */}
-      <div className="nx-page-head">
-        <div>
-          <h1 className="nx-page-title">Live session</h1>
-          <p className="nx-page-sub">
-            {material.filename ? (
-              <>
-                Real-time dashboard · students join anonymously and react to{" "}
-                <span style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-                  {material.filename}
-                </span>
-              </>
-            ) : (
-              "Live session in progress"
-            )}
-          </p>
-        </div>
-      </div>
-
-      {/* Session header strip */}
-      <section className="nx-session-strip" aria-label="Session header">
-        <div className="nx-session-id">
-          <div className="nx-session-id-crumb">
-            <span className="nx-live-dot">Live</span>
-            <span>·</span>
-            <span>Section {meta.sectionNumber}</span>
-            <span>·</span>
-            <span>{meta.scheduleLabel}</span>
-          </div>
-          <h2 className="nx-session-id-title">
-            <span className="nx-mono">{meta.courseCode}</span> · {meta.courseName}
-          </h2>
-        </div>
-
-        <div className="nx-session-meta">
-          <div className="nx-meta-item">
-            <span className="nx-meta-label">Elapsed</span>
-            <span className="nx-meta-value">{elapsedFmt}</span>
-          </div>
-          <div className="nx-meta-item">
-            <span className="nx-meta-label">Join code</span>
-            <span className="nx-join-code">
-              <span>{meta.joinCode}</span>
+  return (
+    <>
+      <LiveSessionFrame
+        banner={banner}
+        topBar={
+          <>
+            <div className="nx-lsf-topbar-left">
+              <span className="nx-lsf-live-pill">Live</span>
+              <span className="nx-lsf-course">
+                <span className="nx-mono">{meta.courseCode}</span>
+                {" · Section "}{meta.sectionNumber}
+                {" · "}{meta.courseName}
+              </span>
+            </div>
+            <div className="nx-lsf-topbar-right">
+              <span className="nx-lsf-meta" title="Elapsed">
+                <ClockIcon /> {elapsedFmt}
+              </span>
+              <span className="nx-lsf-meta" title="Students joined">
+                <PersonIcon /> {studentCount}
+              </span>
               <button
-                className="nx-join-code-copy"
-                onClick={onCopyJoinCode}
-                title={copied ? "Copied" : "Copy join code"}
-                aria-label="Copy join code"
+                className="nx-btn nx-btn-ghost nx-btn-danger"
+                onClick={() => setEndModalOpen(true)}
               >
-                {copied ? <Check size={12} /> : <Copy size={12} />}
+                <StopSquare size={13} />
+                End session
               </button>
-            </span>
-          </div>
-        </div>
-
-        <div style={{ display: "flex", gap: 8 }}>
-          <button
-            className="nx-btn nx-btn-ghost nx-btn-danger"
-            onClick={() => setEndModalOpen(true)}
-          >
-            <StopSquare size={13} />
-            End session
-          </button>
-        </div>
-      </section>
-
-      {/* Main grid: viewer + right rail */}
-      <section className="nx-live-grid">
-        {/* ── Document viewer card ── */}
-        <div className="nx-card nx-viewer-card" aria-label="Lecture document viewer">
-          {/* Toolbar */}
-          <div className="nx-doc-toolbar">
-            <div className="nx-doc-file">
-              <FileGlyph format={material.format} />
-              <div className="nx-file-meta">
-                <div className="nx-file-name">{material.filename}</div>
-                <div className="nx-file-sub">
-                  {formatBytes(material.sizeBytes)} · {effectiveTotalPages > 0 ? `${effectiveTotalPages} slides` : 'Loading…'}
-                </div>
-              </div>
+            </div>
+          </>
+        }
+        slide={
+          <SlideStage
+            material={material}
+            page={currentPage}
+            pdfUrl={pdfSignedUrl ?? undefined}
+            onPrev={() => goToPage(currentPage - 1)}
+            onNext={() => goToPage(currentPage + 1)}
+            onPdfLoad={setPdfPageCount}
+          />
+        }
+        bottomStrip={
+          <>
+            <div className="nx-lsf-bottom-left">
+              <span className="nx-lsf-bottom-filename" title={material.filename}>
+                <FileGlyph format={material.format} />
+                <span>{material.filename}</span>
+                <span className="nx-lsf-bottom-filename-sub">
+                  · {effectiveTotalPages > 0 ? `${effectiveTotalPages} slides` : 'Loading…'}
+                </span>
+              </span>
             </div>
 
-            <div className="nx-doc-pagenav">
+            <div className="nx-lsf-bottom-center">
               <button
                 className="nx-icon-btn"
                 onClick={() => goToPage(1)}
@@ -498,10 +403,17 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
               >
                 <ChevronLeft size={13} />
               </button>
-              <span className="nx-pg-input" aria-live="polite">
-                <b>{currentPage}</b> <span className="nx-pg-input-sep">/</span>{" "}
-                <span style={{ color: "var(--nx-fg-muted)" }}>{effectiveTotalPages || '—'}</span>
-              </span>
+              <button
+                type="button"
+                className="nx-lsf-pageind"
+                onClick={promptJump}
+                title="Click to jump to a slide"
+                aria-label={`Slide ${currentPage} of ${effectiveTotalPages || "—"} — click to jump`}
+              >
+                <b>{currentPage}</b>
+                <span className="nx-lsf-pageind-sep">/</span>
+                <span className="nx-lsf-pageind-total">{effectiveTotalPages || '—'}</span>
+              </button>
               <button
                 className="nx-icon-btn"
                 onClick={() => goToPage(currentPage + 1)}
@@ -522,7 +434,7 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
               </button>
             </div>
 
-            <div className="nx-doc-actions">
+            <div className="nx-lsf-bottom-right">
               <button
                 className="nx-broadcast-pill"
                 data-on={controls.broadcasting ? "true" : "false"}
@@ -536,7 +448,6 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
                 {controls.broadcasting ? "Broadcasting" : "Broadcast paused"}
               </button>
 
-              {/* Hidden file input */}
               <input
                 ref={fileInputRef}
                 type="file"
@@ -545,7 +456,6 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
                 onChange={handleFileChange}
               />
 
-              {/* Material switcher: shows active material; lets instructor pick another when multiple exist */}
               <div className="nx-material-switcher">
                 {sessionMaterials.length > 1 ? (
                   <select
@@ -564,203 +474,89 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
                       <option key={m._id} value={m._id ?? ''}>{m.filename}</option>
                     ))}
                   </select>
-                ) : (
-                  <span className="nx-material-name">
-                    {activeMaterial ? activeMaterial.filename : 'No slides'}
-                  </span>
-                )}
+                ) : null}
                 <button
                   className="nx-material-upload-btn"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={uploading}
                   title={sessionMaterials.length > 1 ? 'Upload new slides' : 'Upload slides'}
+                  aria-label="Upload slides"
                 >
                   {uploading ? (uploadProgress > 0 ? `${uploadProgress}%` : '…') : '↑'}
                 </button>
               </div>
             </div>
-          </div>
+          </>
+        }
+        rail={
+          <>
+            <ReactionsDisplay
+              tallies={reactions}
+              contextLabel={`slide ${currentPage} · last ${reactions.windowSeconds}s`}
+              incrementedKind={pulseKind}
+            />
 
-          {/* Slide stage */}
-          <SlideStage
-            material={material}
-            page={currentPage}
-            pdfUrl={pdfSignedUrl ?? undefined}
-            onPrev={() => goToPage(currentPage - 1)}
-            onNext={() => goToPage(currentPage + 1)}
-            onPdfLoad={setPdfPageCount}
-          />
-
-          {/* Thumbnail strip */}
-          <ThumbnailStrip
-            totalPages={material.totalPages}
-            currentPage={currentPage}
-            hotPages={new Set((material.pages ?? []).filter(p => p.hasQuestions).map(p => p.page))}
-            onPick={goToPage}
-          />
-        </div>
-
-        {/* ── Right rail ── */}
-        <aside style={{ display: "flex", flexDirection: "column", gap: "var(--nx-stack)" }} aria-label="Now panel">
-          <ReactionsDisplay
-            tallies={reactions}
-            contextLabel={`slide ${currentPage} · last ${reactions.windowSeconds}s`}
-            incrementedKind={pulseKind}
-          />
-
-          {/* Question stream */}
-          <div className="nx-card" aria-label="Anonymous questions">
-            <div className="nx-card-head">
-              <div>
-                <h3 className="nx-card-title">Anonymous questions</h3>
-                <p className="nx-card-sub">Grouped by similarity · cosine ≥ 0.75</p>
-              </div>
-              <span className="nx-filter-bar-count">{counts.all} total · {counts.resolved} resolved</span>
-            </div>
-
-            <div className="nx-filter-bar">
-              <div className="nx-tabs" role="tablist">
-                <button
-                  className="nx-tab"
-                  data-active={questionFilter === "all"}
-                  onClick={() => setQuestionFilter("all")}
-                >
-                  All ({counts.all})
-                </button>
-                <button
-                  className="nx-tab"
-                  data-active={questionFilter === "new"}
-                  onClick={() => setQuestionFilter("new")}
-                >
-                  New ({counts.new})
-                </button>
-                <button
-                  className="nx-tab"
-                  data-active={questionFilter === "opened"}
-                  onClick={() => setQuestionFilter("opened")}
-                >
-                  Opened ({counts.opened})
-                </button>
-              </div>
-            </div>
-
-            <div className="nx-stream-list" role="list">
-              {filteredQuestions.length === 0 ? (
-                <div className="nx-empty">
-                  <div className="nx-empty-title">No questions match</div>
-                  <div className="nx-empty-sub">Adjust the filter to see other questions.</div>
-                </div>
-              ) : (
-                filteredQuestions.map(q => (
-                  <QuestionRow
-                    key={q.questionId}
-                    question={q}
-                    onOpen={() => onOpen(q.questionId)}
-                    onResolve={() => onResolve(q.questionId)}
-                    onReopen={() => onReopen(q.questionId)}
-                    onMute={() => onMuteAuthor(q)}
-                    onReport={() => onReport(q.questionId)}
-                    onUngroup={() => onUngroup(q.questionId)}
-                    onJumpToSlide={() => goToPage(q.fromPage)}
-                  />
-                ))
-              )}
-            </div>
-          </div>
-
-          {/* Moderation card */}
-          <div className="nx-card" aria-label="Moderation">
-            <div className="nx-mod-tabs" role="tablist">
-              <button
-                className="nx-mod-tab"
-                data-active={modTab === "muted"}
-                onClick={() => setModTab("muted")}
-              >
-                Muted <span className="nx-mod-tab-count">{muted.length}</span>
-              </button>
-              <button
-                className="nx-mod-tab"
-                data-active={modTab === "controls"}
-                onClick={() => setModTab("controls")}
-              >
-                Controls
-              </button>
-            </div>
-
-            {modTab === "muted" ? (
-              muted.length === 0 ? (
-                <div className="nx-empty">
-                  <div className="nx-empty-title">No one is muted</div>
-                  <div className="nx-empty-sub">Mute disruptive participants from the question stream.</div>
-                </div>
-              ) : (
+            <div className="nx-card" aria-label="Student questions">
+              <div className="nx-card-head">
                 <div>
-                  {muted.map(m => (
-                    <div key={m.anonymousSessionId} className="nx-muted-row">
-                      <AnonChip id={m.anonymousSessionId} />
-                      <div className="nx-muted-row-meta">
-                        <b>{m.reason ?? "muted"}</b>
-                        <span>{relativeTime(m.mutedAt)}</span>
-                      </div>
-                      <button
-                        className="nx-btn nx-btn-ghost"
-                        onClick={() => onUnmute(m.anonymousSessionId)}
-                      >
-                        Unmute
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )
-            ) : (
-              <div>
-                <div className="nx-qc-row">
-                  <div className="nx-qc-row-label">
-                    <b>Pause new questions</b>
-                    <span>Students see &ldquo;instructor catching up&rdquo;</span>
-                  </div>
-                  <NxToggle
-                    on={controls.questionsPaused}
-                    onChange={v => setControls({ questionsPaused: v })}
-                    ariaLabel="Pause new questions"
-                  />
-                </div>
-                <div className="nx-qc-row">
-                  <div className="nx-qc-row-label">
-                    <b>Profanity filter</b>
-                    <span>EN + AR · server-side</span>
-                  </div>
-                  <div className="nx-segmented-inline" role="radiogroup" aria-label="Profanity strictness">
-                    {(["off", "std", "strict"] as const).map(level => (
-                      <button
-                        key={level}
-                        type="button"
-                        data-active={controls.profanityStrictness === level}
-                        onClick={() => setControls({ profanityStrictness: level })}
-                      >
-                        {level === "off" ? "Off" : level === "std" ? "Std" : "Strict"}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div className="nx-qc-row">
-                  <div className="nx-qc-row-label">
-                    <b>Lock session</b>
-                    <span>Blocks late joins</span>
-                  </div>
-                  <NxToggle
-                    on={controls.sessionLocked}
-                    onChange={v => setControls({ sessionLocked: v })}
-                    ariaLabel="Lock session"
-                  />
+                  <h3 className="nx-card-title">Student questions</h3>
+                  <p className="nx-card-sub">Showing similar questions together.</p>
                 </div>
               </div>
-            )}
-          </div>
-        </aside>
-      </section>
 
-      {/* End-session modal */}
+              <div className="nx-filter-bar">
+                <div className="nx-tabs" role="tablist">
+                  <button
+                    className="nx-tab"
+                    data-active={questionFilter === "needs-attention"}
+                    onClick={() => setQuestionFilter("needs-attention")}
+                  >
+                    Needs attention ({counts.needsAttention})
+                  </button>
+                  <button
+                    className="nx-tab"
+                    data-active={questionFilter === "done"}
+                    onClick={() => setQuestionFilter("done")}
+                  >
+                    Done ({counts.done})
+                  </button>
+                </div>
+              </div>
+
+              <div className="nx-stream-list" role="list">
+                {filteredClusters.length === 0 ? (
+                  <div className="nx-empty">
+                    <div className="nx-empty-title">
+                      {questionFilter === "needs-attention"
+                        ? "Nothing waiting"
+                        : "No questions yet"}
+                    </div>
+                    <div className="nx-empty-sub">
+                      {questionFilter === "needs-attention"
+                        ? "When students send questions, they'll appear here for you to review."
+                        : "Questions you've shown to the class will appear here."}
+                    </div>
+                  </div>
+                ) : (
+                  filteredClusters.map(c => (
+                    <ClusterRow
+                      key={c.clusterId}
+                      cluster={c}
+                      head={questionsById.get(c.headQuestionId)}
+                      members={c.memberIds
+                        .map(id => questionsById.get(id))
+                        .filter((q): q is LiveQuestion => Boolean(q))}
+                      onReveal={() => onRevealCluster(c.clusterId)}
+                      onJumpToSlide={page => goToPage(page)}
+                    />
+                  ))
+                )}
+              </div>
+            </div>
+          </>
+        }
+      />
+
       {endModalOpen && (
         <EndSessionModal
           questions={questions}
@@ -774,7 +570,29 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
           onConfirm={onEndSession}
         />
       )}
-    </div>
+    </>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────── */
+/* Inline icons used in the top bar metas.                              */
+/* ─────────────────────────────────────────────────────────────────── */
+
+function ClockIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 2" />
+    </svg>
+  );
+}
+
+function PersonIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </svg>
   );
 }
 
@@ -783,140 +601,151 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
 /* doesn't accidentally pick them up.                                   */
 /* ─────────────────────────────────────────────────────────────────── */
 
-interface QuestionRowProps {
-  question: LiveQuestion;
-  onOpen: () => void;
-  onResolve: () => void;
-  onReopen: () => void;
-  onMute: () => void;
-  onReport: () => void;
-  onUngroup: () => void;
-  onJumpToSlide: () => void;
+interface ClusterRowProps {
+  cluster: LiveQuestionCluster;
+  head: LiveQuestion | undefined;
+  members: LiveQuestion[];
+  onReveal: () => void;
+  onJumpToSlide: (page: number) => void;
 }
 
-function QuestionRow({
-  question: q,
-  onOpen, onResolve, onReopen, onMute, onReport, onUngroup, onJumpToSlide,
-}: QuestionRowProps) {
-  // Briefly add `is-new` on first mount so the row slide-in plays once.
+function ClusterRow({
+  cluster, head, members, onReveal, onJumpToSlide,
+}: ClusterRowProps) {
   const [isFresh, setIsFresh] = useState(true);
   useEffect(() => {
     const t = window.setTimeout(() => setIsFresh(false), 260);
     return () => window.clearTimeout(t);
   }, []);
 
+  const [expanded, setExpanded] = useState(false);
+
+  const isHidden = cluster.visibilityStatus === "hidden";
+  const isCluster = cluster.size > 1;
+  const status: QuestionStatus = isHidden ? "new" : "opened";
+
+  const onRowKey = (e: ReactKeyboardEvent) => {
+    if (!isHidden) return;
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      onReveal();
+    }
+  };
+
+  const stop = (handler: () => void) => (e: ReactMouseEvent) => {
+    e.stopPropagation();
+    handler();
+  };
+
+  const headText = cluster.headText || head?.text || "";
+  const headPage = head?.fromPage ?? 1;
+  const headPostedAt = head?.postedAt;
+
   return (
     <div
       className={cn("nx-qrow",
-        q.status === "opened"   && "is-opened",
-        q.status === "resolved" && "is-resolved",
-        isFresh                 && "is-new",
+        !isHidden && "is-opened",
+        isFresh   && "is-new",
+        isHidden  && "is-revealable",
       )}
-      role="listitem"
+      role={isHidden ? "button" : "listitem"}
+      tabIndex={isHidden ? 0 : undefined}
+      aria-label={
+        isHidden
+          ? isCluster
+            ? `${cluster.size} students asked this — show to class`
+            : "Click to show this question to the class"
+          : undefined
+      }
+      onClick={isHidden ? onReveal : undefined}
+      onKeyDown={isHidden ? onRowKey : undefined}
     >
       <div className="nx-qrow-head">
-        <AnonChip id={q.authorAnonymousCourseID} />
-        {q.clusterSize > 1 && (
+        {isCluster && (
           <span className="nx-cluster-pill">
-            <Cluster size={10} />
-            <span className="nx-cluster-pill-count">{q.clusterSize}</span> similar
+            <span className="nx-cluster-pill-count">{cluster.size}</span> students asked this
           </span>
         )}
-        <button
-          className="nx-slide-tag"
-          onClick={onJumpToSlide}
-          title={`Jump to slide ${q.fromPage}`}
-        >
-          ↳ slide {q.fromPage}
-        </button>
-        <span className="nx-qrow-meta" style={{ marginLeft: "auto" }}>
-          {relativeTime(q.postedAt)}
-        </span>
+        {head && (
+          <button
+            className="nx-slide-tag"
+            onClick={stop(() => onJumpToSlide(headPage))}
+          >
+            slide {headPage}
+          </button>
+        )}
+        {headPostedAt && (
+          <span className="nx-qrow-meta" style={{ marginLeft: "auto" }}>
+            {relativeTime(headPostedAt)}
+          </span>
+        )}
       </div>
 
-      <p
-        className={cn("nx-qrow-text", q.status === "new" && "nx-qrow-text--hidden")}
-        aria-hidden={q.status === "new"}
-      >
-        {q.text}
+      <p className={cn("nx-qrow-text", isHidden && "nx-qrow-text--hidden")}>
+        {headText}
       </p>
 
       <div className="nx-qrow-actions">
-        <StatusBadge status={q.status} openedAt={q.openedAt} resolvedByAuthor={q.resolvedByAuthor} />
+        <StatusBadge status={status} />
         <span className="nx-qrow-actions-spacer" />
 
-        {q.status === "new" && (
-          <button className="nx-btn nx-btn-primary" onClick={onOpen}>
-            <Eye size={11} /> Reveal
+        {isCluster && (
+          <button
+            className="nx-cluster-disclosure"
+            onClick={stop(() => setExpanded(e => !e))}
+            aria-expanded={expanded}
+          >
+            {expanded
+              ? "Hide other questions"
+              : `See all ${cluster.size} questions`}
           </button>
         )}
 
-        {q.status === "opened" && (
-          <button className="nx-btn nx-btn-primary" onClick={onResolve}>Mark resolved</button>
-        )}
-
-        {q.status === "resolved" && (
-          <button className="nx-btn nx-btn-ghost" onClick={onReopen}>Reopen</button>
+        {isHidden && (
+          <button className="nx-btn nx-btn-primary" onClick={stop(onReveal)}>
+            <Eye size={12} /> Show to class
+          </button>
         )}
       </div>
+
+      {isCluster && expanded && (
+        <ul className="nx-cluster-members" role="list">
+          {members.map(m => (
+            <li key={m.questionId} className="nx-cluster-member">
+              <p className={cn("nx-cluster-member-text", isHidden && "nx-qrow-text--hidden")}>
+                {m.text}
+              </p>
+              <div className="nx-cluster-member-meta">
+                <button
+                  className="nx-slide-tag"
+                  onClick={stop(() => onJumpToSlide(m.fromPage))}
+                >
+                  slide {m.fromPage}
+                </button>
+                <span>{relativeTime(m.postedAt)}</span>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
 
-function StatusBadge({
-  status, openedAt, resolvedByAuthor,
-}: { status: QuestionStatus; openedAt?: string; resolvedByAuthor?: boolean }) {
+function StatusBadge({ status }: { status: QuestionStatus }) {
   if (status === "new") {
-    return <span className="nx-badge nx-role-student"><span className="nx-badge-dot" />New</span>;
-  }
-  if (status === "opened") {
     return (
-      <span className="nx-badge nx-role-admin">
+      <span className="nx-badge nx-role-student">
         <span className="nx-badge-dot" />
-        {openedAt ? `Opened ${relativeTime(openedAt)}` : "Opened"}
+        Needs attention
       </span>
     );
   }
   return (
-    <span className="nx-badge nx-role-instructor">
+    <span className="nx-badge nx-role-admin">
       <span className="nx-badge-dot" />
-      Resolved{resolvedByAuthor ? " by author" : ""}
+      Shown to class
     </span>
-  );
-}
-
-interface ThumbnailStripProps {
-  totalPages: number;
-  currentPage: number;
-  hotPages: Set<number>;
-  onPick: (page: number) => void;
-}
-
-function ThumbnailStrip({ totalPages, currentPage, hotPages, onPick }: ThumbnailStripProps) {
-  return (
-    <div className="nx-thumb-strip" aria-label="All slides">
-      {Array.from({ length: totalPages }, (_, i) => {
-        const page = i + 1;
-        const isCurrent = page === currentPage;
-        const hasQ = hotPages.has(page);
-        return (
-          <button
-            key={page}
-            type="button"
-            className={cn("nx-thumb", isCurrent && "is-current", hasQ && "has-questions")}
-            onClick={() => onPick(page)}
-            title={`Slide ${page}${hasQ ? " · has questions" : ""}`}
-            aria-label={`Go to slide ${page}`}
-            aria-current={isCurrent ? "page" : undefined}
-          >
-            <div className="nx-thumb-bar" />
-            <div className="nx-thumb-line" />
-            <div className="nx-thumb-line is-short" />
-            <span className="nx-thumb-num">{page}</span>
-          </button>
-        );
-      })}
-    </div>
   );
 }
 
@@ -937,15 +766,13 @@ function EndSessionModal({
   totalPages, slidesViewed, elapsedFmt, courseCode, sectionNumber,
   onCancel, onConfirm,
 }: EndSessionModalProps) {
-  // ESC closes the modal.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onCancel(); };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onCancel]);
 
-  const open     = questions.filter(q => q.status !== "resolved").length;
-  const resolved = questions.filter(q => q.status === "resolved").length;
+  const revealed = questions.filter(q => q.status === "opened").length;
 
   return (
     <div className="nx-modal-backdrop" onClick={onCancel}>
@@ -980,7 +807,7 @@ function EndSessionModal({
             <div className="nx-report-stat">
               <div className="nx-report-stat-lbl">Questions</div>
               <div className="nx-report-stat-val">{questions.length}</div>
-              <div className="nx-report-stat-delta">{open} open · {resolved} resolved</div>
+              <div className="nx-report-stat-delta">{revealed} revealed</div>
             </div>
             <div className="nx-report-stat">
               <div className="nx-report-stat-lbl">Reactions</div>
@@ -1040,14 +867,6 @@ function EndSessionModal({
 /* ─────────────────────────────────────────────────────────────────── */
 /* Helpers                                                              */
 /* ─────────────────────────────────────────────────────────────────── */
-
-function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  const units = ["KB", "MB", "GB"];
-  let v = bytes / 1024, i = 0;
-  while (v >= 1024 && i < units.length - 1) { v /= 1024; i++; }
-  return `${v.toFixed(v >= 10 ? 0 : 1)} ${units[i]}`;
-}
 
 function relativeTime(iso: string): string {
   const diff = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 1000));
