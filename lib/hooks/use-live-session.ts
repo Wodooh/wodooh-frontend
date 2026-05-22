@@ -29,25 +29,28 @@ import type {
 //      attach failures. Filter only this exact shape.
 // Production builds don't strict-double-mount and have no dev overlay, so
 // this is purely dev noise; both filters match only the exact pattern.
-if (typeof window !== 'undefined') {
+if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
   const isClosedConnection = (r: unknown): boolean => {
     const rr = r as { code?: number; message?: string } | undefined;
     return rr?.code === 80017 || /Connection closed/i.test(rr?.message ?? '');
   };
 
-  window.addEventListener(
-    'unhandledrejection',
-    (e: PromiseRejectionEvent) => {
-      if (isClosedConnection(e.reason)) {
-        e.preventDefault();
-        e.stopImmediatePropagation();
-      }
-    },
-    { capture: true },
-  );
-
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const w = window as any;
+  if (!w.__wodoohAblyUnhandledRejectionShimInstalled) {
+    w.__wodoohAblyUnhandledRejectionShimInstalled = true;
+    window.addEventListener(
+      'unhandledrejection',
+      (e: PromiseRejectionEvent) => {
+        if (isClosedConnection(e.reason)) {
+          e.preventDefault();
+          e.stopImmediatePropagation();
+        }
+      },
+      { capture: true },
+    );
+  }
+
   if (!w.__wodoohAblyConsoleShimInstalled) {
     w.__wodoohAblyConsoleShimInstalled = true;
     const origError = console.error.bind(console);
