@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth/auth-provider";
+import { displayName, displayInitials } from "@/lib/utils";
 import "../nexus.css";
 
 const I = {
@@ -111,7 +112,8 @@ export default function InstructorLayout({ children }: { children: React.ReactNo
     return <>{children}</>;
   }
 
-  const initials = user.name.split(" ").map(p => p[0]).join("").slice(0, 2).toUpperCase();
+  const initials = displayInitials(user);
+  const fullName = displayName(user);
   const activeKey = (() => {
     for (const item of [...NAV].sort((a, b) => b.href.length - a.href.length)) {
       if (pathname === item.href || pathname.startsWith(item.href + "/")) return item.key;
@@ -147,12 +149,11 @@ export default function InstructorLayout({ children }: { children: React.ReactNo
         </nav>
 
         <div className="nx-sidebar-footer">
-          <div className="nx-sidebar-avatar">{initials || "F"}</div>
+          <div className="nx-sidebar-avatar">{initials}</div>
           <div className="nx-sidebar-user">
-            <div className="nx-sidebar-user-name">{user.name}</div>
+            <div className="nx-sidebar-user-name">{fullName}</div>
             <div className="nx-sidebar-user-email">{user.email}</div>
           </div>
-          <span className="nx-version-pill">v0.1</span>
         </div>
       </aside>
 
