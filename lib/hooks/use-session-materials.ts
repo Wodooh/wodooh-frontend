@@ -5,6 +5,24 @@ import apiClient from '../api/client';
 import API_ENDPOINTS from '../api/endpoints';
 import type { SessionMaterial } from '../types/live-session.types';
 
+/**
+ * Attach a previously-uploaded library file to an existing session without
+ * re-uploading. The server copies the storage object to a new path and
+ * creates a fresh SessionMaterial row.
+ */
+export async function attachLibraryMaterialToSession(
+  sessionId: string,
+  sourceMaterialId: string,
+): Promise<void> {
+  const res = await apiClient.post(
+    API_ENDPOINTS.SESSION_MATERIAL_ATTACH(sessionId),
+    { sourceMaterialId },
+  );
+  if (res.status !== 'success') {
+    throw new Error(res.message ?? 'Failed to attach material from library');
+  }
+}
+
 /** Upload a file to an existing session with XHR progress tracking. */
 export function uploadFileToSession(
   sessionId: string,

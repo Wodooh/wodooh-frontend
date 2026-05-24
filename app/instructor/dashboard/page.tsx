@@ -7,7 +7,7 @@ import API_ENDPOINTS from "@/lib/api/endpoints";
 import { useAuth } from "@/lib/auth/auth-provider";
 import { useMyCourses, type MyCourseEntry } from "@/lib/hooks/use-my-courses";
 import { UploadMaterialModal } from "@/components/lecture/upload-material-modal";
-import { uploadFileToSession } from "@/lib/hooks/use-session-materials";
+import { uploadFileToSession, attachLibraryMaterialToSession } from "@/lib/hooks/use-session-materials";
 import type { LibraryMaterial } from "@/lib/hooks/use-session-materials";
 
 export default function InstructorDashboardPage() {
@@ -29,9 +29,10 @@ export default function InstructorDashboardPage() {
   };
 
   // Called by the modal only after the instructor has chosen a file.
+  // Either `file` (new upload) or `lib` (existing library item) is set.
   const handleStartSession = async (
     file: File | null,
-    _lib: LibraryMaterial | null,
+    lib: LibraryMaterial | null,
     setProgress: (p: number) => void,
   ) => {
     if (!pendingEntry?.course) return;
@@ -45,6 +46,8 @@ export default function InstructorDashboardPage() {
     const sessionId = res.data._id;
     if (file) {
       await uploadFileToSession(sessionId, file, setProgress);
+    } else if (lib) {
+      await attachLibraryMaterialToSession(sessionId, lib._id);
     }
     setPendingEntry(null);
     router.push(`/instructor/sessions/${sessionId}/live`);
