@@ -2,6 +2,8 @@
 
 import React, { useEffect, useState } from "react";
 import { BulkImportDialog } from "@/components/admin/bulk-import-dialog";
+import apiClient from "@/lib/api/client";
+import API_ENDPOINTS from "@/lib/api/endpoints";
 
 type TabId = "general" | "permissions" | "integrations" | "security" | "appearance";
 
@@ -226,6 +228,32 @@ function Permissions() {
 // ── Integrations ───────────────────────────────────
 function Integrations({ onToast }: { onToast: (msg: string, kind?: "success" | "info" | "error") => void }) {
   const [importOpen, setImportOpen] = useState(false);
+  const [syncUrl, setSyncUrl] = useState("");
+  const [urlLoading, setUrlLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [editing, setEditing] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    apiClient.get<{ url: string | null }>(API_ENDPOINTS.ADMIN_SYNC_URL)
+      .then(res => { if (!cancelled) setSyncUrl(res.data?.url ?? ""); })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setUrlLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
+
+  async function handleSave() {
+    setSaving(true);
+    try {
+      await apiClient.patch(API_ENDPOINTS.ADMIN_SYNC_URL, { url: syncUrl.trim() });
+      onToast("Sync URL saved.", "success");
+      setEditing(false);
+    } catch {
+      onToast("Failed to save sync URL.", "error");
+    } finally {
+      setSaving(false);
+    }
+  }
 
   return (
     <div className="nx-card">
@@ -233,12 +261,31 @@ function Integrations({ onToast }: { onToast: (msg: string, kind?: "success" | "
       <div style={{ padding: "4px 20px" }}>
         <SettingRow
           label="Sync endpoint"
-          desc="The URL the SIS posts to when student records change."
+          desc="URL of the SIS to pull student and course data from."
           control={
-            <>
-              <span className="nx-badge nx-role-instructor"><span className="nx-badge-dot" />Connected</span>
-              <button className="nx-btn nx-btn-ghost" onClick={() => onToast("Endpoint saved · /api/v1/sis/webhook (demo).", "success")}>Configure</button>
-            </>
+            editing ? (
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <TextField
+                  value={urlLoading ? "" : syncUrl}
+                  onChange={setSyncUrl}
+                  minWidth={280}
+                />
+                <button className="nx-btn nx-btn-primary" disabled={saving} onClick={handleSave}>
+                  {saving ? "Saving…" : "Save"}
+                </button>
+                <button className="nx-btn nx-btn-ghost" disabled={saving} onClick={() => setEditing(false)}>
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <>
+                <span className={`nx-badge ${syncUrl ? "nx-role-instructor" : ""}`} style={!syncUrl ? { background: "var(--nx-bg-hover)", color: "var(--nx-fg-muted)" } : {}}>
+                  <span className="nx-badge-dot" />
+                  {urlLoading ? "…" : syncUrl ? "Configured" : "Not configured"}
+                </span>
+                <button className="nx-btn nx-btn-ghost" onClick={() => setEditing(true)}>Configure</button>
+              </>
+            )
           }
         />
         <SettingRow
