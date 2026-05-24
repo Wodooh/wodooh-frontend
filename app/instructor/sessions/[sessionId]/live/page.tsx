@@ -260,7 +260,7 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
     }
   };
 
-  const onRevealCluster = (clusterId: string) => {
+  const onOpenCluster = (clusterId: string) => {
     setPinnedOnNeedsAttention(prev => {
       if (prev.has(clusterId)) return prev;
       const next = new Set(prev);
@@ -268,7 +268,7 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
       return next;
     });
     setClusterVisibility(clusterId, "visible").catch(err =>
-      toast.error(err instanceof Error ? err.message : "Failed to reveal cluster"),
+      toast.error(err instanceof Error ? err.message : "Failed to open cluster"),
     );
   };
 
@@ -565,7 +565,7 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
                       members={c.memberIds
                         .map(id => questionsById.get(id))
                         .filter((q): q is LiveQuestion => Boolean(q))}
-                      onReveal={() => onRevealCluster(c.clusterId)}
+                      onOpen={() => onOpenCluster(c.clusterId)}
                       onJumpToSlide={page => goToPage(page)}
                     />
                   ))
@@ -624,12 +624,12 @@ interface ClusterRowProps {
   cluster: LiveQuestionCluster;
   head: LiveQuestion | undefined;
   members: LiveQuestion[];
-  onReveal: () => void;
+  onOpen: () => void;
   onJumpToSlide: (page: number) => void;
 }
 
 function ClusterRow({
-  cluster, head, members, onReveal, onJumpToSlide,
+  cluster, head, members, onOpen, onJumpToSlide,
 }: ClusterRowProps) {
   const [isFresh, setIsFresh] = useState(true);
   useEffect(() => {
@@ -647,7 +647,7 @@ function ClusterRow({
     if (!isHidden) return;
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
-      onReveal();
+      onOpen();
     }
   };
 
@@ -672,11 +672,11 @@ function ClusterRow({
       aria-label={
         isHidden
           ? isCluster
-            ? `${cluster.size} students asked this — show to class`
-            : "Click to show this question to the class"
+            ? `${cluster.size} students asked this — open`
+            : "Click to open this question"
           : undefined
       }
-      onClick={isHidden ? onReveal : undefined}
+      onClick={isHidden ? onOpen : undefined}
       onKeyDown={isHidden ? onRowKey : undefined}
     >
       <div className="nx-qrow-head">
@@ -721,8 +721,8 @@ function ClusterRow({
         )}
 
         {isHidden && (
-          <button className="nx-btn nx-btn-primary" onClick={stop(onReveal)}>
-            <Eye size={12} /> Show to class
+          <button className="nx-btn nx-btn-primary" onClick={stop(onOpen)}>
+            <Eye size={12} /> Open
           </button>
         )}
       </div>
@@ -756,14 +756,22 @@ function StatusBadge({ status }: { status: QuestionStatus }) {
     return (
       <span className="nx-badge nx-role-student">
         <span className="nx-badge-dot" />
-        Needs attention
+        Unopened
+      </span>
+    );
+  }
+  if (status === "resolved") {
+    return (
+      <span className="nx-badge nx-role-admin">
+        <span className="nx-badge-dot" />
+        Resolved
       </span>
     );
   }
   return (
     <span className="nx-badge nx-role-admin">
       <span className="nx-badge-dot" />
-      Shown to class
+      Opened
     </span>
   );
 }
@@ -791,7 +799,7 @@ function EndSessionModal({
     return () => window.removeEventListener("keydown", onKey);
   }, [onCancel]);
 
-  const revealed = questions.filter(q => q.status === "opened").length;
+  const openedCount = questions.filter(q => q.status === "opened").length;
 
   return (
     <div className="nx-modal-backdrop" onClick={onCancel}>
@@ -826,7 +834,7 @@ function EndSessionModal({
             <div className="nx-report-stat">
               <div className="nx-report-stat-lbl">Questions</div>
               <div className="nx-report-stat-val">{questions.length}</div>
-              <div className="nx-report-stat-delta">{revealed} revealed</div>
+              <div className="nx-report-stat-delta">{openedCount} opened</div>
             </div>
             <div className="nx-report-stat">
               <div className="nx-report-stat-lbl">Reactions</div>
