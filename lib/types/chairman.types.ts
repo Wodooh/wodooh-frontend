@@ -106,7 +106,6 @@ export interface SessionReport {
 export interface Alert {
   _id: string;
   type: "ABSENCE_25" | "HIGH_ACTIVITY";
-  studentId?: string;
   anonymousCourseId?: string;
   sectionId?: { _id: string; sectionId: number } | string;
   courseId?: { _id: string; name: string; code: string } | string;
