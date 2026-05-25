@@ -83,6 +83,7 @@ interface ApiQuestion {
   authorAnonymousCourseId: string;
   visibilityStatus: 'visible' | 'hidden';
   postSessionStatus: 'open' | 'resolved' | 'archived' | 'auto-resolved';
+  fromPage: number;
   clusterId?: string;
   createdAt: string;
   updatedAt: string;
@@ -107,6 +108,7 @@ interface QuestionCreatedPayload {
   authorAnonymousCourseId: string;
   visibilityStatus: 'visible' | 'hidden';
   postSessionStatus: 'open' | 'resolved' | 'archived' | 'auto-resolved';
+  fromPage: number;
   clusterId?: string;
   createdAt: string;
 }
@@ -166,7 +168,7 @@ function mapQuestion(q: ApiQuestion | QuestionCreatedPayload): LiveQuestion {
     authorAnonymousCourseID: q.authorAnonymousCourseId,
     text: q.content,
     postedAt: q.createdAt,
-    fromPage: 1,
+    fromPage: q.fromPage ?? 1,
     status: deriveQuestionStatus(q.visibilityStatus, q.postSessionStatus),
     clusterSize: 1,
     clusterId: q.clusterId,
@@ -270,9 +272,6 @@ function buildSnapshot(
       visibilityStatus: c.visibilityStatus,
     })),
     muted: [],
-    controls: {
-      broadcasting: true,
-    },
   };
 }
 

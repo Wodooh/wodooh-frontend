@@ -184,8 +184,13 @@ function OnboardingPageInner() {
     setRole(next);
     setContentKey((k) => k + 1);
     setSubmitError(null);
-    setFacultyId("");
-    setFacultyIdTouched(false);
+    // Reset every academic selection so data picked under one role can never
+    // be carried into a signup under a different role.
+    setSelectedCollege("");
+    setSelectedDepartment("");
+    setCourseSelections([]);
+    setSectionsMap({});
+    setCourseSearch("");
     const params = new URLSearchParams(searchParams.toString());
     if (next === "instructor") params.set("role", "instructor");
     else params.delete("role");
@@ -204,14 +209,6 @@ function OnboardingPageInner() {
   const [showPw, setShowPw] = useState(false);
   const [accountTouched, setAccountTouched] = useState<{ name?: boolean; email?: boolean; pw?: boolean; confirm?: boolean }>({});
   const [accountErrors, setAccountErrors] = useState<{ name?: string; email?: string; pw?: string; confirm?: string }>({});
-
-  // ── Instructor-only field ─────────────────────────────────
-  const [facultyId, setFacultyId] = useState("");
-  const [facultyIdTouched, setFacultyIdTouched] = useState(false);
-  const facultyIdError =
-    role === "instructor" && facultyIdTouched && !/^[a-zA-Z0-9]{3,20}$/.test(facultyId.trim())
-      ? "Faculty ID must be 3–20 alphanumeric characters."
-      : null;
 
   // ── Academic selections ───────────────────────────────────
   const [selectedCollege, setSelectedCollege] = useState("");
@@ -349,12 +346,7 @@ function OnboardingPageInner() {
     setAccountErrors(errs);
     setAccountTouched({ name: true, email: true, pw: true, confirm: true });
 
-    let facultyOk = true;
-    if (role === "instructor") {
-      setFacultyIdTouched(true);
-      facultyOk = /^[a-zA-Z0-9]{3,20}$/.test(facultyId.trim());
-    }
-    return Object.keys(errs).length === 0 && facultyOk;
+    return Object.keys(errs).length === 0;
   };
 
   const allSectionsSelected = courseSelections.every((cs) => cs.sectionId);
@@ -476,35 +468,39 @@ function OnboardingPageInner() {
             <p className="nx-login-sub">{subByRole}</p>
           </div>
 
-          {/* Role toggle (segmented pill) ─────────────────── */}
-          <div
-            className="nx-role-toggle"
-            role="tablist"
-            aria-label="Choose account type"
-          >
-            <span
-              className={`nx-role-toggle-thumb${role === "instructor" ? " is-instructor" : ""}`}
-              aria-hidden="true"
-            />
-            <button
-              type="button"
-              role="tab"
-              aria-selected={role === "student"}
-              className={`nx-role-toggle-btn${role === "student" ? " is-active" : ""}`}
-              onClick={() => switchRole("student")}
+          {/* Role toggle — only on Step 1. The choice is locked once the
+              user advances so they can't fill one role's data and submit
+              under another. */}
+          {currentStep === 1 && (
+            <div
+              className="nx-role-toggle"
+              role="tablist"
+              aria-label="Choose account type"
             >
-              <PersonIcon /> Student
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={role === "instructor"}
-              className={`nx-role-toggle-btn${role === "instructor" ? " is-active" : ""}`}
-              onClick={() => switchRole("instructor")}
-            >
-              <PodiumIcon /> Instructor
-            </button>
-          </div>
+              <span
+                className={`nx-role-toggle-thumb${role === "instructor" ? " is-instructor" : ""}`}
+                aria-hidden="true"
+              />
+              <button
+                type="button"
+                role="tab"
+                aria-selected={role === "student"}
+                className={`nx-role-toggle-btn${role === "student" ? " is-active" : ""}`}
+                onClick={() => switchRole("student")}
+              >
+                <PersonIcon /> Student
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={role === "instructor"}
+                className={`nx-role-toggle-btn${role === "instructor" ? " is-active" : ""}`}
+                onClick={() => switchRole("instructor")}
+              >
+                <PodiumIcon /> Instructor
+              </button>
+            </div>
+          )}
 
           <Stepper currentStep={currentStep} />
 
@@ -612,26 +608,6 @@ function OnboardingPageInner() {
                     <span className="nx-login-helper is-error">{accountErrors.confirm}</span>
                   )}
                 </div>
-
-                {role === "instructor" && (
-                  <div className="nx-login-field">
-                    <label htmlFor="ob-faculty" className="nx-field-label">Faculty ID</label>
-                    <div className={`nx-login-input-wrap${facultyIdError && facultyIdTouched ? " has-error" : ""}`}>
-                      <input
-                        id="ob-faculty"
-                        className="nx-login-input"
-                        type="text"
-                        placeholder="e.g. f12345 or dr9876"
-                        value={facultyId}
-                        onChange={(e) => setFacultyId(e.target.value)}
-                        onBlur={() => setFacultyIdTouched(true)}
-                      />
-                    </div>
-                    {facultyIdError && facultyIdTouched && (
-                      <span className="nx-login-helper is-error">{facultyIdError}</span>
-                    )}
-                  </div>
-                )}
 
                 <div className="nx-step-nav">
                   <button type="button" className="nx-btn nx-btn-ghost" onClick={() => router.push("/login")}>
@@ -841,12 +817,6 @@ function OnboardingPageInner() {
                     <span className="nx-review-key">Email</span>
                     <span className="nx-review-val">{email.trim().toLowerCase()}</span>
                   </div>
-                  {role === "instructor" && (
-                    <div className="nx-review-row">
-                      <span className="nx-review-key">Faculty ID</span>
-                      <span className="nx-review-val">{facultyId.trim()}</span>
-                    </div>
-                  )}
                 </section>
 
                 <section className="nx-review-section">

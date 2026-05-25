@@ -136,7 +136,4 @@ export const LIVE_SESSION_MOCK: LiveSessionSnapshot = {
       reason: "duplicate questions",
     },
   ],
-  controls: {
-    broadcasting: true,
-  },
 };
