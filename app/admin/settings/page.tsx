@@ -94,7 +94,7 @@ export default function AdminSettingsPage() {
         ))}
       </div>
 
-      {tab === "general" && <General onSave={(msg) => showToast(msg)} />}
+      {tab === "general" && <General onSave={(msg, kind) => showToast(msg, kind)} />}
       {tab === "permissions" && <Permissions />}
       {tab === "integrations" && <Integrations onToast={showToast} />}
       {tab === "security" && <Security onSave={(msg) => showToast(msg)} />}
@@ -110,14 +110,52 @@ export default function AdminSettingsPage() {
 }
 
 // ── General ────────────────────────────────────────
-function General({ onSave }: { onSave: (msg: string) => void }) {
+function General({ onSave }: { onSave: (msg: string, kind?: "success" | "info" | "error") => void }) {
   const [name, setName] = useState("WODOOH University");
   const [tz, setTz] = useState("Asia/Riyadh");
   const [year, setYear] = useState("2025-26");
   const [domain, setDomain] = useState("uni.edu");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
 
+  useEffect(() => {
+    let cancelled = false;
+    apiClient.get<{ universityName: string; timezone: string; academicYear: string; emailDomain: string }>(
+      API_ENDPOINTS.ADMIN_SYSTEM_GENERAL
+    )
+      .then(res => {
+        if (cancelled || !res.data) return;
+        const d = res.data;
+        setName(d.universityName);
+        setTz(d.timezone);
+        setYear(d.academicYear);
+        setDomain(d.emailDomain);
+      })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
+
   const mark = (fn: () => void) => { fn(); setDirty(true); };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await apiClient.patch(API_ENDPOINTS.ADMIN_SYSTEM_GENERAL, {
+        universityName: name,
+        timezone: tz,
+        academicYear: year,
+        emailDomain: domain,
+      });
+      setDirty(false);
+      onSave("Settings saved.", "success");
+    } catch {
+      onSave("Failed to save settings.", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <>
@@ -126,13 +164,13 @@ function General({ onSave }: { onSave: (msg: string) => void }) {
           <SettingRow
             label="University name"
             desc="Visible to all users in headers and emails."
-            control={<TextField value={name} onChange={(v) => mark(() => setName(v))} />}
+            control={<TextField value={loading ? "" : name} onChange={(v) => mark(() => setName(v))} />}
           />
           <SettingRow
             label="Time zone"
             desc="Default for all scheduled jobs and audit timestamps."
             control={
-              <select className="nx-select" value={tz} onChange={e => mark(() => setTz(e.target.value))}>
+              <select className="nx-select" value={tz} onChange={e => mark(() => setTz(e.target.value))} disabled={loading}>
                 <option value="Asia/Riyadh">Arabia (UTC+3)</option>
                 <option value="Europe/Istanbul">Türkiye (UTC+3)</option>
                 <option value="Europe/Berlin">Central Europe (UTC+1)</option>
@@ -147,7 +185,7 @@ function General({ onSave }: { onSave: (msg: string) => void }) {
             label="Academic year"
             desc="Affects course archival and term rollover."
             control={
-              <select className="nx-select" value={year} onChange={e => mark(() => setYear(e.target.value))}>
+              <select className="nx-select" value={year} onChange={e => mark(() => setYear(e.target.value))} disabled={loading}>
                 <option value="2024-25">2024 – 2025</option>
                 <option value="2025-26">2025 – 2026</option>
                 <option value="2026-27">2026 – 2027</option>
@@ -157,19 +195,19 @@ function General({ onSave }: { onSave: (msg: string) => void }) {
           <SettingRow
             label="Email domain"
             desc="Restrict signup to this domain (used for university-issued accounts)."
-            control={<TextField value={domain} onChange={(v) => mark(() => setDomain(v))} />}
+            control={<TextField value={loading ? "" : domain} onChange={(v) => mark(() => setDomain(v))} />}
           />
         </div>
       </div>
 
       <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 16 }}>
-        <button className="nx-btn nx-btn-ghost" disabled={!dirty} onClick={() => setDirty(false)}>Discard</button>
+        <button className="nx-btn nx-btn-ghost" disabled={!dirty || saving} onClick={() => setDirty(false)}>Discard</button>
         <button
           className="nx-btn nx-btn-primary"
-          disabled={!dirty}
-          onClick={() => { setDirty(false); onSave("Settings saved (demo — needs backend endpoint)."); }}
+          disabled={!dirty || saving || loading}
+          onClick={handleSave}
         >
-          Save changes
+          {saving ? "Saving…" : "Save changes"}
         </button>
       </div>
     </>

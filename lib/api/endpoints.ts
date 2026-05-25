@@ -44,6 +44,7 @@ export const API_ENDPOINTS = {
   // Admin - Sync
   ADMIN_SYNC: '/admin/sync',
   ADMIN_SYNC_URL: '/admin/system/sync-url',
+  ADMIN_SYSTEM_GENERAL: '/admin/system/general',
 
   // Admin - Audit Log
   AUDIT_LOG: '/admin/audit-log',
