@@ -500,6 +500,8 @@ export default function StudentLiveSessionPage({ params }: PageProps) {
 
               <div className="nx-composer">
                 <textarea
+                  id="question-composer"
+                  name="question"
                   className="nx-composer-textarea"
                   placeholder={
                     isMuted
