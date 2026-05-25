@@ -2,6 +2,8 @@
 
 import React, { useEffect, useState } from "react";
 import { BulkImportDialog } from "@/components/admin/bulk-import-dialog";
+import apiClient from "@/lib/api/client";
+import API_ENDPOINTS from "@/lib/api/endpoints";
 
 type TabId = "general" | "permissions" | "integrations" | "security" | "appearance";
 
@@ -92,7 +94,7 @@ export default function AdminSettingsPage() {
         ))}
       </div>
 
-      {tab === "general" && <General onSave={(msg) => showToast(msg)} />}
+      {tab === "general" && <General onSave={(msg, kind) => showToast(msg, kind)} />}
       {tab === "permissions" && <Permissions />}
       {tab === "integrations" && <Integrations onToast={showToast} />}
       {tab === "security" && <Security onSave={(msg) => showToast(msg)} />}
@@ -108,14 +110,52 @@ export default function AdminSettingsPage() {
 }
 
 // ── General ────────────────────────────────────────
-function General({ onSave }: { onSave: (msg: string) => void }) {
+function General({ onSave }: { onSave: (msg: string, kind?: "success" | "info" | "error") => void }) {
   const [name, setName] = useState("WODOOH University");
   const [tz, setTz] = useState("Asia/Riyadh");
   const [year, setYear] = useState("2025-26");
   const [domain, setDomain] = useState("uni.edu");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
 
+  useEffect(() => {
+    let cancelled = false;
+    apiClient.get<{ universityName: string; timezone: string; academicYear: string; emailDomain: string }>(
+      API_ENDPOINTS.ADMIN_SYSTEM_GENERAL
+    )
+      .then(res => {
+        if (cancelled || !res.data) return;
+        const d = res.data;
+        setName(d.universityName);
+        setTz(d.timezone);
+        setYear(d.academicYear);
+        setDomain(d.emailDomain);
+      })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
+
   const mark = (fn: () => void) => { fn(); setDirty(true); };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await apiClient.patch(API_ENDPOINTS.ADMIN_SYSTEM_GENERAL, {
+        universityName: name,
+        timezone: tz,
+        academicYear: year,
+        emailDomain: domain,
+      });
+      setDirty(false);
+      onSave("Settings saved.", "success");
+    } catch {
+      onSave("Failed to save settings.", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <>
@@ -124,13 +164,13 @@ function General({ onSave }: { onSave: (msg: string) => void }) {
           <SettingRow
             label="University name"
             desc="Visible to all users in headers and emails."
-            control={<TextField value={name} onChange={(v) => mark(() => setName(v))} />}
+            control={<TextField value={loading ? "" : name} onChange={(v) => mark(() => setName(v))} />}
           />
           <SettingRow
             label="Time zone"
             desc="Default for all scheduled jobs and audit timestamps."
             control={
-              <select className="nx-select" value={tz} onChange={e => mark(() => setTz(e.target.value))}>
+              <select className="nx-select" value={tz} onChange={e => mark(() => setTz(e.target.value))} disabled={loading}>
                 <option value="Asia/Riyadh">Arabia (UTC+3)</option>
                 <option value="Europe/Istanbul">Türkiye (UTC+3)</option>
                 <option value="Europe/Berlin">Central Europe (UTC+1)</option>
@@ -145,7 +185,7 @@ function General({ onSave }: { onSave: (msg: string) => void }) {
             label="Academic year"
             desc="Affects course archival and term rollover."
             control={
-              <select className="nx-select" value={year} onChange={e => mark(() => setYear(e.target.value))}>
+              <select className="nx-select" value={year} onChange={e => mark(() => setYear(e.target.value))} disabled={loading}>
                 <option value="2024-25">2024 – 2025</option>
                 <option value="2025-26">2025 – 2026</option>
                 <option value="2026-27">2026 – 2027</option>
@@ -155,19 +195,19 @@ function General({ onSave }: { onSave: (msg: string) => void }) {
           <SettingRow
             label="Email domain"
             desc="Restrict signup to this domain (used for university-issued accounts)."
-            control={<TextField value={domain} onChange={(v) => mark(() => setDomain(v))} />}
+            control={<TextField value={loading ? "" : domain} onChange={(v) => mark(() => setDomain(v))} />}
           />
         </div>
       </div>
 
       <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 16 }}>
-        <button className="nx-btn nx-btn-ghost" disabled={!dirty} onClick={() => setDirty(false)}>Discard</button>
+        <button className="nx-btn nx-btn-ghost" disabled={!dirty || saving} onClick={() => setDirty(false)}>Discard</button>
         <button
           className="nx-btn nx-btn-primary"
-          disabled={!dirty}
-          onClick={() => { setDirty(false); onSave("Settings saved (demo — needs backend endpoint)."); }}
+          disabled={!dirty || saving || loading}
+          onClick={handleSave}
         >
-          Save changes
+          {saving ? "Saving…" : "Save changes"}
         </button>
       </div>
     </>
@@ -226,6 +266,32 @@ function Permissions() {
 // ── Integrations ───────────────────────────────────
 function Integrations({ onToast }: { onToast: (msg: string, kind?: "success" | "info" | "error") => void }) {
   const [importOpen, setImportOpen] = useState(false);
+  const [syncUrl, setSyncUrl] = useState("");
+  const [urlLoading, setUrlLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [editing, setEditing] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    apiClient.get<{ url: string | null }>(API_ENDPOINTS.ADMIN_SYNC_URL)
+      .then(res => { if (!cancelled) setSyncUrl(res.data?.url ?? ""); })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setUrlLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
+
+  async function handleSave() {
+    setSaving(true);
+    try {
+      await apiClient.patch(API_ENDPOINTS.ADMIN_SYNC_URL, { url: syncUrl.trim() });
+      onToast("Sync URL saved.", "success");
+      setEditing(false);
+    } catch {
+      onToast("Failed to save sync URL.", "error");
+    } finally {
+      setSaving(false);
+    }
+  }
 
   return (
     <div className="nx-card">
@@ -233,12 +299,31 @@ function Integrations({ onToast }: { onToast: (msg: string, kind?: "success" | "
       <div style={{ padding: "4px 20px" }}>
         <SettingRow
           label="Sync endpoint"
-          desc="The URL the SIS posts to when student records change."
+          desc="URL of the SIS to pull student and course data from."
           control={
-            <>
-              <span className="nx-badge nx-role-instructor"><span className="nx-badge-dot" />Connected</span>
-              <button className="nx-btn nx-btn-ghost" onClick={() => onToast("Endpoint saved · /api/v1/sis/webhook (demo).", "success")}>Configure</button>
-            </>
+            editing ? (
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <TextField
+                  value={urlLoading ? "" : syncUrl}
+                  onChange={setSyncUrl}
+                  minWidth={280}
+                />
+                <button className="nx-btn nx-btn-primary" disabled={saving} onClick={handleSave}>
+                  {saving ? "Saving…" : "Save"}
+                </button>
+                <button className="nx-btn nx-btn-ghost" disabled={saving} onClick={() => setEditing(false)}>
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <>
+                <span className={`nx-badge ${syncUrl ? "nx-role-instructor" : ""}`} style={!syncUrl ? { background: "var(--nx-bg-hover)", color: "var(--nx-fg-muted)" } : {}}>
+                  <span className="nx-badge-dot" />
+                  {urlLoading ? "…" : syncUrl ? "Configured" : "Not configured"}
+                </span>
+                <button className="nx-btn nx-btn-ghost" onClick={() => setEditing(true)}>Configure</button>
+              </>
+            )
           }
         />
         <SettingRow

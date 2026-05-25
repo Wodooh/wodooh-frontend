@@ -41,6 +41,11 @@ export const API_ENDPOINTS = {
   ADMIN_COURSE_SECTION: (courseId: string, sectionId: string) => `/admin/courses/${courseId}/sections/${sectionId}`,
   ADMIN_COURSE_SECTION_NEXT_ID: (courseId: string) => `/admin/courses/${courseId}/sections/next-id`,
 
+  // Admin - Sync
+  ADMIN_SYNC: '/admin/sync',
+  ADMIN_SYNC_URL: '/admin/system/sync-url',
+  ADMIN_SYSTEM_GENERAL: '/admin/system/general',
+
   // Admin - Audit Log
   AUDIT_LOG: '/admin/audit-log',
 
