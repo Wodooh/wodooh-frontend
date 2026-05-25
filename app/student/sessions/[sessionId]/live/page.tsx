@@ -234,7 +234,7 @@ export default function StudentLiveSessionPage({ params }: PageProps) {
         visibilityStatus: "visible" | "hidden";
         postSessionStatus: "open" | "resolved" | "archived";
         createdAt: string;
-      }>(API_ENDPOINTS.QUESTIONS, { sessionId, content: trimmed });
+      }>(API_ENDPOINTS.QUESTIONS, { sessionId, content: trimmed, fromPage: effectivePage });
 
       if (res.status !== "success" || !res.data) {
         throw new Error(res.message || "Failed to submit question");
@@ -511,6 +511,8 @@ export default function StudentLiveSessionPage({ params }: PageProps) {
 
               <div className="nx-composer">
                 <textarea
+                  id="question-composer"
+                  name="question"
                   className="nx-composer-textarea"
                   placeholder={
                     isMuted
