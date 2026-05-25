@@ -531,7 +531,7 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
                     <div className="nx-empty-sub">
                       {questionFilter === "needs-attention"
                         ? "When students send questions, they'll appear here for you to review."
-                        : "Questions you've shown to the class will appear here."}
+                        : "Questions you've opened will appear here."}
                     </div>
                   </div>
                 ) : (

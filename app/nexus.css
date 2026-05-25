@@ -2206,11 +2206,12 @@
   box-shadow: var(--nx-shadow-sm);
 }
 
-/* ── Hidden question blur (instructor live page) ──────────────────── */
+/* ── Unopened question blur (instructor live page) ────────────────── */
 /* The real question text is in the DOM; CSS just blurs it so the instructor
  * can see the question's length and shape but can't read it until they
- * click Reveal. Selection disabled so dragging won't easily lift the
- * pre-moderation text. */
+ * click Open. Selection disabled so dragging won't easily lift the
+ * pre-moderation text. The `.is-revealable` class name is legacy — the
+ * interaction is "click to open / read", not "reveal to the class". */
 .nx-qrow-text--hidden {
   filter: blur(5px);
   user-select: none;
