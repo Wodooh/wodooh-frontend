@@ -33,7 +33,15 @@ export function proxy(request: NextRequest) {
   //     return NextResponse.redirect(new URL("/login", request.url));
   //   }
 
-  return NextResponse.next();
+  // Protected routes must not be restorable from the browser's back/forward
+  // cache. Without `no-store` the browser can snapshot a chairman/admin/
+  // instructor/student page and replay it on a Back navigation, bypassing
+  // the client-side auth guard — letting a signed-out (or differently-
+  // roled) user see a cached protected page.
+  const response = NextResponse.next();
+  response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, private");
+  response.headers.set("Pragma", "no-cache");
+  return response;
 }
 
 export const config = {

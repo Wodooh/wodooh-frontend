@@ -102,11 +102,12 @@ export const API_ENDPOINTS = {
   ABLY_TOKEN: '/ably/token',
 
   // Session materials (FR-08 / FR-09)
-  SESSION_MATERIALS:     (sessionId: string) => `/sessions/${sessionId}/materials`,
-  SESSION_MATERIAL_URL:  (sessionId: string, materialId: string) => `/sessions/${sessionId}/materials/${materialId}/url`,
-  SESSION_MATERIAL_DEL:  (sessionId: string, materialId: string) => `/sessions/${sessionId}/materials/${materialId}`,
-  SECTION_MATERIALS:     (sectionId: string) => `/sessions/section/${sectionId}/materials`,
-  INSTRUCTOR_LIBRARY:    '/sessions/instructor/library',
+  SESSION_MATERIALS:        (sessionId: string) => `/sessions/${sessionId}/materials`,
+  SESSION_MATERIAL_ATTACH:  (sessionId: string) => `/sessions/${sessionId}/materials/attach`,
+  SESSION_MATERIAL_URL:     (sessionId: string, materialId: string) => `/sessions/${sessionId}/materials/${materialId}/url`,
+  SESSION_MATERIAL_DEL:     (sessionId: string, materialId: string) => `/sessions/${sessionId}/materials/${materialId}`,
+  SECTION_MATERIALS:        (sectionId: string) => `/sessions/section/${sectionId}/materials`,
+  INSTRUCTOR_LIBRARY:       '/sessions/instructor/library',
 
 
   // --- Planned Backend Features (not yet implemented) ---

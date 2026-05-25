@@ -52,7 +52,7 @@ import type {
   LiveSessionSnapshot,
   QuestionStatus,
   ReactionKind,
-  SessionControls,
+  ReactionTallies,
   SessionMaterial,
 } from "@/lib/types/live-session.types";
 import { cn } from "@/lib/utils";
@@ -112,10 +112,6 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
     return () => clearInterval(id);
   }, [activeMaterial, getSignedUrl]);
 
-  // Local mirror so the bottom-strip Broadcasting toggle (`setControls`) can
-  // operate on `controls.broadcasting` without backend wiring. Hook updates
-  // (initial fetch + Ably events) flow into this mirror via the effect
-  // below; local mutations get overwritten on the next hook-driven sync.
   const [snapshot, setSnapshot] = useState<LiveSessionSnapshot | null>(null);
   useEffect(() => {
     setSnapshot(liveSnapshot);
@@ -220,11 +216,6 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
     return `${h}:${m}:${s}`;
   }, [elapsedSec]);
 
-  /* — Actions (local-only in V1; will dispatch to backend in V2) ───── */
-
-  const setControls = (patch: Partial<SessionControls>) =>
-    setSnapshot(prev => (prev ? { ...prev, controls: { ...prev.controls, ...patch } } : prev));
-
   const goToPage = (p: number) => {
     if (!snapshot) return;
     const maxPage = pdfPageCount || snapshot.material.totalPages || 1;
@@ -305,7 +296,7 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
   }
   if (!snapshot) return null;
 
-  const { meta, material: snapshotMaterial, reactions, controls, questions } = snapshot;
+  const { meta, material: snapshotMaterial, reactions, questions } = snapshot;
   const material = activeMaterial ?? snapshotMaterial;
   const effectiveTotalPages = pdfPageCount || material.totalPages || 1;
 
@@ -454,19 +445,6 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
             </div>
 
             <div className="nx-lsf-bottom-right">
-              <button
-                className="nx-broadcast-pill"
-                data-on={controls.broadcasting ? "true" : "false"}
-                title={
-                  controls.broadcasting
-                    ? "Broadcasting page changes to followers — click to pause"
-                    : "Broadcast paused — click to resume"
-                }
-                onClick={() => setControls({ broadcasting: !controls.broadcasting })}
-              >
-                {controls.broadcasting ? "Broadcasting" : "Broadcast paused"}
-              </button>
-
               <input
                 ref={fileInputRef}
                 type="file"
@@ -553,7 +531,7 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
                     <div className="nx-empty-sub">
                       {questionFilter === "needs-attention"
                         ? "When students send questions, they'll appear here for you to review."
-                        : "Questions you've shown to the class will appear here."}
+                        : "Questions you've opened will appear here."}
                     </div>
                   </div>
                 ) : (
@@ -579,6 +557,7 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
       {endModalOpen && (
         <EndSessionModal
           questions={questions}
+          reactions={reactions}
           joinedCount={0}
           totalPages={material.totalPages}
           slidesViewed={currentPage}
@@ -778,6 +757,7 @@ function StatusBadge({ status }: { status: QuestionStatus }) {
 
 interface EndSessionModalProps {
   questions: LiveQuestion[];
+  reactions: ReactionTallies;
   joinedCount: number;
   totalPages: number;
   slidesViewed: number;
@@ -789,7 +769,7 @@ interface EndSessionModalProps {
 }
 
 function EndSessionModal({
-  questions, joinedCount,
+  questions, reactions, joinedCount,
   totalPages, slidesViewed, elapsedFmt, courseCode, sectionNumber,
   onCancel, onConfirm,
 }: EndSessionModalProps) {
@@ -800,6 +780,11 @@ function EndSessionModal({
   }, [onCancel]);
 
   const openedCount = questions.filter(q => q.status === "opened").length;
+  const totalReactions =
+    reactions.too_fast.total +
+    reactions.too_slow.total +
+    reactions.understood.total +
+    reactions.not_clear.total;
 
   return (
     <div className="nx-modal-backdrop" onClick={onCancel}>
@@ -838,7 +823,7 @@ function EndSessionModal({
             </div>
             <div className="nx-report-stat">
               <div className="nx-report-stat-lbl">Reactions</div>
-              <div className="nx-report-stat-val">—</div>
+              <div className="nx-report-stat-val">{totalReactions}</div>
             </div>
             <div className="nx-report-stat">
               <div className="nx-report-stat-lbl">Slides viewed</div>

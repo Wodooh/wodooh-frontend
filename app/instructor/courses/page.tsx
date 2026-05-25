@@ -14,7 +14,7 @@ import { useMyCourses } from "@/lib/hooks/use-my-courses";
 import { useSessions } from "@/lib/hooks/use-sessions";
 import { UploadMaterialModal } from "@/components/lecture/upload-material-modal";
 import { MaterialsModal } from "@/components/lecture/materials-modal";
-import { uploadFileToSession, type LibraryMaterial } from "@/lib/hooks/use-session-materials";
+import { uploadFileToSession, attachLibraryMaterialToSession, type LibraryMaterial } from "@/lib/hooks/use-session-materials";
 import type { SessionPopulated } from "@/lib/types/session.types";
 
 function sectionIdFromSession(s: SessionPopulated): string | null {
@@ -51,15 +51,18 @@ export default function InstructorCoursesPage() {
   };
 
   // Called by the modal only after the instructor has confirmed a file choice.
+  // Either `file` (new upload) or `lib` (existing library item) is set.
   const handleStartSession = async (
     file: File | null,
-    _lib: LibraryMaterial | null,
+    lib: LibraryMaterial | null,
     setProgress: (p: number) => void,
   ) => {
     if (!uploadState) return;
     const created = await startSession({ courseId: uploadState.courseId, sectionId: uploadState.sectionId });
     if (file) {
       await uploadFileToSession(created._id, file, setProgress);
+    } else if (lib) {
+      await attachLibraryMaterialToSession(created._id, lib._id);
     }
     setUploadState(null);
     router.push(`/instructor/sessions/${created._id}/live`);

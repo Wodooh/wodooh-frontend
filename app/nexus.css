@@ -2206,11 +2206,12 @@
   box-shadow: var(--nx-shadow-sm);
 }
 
-/* ── Hidden question blur (instructor live page) ──────────────────── */
+/* ── Unopened question blur (instructor live page) ────────────────── */
 /* The real question text is in the DOM; CSS just blurs it so the instructor
  * can see the question's length and shape but can't read it until they
- * click Reveal. Selection disabled so dragging won't easily lift the
- * pre-moderation text. */
+ * click Open. Selection disabled so dragging won't easily lift the
+ * pre-moderation text. The `.is-revealable` class name is legacy — the
+ * interaction is "click to open / read", not "reveal to the class". */
 .nx-qrow-text--hidden {
   filter: blur(5px);
   user-select: none;
@@ -2622,3 +2623,182 @@
 .nx-lsf-slide-empty-title { font-size: 14px; font-weight: 500; color: var(--nx-fg); }
 .nx-lsf-slide-empty-sub   { font-size: 12px; opacity: 0.75; }
 
+
+/* ─── Dashboard primitives (instructor + student) ───────── */
+
+/* Two-up: recent sessions table + this-week counter. Stacks at narrow
+   viewports so the counter never crowds the table. */
+.nx-dash-two-up {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--nx-stack);
+  margin-top: var(--nx-stack);
+}
+
+@media (min-width: 960px) {
+  .nx-dash-two-up { grid-template-columns: minmax(0, 2fr) minmax(220px, 1fr); }
+}
+
+/* Stack subsequent cards (hero, etc.) below the page head with the standard
+   stack spacing. The default flow has no margin between cards, which made
+   the page read as one undifferentiated block. */
+.nx-hero-card,
+.nx-dash-two-up + .nx-card,
+.nx-card + .nx-card { margin-top: var(--nx-stack); }
+
+.nx-hero-card { margin-top: var(--nx-stack); }
+
+.nx-hero-body {
+  padding: 0 var(--nx-pad-card) var(--nx-pad-card);
+}
+
+.nx-hero-section-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.nx-hero-section-grid .nx-btn {
+  min-width: 160px;
+}
+
+.nx-hero-dropdown { position: relative; }
+
+.nx-hero-dropdown-menu {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 6px;
+  background: var(--nx-bg-elev);
+  border: 1px solid var(--nx-border);
+  border-radius: 8px;
+  box-shadow: var(--nx-shadow-sm);
+  max-height: 320px;
+  overflow-y: auto;
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 10;
+}
+
+.nx-hero-dropdown-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 8px 10px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: var(--nx-fg);
+  font-size: 13px;
+  cursor: pointer;
+  text-align: left;
+  gap: 12px;
+}
+
+.nx-hero-dropdown-item:hover {
+  background: var(--nx-bg-hover);
+}
+
+/* Stat card — single big number with a short label underneath. The counter
+   grows when an aggregate endpoint lands; until then, one number is the
+   whole widget. */
+.nx-stat-card { display: flex; flex-direction: column; }
+
+.nx-stat-card-body {
+  padding: 0 var(--nx-pad-card) var(--nx-pad-card);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.nx-stat-card-value {
+  font-size: 40px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--nx-fg);
+  line-height: 1.05;
+}
+
+.nx-stat-card-label {
+  font-size: 12px;
+  color: var(--nx-fg-muted);
+  text-transform: lowercase;
+}
+
+/* Live-now strip (student) — prominent accent border to set it apart from
+   resting-state cards. Renders only when there's at least one live session. */
+.nx-live-strip {
+  border: 1px solid var(--nx-accent);
+  border-radius: 8px;
+  background: var(--nx-bg-elev);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--nx-accent) 15%, transparent);
+  margin-top: var(--nx-stack);
+  overflow: hidden;
+}
+
+.nx-live-strip-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px var(--nx-pad-card) 6px;
+  gap: 12px;
+}
+
+.nx-live-strip-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--nx-fg);
+  letter-spacing: -0.01em;
+}
+
+.nx-live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--nx-accent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--nx-accent) 20%, transparent);
+  animation: nx-live-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes nx-live-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.55; }
+}
+
+.nx-live-strip-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.nx-live-strip-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px var(--nx-pad-card);
+  border-top: 1px solid var(--nx-border);
+}
+
+.nx-live-strip-item-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.nx-live-strip-item-course {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--nx-fg);
+}
+
+.nx-live-strip-item-sub {
+  font-size: 11.5px;
+  color: var(--nx-fg-muted);
+}

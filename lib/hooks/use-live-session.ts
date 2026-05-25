@@ -83,22 +83,33 @@ interface ApiQuestion {
   authorAnonymousCourseId: string;
   visibilityStatus: 'visible' | 'hidden';
   postSessionStatus: 'open' | 'resolved' | 'archived' | 'auto-resolved';
+  fromPage: number;
   clusterId?: string;
   createdAt: string;
   updatedAt: string;
 }
 
-interface ApiCluster {
-  _id: string;
+/**
+ * Canonical cluster payload — what GET /clusters returns and what every
+ * cluster.* realtime event carries. Mirrors the backend's
+ * `services/clustering.ts:ClusterEventPayload`. Adding a field here means
+ * also adding it on the backend's serializeCluster (and vice versa).
+ *
+ * `visibilityStatus` is the Unopened ("hidden") / Opened ("visible")
+ * moderation state — not a shown-to-students flag.
+ */
+interface ClusterEventPayload {
+  clusterId: string;
   sessionId: string;
   headQuestionId: string;
   headText: string;
   memberIds: string[];
   size: number;
-  visibilityStatus: 'hidden' | 'visible';
+  visibilityStatus: 'visible' | 'hidden';
   createdAt: string;
-  updatedAt: string;
 }
+
+type ApiCluster = ClusterEventPayload;
 
 interface QuestionCreatedPayload {
   _id: string;
@@ -107,44 +118,21 @@ interface QuestionCreatedPayload {
   authorAnonymousCourseId: string;
   visibilityStatus: 'visible' | 'hidden';
   postSessionStatus: 'open' | 'resolved' | 'archived' | 'auto-resolved';
+  fromPage: number;
   clusterId?: string;
   createdAt: string;
 }
 
-interface ClusterCreatedPayload {
-  clusterId: string;
-  sessionId: string;
-  headQuestionId: string;
-  headText: string;
-  memberIds: string[];
-  size: number;
-  visibilityStatus: 'hidden' | 'visible';
-  createdAt: string;
-}
+type ClusterCreatedPayload = ClusterEventPayload;
 
-interface ClusterMemberAddedPayload {
-  clusterId: string;
-  sessionId: string;
+interface ClusterMemberAddedPayload extends ClusterEventPayload {
+  /** Question id that just joined — useful for "new" animations / highlights. */
   addedQuestionId: string;
-  memberIds: string[];
-  size: number;
-  headQuestionId: string;
-  headText: string;
 }
 
-interface ClusterHeadChangedPayload {
-  clusterId: string;
-  sessionId: string;
-  headQuestionId: string;
-  headText: string;
-}
+type ClusterHeadChangedPayload = ClusterEventPayload;
 
-interface ClusterVisibilityChangedPayload {
-  clusterId: string;
-  sessionId: string;
-  memberIds: string[];
-  visibilityStatus: 'visible' | 'hidden';
-}
+type ClusterVisibilityChangedPayload = ClusterEventPayload;
 
 interface QuestionVisibilityChangedPayload {
   _id: string;
@@ -166,7 +154,7 @@ function mapQuestion(q: ApiQuestion | QuestionCreatedPayload): LiveQuestion {
     authorAnonymousCourseID: q.authorAnonymousCourseId,
     text: q.content,
     postedAt: q.createdAt,
-    fromPage: 1,
+    fromPage: q.fromPage ?? 1,
     status: deriveQuestionStatus(q.visibilityStatus, q.postSessionStatus),
     clusterSize: 1,
     clusterId: q.clusterId,
@@ -261,18 +249,8 @@ function buildSnapshot(
     followers: { onCurrent: 0, ahead: 0, behind: 0, independent: 0 },
     reactions: buildReactions(reactionTotals, reactionRecentTimestamps),
     questions: questions.map(mapQuestion),
-    clusters: clusters.map(c => ({
-      clusterId: c._id,
-      headQuestionId: c.headQuestionId,
-      headText: c.headText,
-      memberIds: c.memberIds.slice(),
-      size: c.size,
-      visibilityStatus: c.visibilityStatus,
-    })),
+    clusters: clusters.map(mapCluster),
     muted: [],
-    controls: {
-      broadcasting: true,
-    },
   };
 }
 
