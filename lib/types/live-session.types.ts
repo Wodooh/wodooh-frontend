@@ -130,18 +130,6 @@ export interface ReactionTallies {
   not_clear: ReactionTally;
 }
 
-/** Per-session toggles the instructor flips during a live session.
- *  Currently only the page-change broadcast pill in the doc bar is wired
- *  through this. The old `questionsPaused` / `profanityStrictness` /
- *  `sessionLocked` fields were UI theater (no backend gate ever read
- *  them) and were removed when the Muted/Controls tab pair was deleted.
- *  Re-add a field here when (and only when) a real backend control lands. */
-export interface SessionControls {
-  /** Whether instructor page changes are broadcast to followers. Drives the
-   *  doc-bar "Broadcasting / Broadcast paused" pill. */
-  broadcasting: boolean;
-}
-
 /** Snapshot the live page consumes — V1 ships this from a mock fixture. */
 export interface LiveSessionSnapshot {
   meta: LiveSessionMeta;
@@ -157,5 +145,4 @@ export interface LiveSessionSnapshot {
    *  Order is most-recently-modified first. */
   clusters: LiveQuestionCluster[];
   muted: MutedParticipant[];
-  controls: SessionControls;
 }

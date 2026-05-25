@@ -234,7 +234,7 @@ export default function StudentLiveSessionPage({ params }: PageProps) {
         visibilityStatus: "visible" | "hidden";
         postSessionStatus: "open" | "resolved" | "archived";
         createdAt: string;
-      }>(API_ENDPOINTS.QUESTIONS, { sessionId, content: trimmed });
+      }>(API_ENDPOINTS.QUESTIONS, { sessionId, content: trimmed, fromPage: effectivePage });
 
       if (res.status !== "success" || !res.data) {
         throw new Error(res.message || "Failed to submit question");
@@ -246,7 +246,7 @@ export default function StudentLiveSessionPage({ params }: PageProps) {
         authorAnonymousCourseID: q.authorAnonymousCourseId,
         text: q.content,
         postedAt: q.createdAt,
-        fromPage: 1,
+        fromPage: effectivePage,
         status:
           q.postSessionStatus === "resolved"
             ? "resolved"
@@ -309,7 +309,7 @@ export default function StudentLiveSessionPage({ params }: PageProps) {
   }
   if (!snapshot) return null;
 
-  const { meta, controls } = snapshot;
+  const { meta } = snapshot;
   const material = activeMaterial ?? snapshot.material;
   const effectiveTotalPages = pdfPageCount || material.totalPages || 1;
   const followLabel = followInstructor
@@ -465,17 +465,6 @@ export default function StudentLiveSessionPage({ params }: PageProps) {
             </div>
 
             <div className="nx-lsf-bottom-right">
-              <span
-                className="nx-lsf-broadcast-state"
-                data-on={controls.broadcasting ? "true" : "false"}
-                title={
-                  controls.broadcasting
-                    ? "Instructor is broadcasting page changes"
-                    : "Instructor has paused broadcasting"
-                }
-              >
-                {controls.broadcasting ? "Broadcasting" : "Broadcast paused"}
-              </span>
               <button
                 type="button"
                 className="nx-broadcast-pill"
