@@ -147,32 +147,31 @@ function SectionsPanel({
               </div>
             )}
             {sections.map(sec => (
-              <div key={sec._id} style={{
-                display: "grid",
-                gridTemplateColumns: "100px 1fr auto",
-                gap: 14,
-                alignItems: "center",
+              <div key={sec._id} className="nx-row" style={{
                 padding: "9px 12px",
                 background: "var(--nx-bg-elev)",
                 border: "1px solid var(--nx-border)",
                 borderRadius: 6,
                 marginTop: 8,
               }}>
-                <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, fontWeight: 500, color: "var(--nx-fg)" }}>
-                  {sec.sectionId}
-                </span>
-                <span style={{
-                  fontSize: 13,
-                  color: sec.instructorId ? "var(--nx-fg)" : "var(--nx-fg-subtle)",
-                  fontStyle: sec.instructorId ? "normal" : "italic",
-                }}>
-                  {sec.instructorId
-                    ? typeof sec.instructorId === "object"
-                      ? sec.instructorId.name.split(" ").map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")
-                      : "Assigned"
-                    : "No instructor assigned"}
-                </span>
-                <div style={{ display: "flex", gap: 4 }}>
+                <div className="nx-row-main" style={{ gridTemplateColumns: "100px 1fr" }}>
+                  <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, fontWeight: 500, color: "var(--nx-fg)" }}>
+                    {sec.sectionId}
+                  </span>
+                  <span style={{
+                    fontSize: 13,
+                    minWidth: 0,
+                    color: sec.instructorId ? "var(--nx-fg)" : "var(--nx-fg-subtle)",
+                    fontStyle: sec.instructorId ? "normal" : "italic",
+                  }}>
+                    {sec.instructorId
+                      ? typeof sec.instructorId === "object"
+                        ? sec.instructorId.name.split(" ").map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")
+                        : "Assigned"
+                      : "No instructor assigned"}
+                  </span>
+                </div>
+                <div className="nx-row-actions">
                   <button
                     className="nx-btn nx-btn-ghost"
                     style={{ fontSize: 12 }}
@@ -487,11 +486,8 @@ export default function AdminCoursesPage() {
                 <div key={course._id} style={{ borderBottom: i < courses.length - 1 ? "1px solid var(--nx-border)" : undefined }}>
                   {/* Course header row */}
                   <div
+                    className="nx-row"
                     style={{
-                      display: "grid",
-                      gridTemplateColumns: "28px 110px 1fr auto",
-                      gap: 14,
-                      alignItems: "center",
                       padding: "12px 16px",
                       cursor: "pointer",
                       background: isOpen ? "var(--nx-bg-hover)" : undefined,
@@ -499,30 +495,32 @@ export default function AdminCoursesPage() {
                     }}
                     onClick={() => toggle(course._id)}
                   >
-                    {/* Chevron */}
-                    <span style={{
-                      display: "inline-block",
-                      color: "var(--nx-fg-subtle)",
-                      fontSize: 12,
-                      transition: "transform 150ms",
-                      transform: isOpen ? "rotate(90deg)" : "rotate(0deg)",
-                    }}>▶</span>
+                    <div className="nx-row-main" style={{ gridTemplateColumns: "28px 110px 1fr" }}>
+                      {/* Chevron */}
+                      <span style={{
+                        display: "inline-block",
+                        color: "var(--nx-fg-subtle)",
+                        fontSize: 12,
+                        transition: "transform 150ms",
+                        transform: isOpen ? "rotate(90deg)" : "rotate(0deg)",
+                      }}>▶</span>
 
-                    {/* Course code */}
-                    <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: "var(--nx-fg-muted)", fontWeight: 500 }}>
-                      {course.code}
-                    </span>
+                      {/* Course code */}
+                      <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: "var(--nx-fg-muted)", fontWeight: 500 }}>
+                        {course.code}
+                      </span>
 
-                    {/* Name + dept/credits meta */}
-                    <div>
-                      <div style={{ fontSize: 13.5, fontWeight: 500 }}>{course.name}</div>
-                      <div style={{ fontSize: 11.5, color: "var(--nx-fg-subtle)", marginTop: 1 }}>
-                        {deptName(course.departmentId)}{course.credits != null ? ` · ${course.credits} credit` : ""}{sectionCounts[course._id] != null ? ` · ${sectionCounts[course._id]} section${sectionCounts[course._id] !== 1 ? "s" : ""}` : ""}
+                      {/* Name + dept/credits meta */}
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: 13.5, fontWeight: 500 }}>{course.name}</div>
+                        <div style={{ fontSize: 11.5, color: "var(--nx-fg-subtle)", marginTop: 1 }}>
+                          {deptName(course.departmentId)}{course.credits != null ? ` · ${course.credits} credit` : ""}{sectionCounts[course._id] != null ? ` · ${sectionCounts[course._id]} section${sectionCounts[course._id] !== 1 ? "s" : ""}` : ""}
+                        </div>
                       </div>
                     </div>
 
                     {/* Actions — stop propagation so clicks don't toggle expand */}
-                    <div style={{ display: "flex", gap: 6 }} onClick={e => e.stopPropagation()}>
+                    <div className="nx-row-actions" onClick={e => e.stopPropagation()}>
                       <button className="nx-btn nx-btn-ghost" onClick={() => openEdit(course)}>Edit</button>
                       <button className="nx-btn nx-btn-ghost" style={{ color: "var(--nx-danger)" }} onClick={() => setDeleteTarget(course)}>Delete</button>
                     </div>

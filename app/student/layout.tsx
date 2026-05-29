@@ -62,6 +62,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
   const pathname = usePathname();
   const { user, isAuthenticated, loading, logout } = useAuth();
   const [theme, setThemeState] = useState<"light" | "dark">("dark");
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     const stored = typeof window !== "undefined" ? localStorage.getItem("wodooh.theme") : null;
@@ -118,7 +119,8 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
   })();
 
   return (
-    <div className="nx-shell">
+    <div className={`nx-shell ${menuOpen ? "is-menu-open" : ""}`}>
+      <div className="nx-sidebar-overlay" onClick={() => setMenuOpen(false)} aria-hidden="true" />
       <aside className="nx-sidebar">
         <Link href="/student/dashboard" className="nx-sidebar-brand" style={{ textDecoration: "none" }}>
           <div className="nx-sidebar-logo">W</div>
@@ -136,6 +138,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
                 key={item.key}
                 href={item.href}
                 className={`nx-nav-item ${activeKey === item.key ? "is-active" : ""}`}
+                onClick={() => setMenuOpen(false)}
               >
                 <Icon size={15} />
                 <span>{item.label}</span>
@@ -155,7 +158,21 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
 
       <main className="nx-main">
         <div className="nx-topbar">
-          <div className="nx-topbar-crumbs">{NAV.find(n => n.key === activeKey)?.label}</div>
+          <div className="nx-topbar-lead">
+            <button
+              className="nx-menu-btn"
+              aria-label="Toggle navigation menu"
+              aria-expanded={menuOpen}
+              onClick={() => setMenuOpen(o => !o)}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <line x1="3" y1="12" x2="21" y2="12" />
+                <line x1="3" y1="18" x2="21" y2="18" />
+              </svg>
+            </button>
+            <div className="nx-topbar-crumbs">{NAV.find(n => n.key === activeKey)?.label}</div>
+          </div>
           <div className="nx-topbar-actions">
             <button
               className="nx-icon-btn"

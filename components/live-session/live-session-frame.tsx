@@ -13,7 +13,7 @@
  * composes the inner structure of the top bar, bottom strip, and rail.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { ChevronLeft, ChevronRight } from "./icons";
 
@@ -40,36 +40,49 @@ export function LiveSessionFrame({
   bottomStrip,
   rail,
 }: LiveSessionFrameProps) {
-  // Persisted user preference. Initialised lazily so SSR sees the default and
-  // the first client paint reads the stored value before layout settles.
-  const [userCollapsed, setUserCollapsed] = useState<boolean>(false);
-  // Forced-collapsed by a narrow viewport. Overrides user preference until
-  // the viewport widens again; user preference is preserved through resize.
-  const [forcedCollapsed, setForcedCollapsed] = useState<boolean>(false);
+  // Single source of truth for the rail. Narrow viewports default to collapsed
+  // (the rail becomes a full-screen overlay there, so it must start closed),
+  // but the user can still open it via the toggle. On wide viewports the
+  // collapsed state is a persisted preference.
+  const [collapsed, setCollapsed] = useState<boolean>(true);
   const [hydrated, setHydrated] = useState(false);
+  // Tracks the last-seen viewport category so resize only re-derives the
+  // default when crossing the narrow/wide boundary — never clobbering a
+  // manual toggle within the same category.
+  const wasNarrow = useRef<boolean | null>(null);
+
+  const readStoredCollapsed = () => {
+    try { return localStorage.getItem(RAIL_STORAGE_KEY) === "1"; }
+    catch { return false; }
+  };
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(RAIL_STORAGE_KEY);
-      if (raw === "1") setUserCollapsed(true);
-    } catch { /* localStorage blocked — fall back to default */ }
+    const narrow = window.innerWidth < NARROW_BREAKPOINT_PX;
+    wasNarrow.current = narrow;
+    setCollapsed(narrow ? true : readStoredCollapsed());
     setHydrated(true);
   }, []);
 
   useEffect(() => {
-    const onResize = () => setForcedCollapsed(window.innerWidth < NARROW_BREAKPOINT_PX);
-    onResize();
+    const onResize = () => {
+      const narrow = window.innerWidth < NARROW_BREAKPOINT_PX;
+      if (narrow === wasNarrow.current) return;
+      wasNarrow.current = narrow;
+      setCollapsed(narrow ? true : readStoredCollapsed());
+    };
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  const collapsed = userCollapsed || forcedCollapsed;
-
   const toggleRail = useCallback(() => {
-    setUserCollapsed(prev => {
+    setCollapsed(prev => {
       const next = !prev;
-      try { localStorage.setItem(RAIL_STORAGE_KEY, next ? "1" : "0"); }
-      catch { /* ignore */ }
+      // Persist only as a wide-screen preference; on phones the rail is a
+      // transient overlay and shouldn't stick across sessions.
+      if (window.innerWidth >= NARROW_BREAKPOINT_PX) {
+        try { localStorage.setItem(RAIL_STORAGE_KEY, next ? "1" : "0"); }
+        catch { /* ignore */ }
+      }
       return next;
     });
   }, []);
@@ -87,6 +100,14 @@ export function LiveSessionFrame({
             {bottomStrip}
           </div>
         </div>
+
+        {/* Mobile-only scrim behind the rail overlay; tap to dismiss.
+            Hidden on desktop via CSS. */}
+        <div
+          className="nx-lsf-rail-scrim"
+          onClick={() => { if (!collapsed) toggleRail(); }}
+          aria-hidden="true"
+        />
 
         <button
           type="button"

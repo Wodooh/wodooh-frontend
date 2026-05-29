@@ -295,6 +295,97 @@
   flex: 1;
 }
 
+/* ── Mobile nav trigger + drawer overlay (inert on desktop) ── */
+.nx-menu-btn {
+  display: none;
+  width: 32px; height: 32px;
+  place-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: var(--nx-fg-muted);
+  cursor: pointer;
+  transition: background 80ms, color 80ms, border-color 80ms;
+}
+.nx-menu-btn:hover {
+  background: var(--nx-bg-hover);
+  color: var(--nx-fg);
+  border-color: var(--nx-border);
+}
+.nx-topbar-lead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.nx-sidebar-overlay { display: none; }
+
+/* ── Admin list rows: keep actions on one line on desktop, wrap below on mobile ── */
+.nx-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.nx-row-main {
+  display: grid;
+  gap: 14px;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+.nx-row-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+@media (max-width: 560px) {
+  .nx-row { flex-wrap: wrap; }
+  .nx-row-actions { width: 100%; justify-content: flex-end; }
+}
+
+/* ── Two-column master/detail (e.g. chairman reports): stack on mobile ── */
+.nx-split-2 {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) 2fr;
+  gap: 16px;
+  align-items: start;
+}
+@media (max-width: 760px) {
+  .nx-split-2 { grid-template-columns: 1fr; }
+}
+
+/* ── Responsive shell: collapse the sidebar into an off-canvas drawer ── */
+@media (max-width: 860px) {
+  .nx-shell { grid-template-columns: 1fr; }
+
+  .nx-sidebar {
+    position: fixed;
+    top: 0; left: 0;
+    height: 100vh;
+    width: min(84vw, 272px);
+    z-index: 60;
+    transform: translateX(-100%);
+    transition: transform 200ms ease;
+  }
+  .nx-shell.is-menu-open .nx-sidebar {
+    transform: translateX(0);
+    box-shadow: var(--nx-shadow-lg, 0 16px 48px rgba(0, 0, 0, 0.45));
+  }
+
+  .nx-shell.is-menu-open .nx-sidebar-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    background: rgba(0, 0, 0, 0.5);
+  }
+
+  .nx-menu-btn { display: inline-grid; }
+
+  .nx-topbar { padding: 0 14px; }
+  .nx-page { padding: 18px 16px; }
+}
+
 /* ── Page head ── */
 .nx-page-head {
   display: flex;
@@ -302,6 +393,7 @@
   justify-content: space-between;
   margin-bottom: 24px;
   gap: 16px;
+  flex-wrap: wrap;
 }
 
 .nx-page-title {
@@ -525,6 +617,7 @@
   cursor: pointer;
   border: 1px solid transparent;
   font-family: inherit;
+  white-space: nowrap;
   transition: background 80ms, color 80ms, border-color 80ms, opacity 80ms;
 }
 
@@ -609,6 +702,7 @@
 
 .nx-select {
   height: var(--nx-btn-h);
+  max-width: 100%;
   padding: 0 28px 0 10px;
   background: var(--nx-bg-elev);
   border: 1px solid var(--nx-border-strong);
@@ -809,7 +903,10 @@
   gap: 2px;
   border-bottom: 1px solid var(--nx-border);
   margin-bottom: 20px;
+  overflow-x: auto;
+  scrollbar-width: none;
 }
+.nx-tabs::-webkit-scrollbar { display: none; }
 .nx-tab {
   padding: 10px 14px;
   font-size: 13px;
@@ -821,6 +918,8 @@
   border-bottom: 2px solid transparent;
   margin-bottom: -1px;
   font-family: inherit;
+  white-space: nowrap;
+  flex-shrink: 0;
   transition: color 80ms, border-color 80ms;
 }
 .nx-tab:hover { color: var(--nx-fg); }
@@ -1355,7 +1454,10 @@
   color: var(--accent-hover);
   border: 1px solid color-mix(in oklab, var(--accent) 45%, transparent);
   font-size: 11px; font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
+.nx-broadcast-pill::before { flex-shrink: 0; }
 .nx-broadcast-pill::before {
   content: ""; width: 6px; height: 6px; border-radius: 50%;
   background: var(--accent);
@@ -2487,11 +2589,80 @@
   right: 0;
 }
 
+/* Scrim behind the rail overlay — only used on phones (see media query). */
+.nx-lsf-rail-scrim { display: none; }
+
 /* Disable layout transitions until the persisted state hydrates, so the
  * first paint doesn't animate from default → stored. */
 .nx-lsf[data-hydrated="false"] .nx-lsf-body,
 .nx-lsf[data-hydrated="false"] .nx-lsf-rail-toggle {
   transition: none;
+}
+
+/* ── Live-session frame on phones/small tablets (matches the JS
+   NARROW_BREAKPOINT_PX = 900 that auto-collapses the rail). Placed after the
+   base rail rules so these win on equal specificity. ── */
+@media (max-width: 900px) {
+  /* Slide takes the full width; the rail floats as an overlay rather than
+     stealing a 360px grid column that would squash the slide. */
+  .nx-lsf-body,
+  .nx-lsf[data-rail-collapsed="true"] .nx-lsf-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* Bigger slide: 64px side padding wasted most of a phone's width. */
+  .nx-lsf-slide .nx-slide-stage { padding: 8px; }
+
+  /* Bottom bar: hide the empty left cell and let the follow-pill size to its
+     content so it can't be squeezed into a fixed cell and overlap the pager. */
+  .nx-lsf-bottom { gap: 8px; padding: 0 10px; justify-content: center; }
+  .nx-lsf-bottom-left { display: none; }
+  .nx-lsf-bottom-right { flex: 0 0 auto; }
+  .nx-lsf-bottom-center { gap: 2px; }
+
+  /* Rail becomes a slide-in overlay over the slide. */
+  .nx-lsf-rail {
+    position: absolute;
+    inset: 0;
+    z-index: 20;
+    border-left: 0;
+    transform: translateX(100%);
+    transition: transform 220ms ease;
+  }
+  .nx-lsf:not([data-rail-collapsed="true"]) .nx-lsf-rail {
+    transform: translateX(0);
+  }
+  .nx-lsf-rail-inner {
+    width: 100%;
+    padding-bottom: 112px; /* clear the floating close FAB at the bottom-right */
+  }
+
+  .nx-lsf-rail-scrim {
+    position: absolute;
+    inset: 0;
+    z-index: 15;
+    background: rgba(0, 0, 0, 0.5);
+  }
+  .nx-lsf:not([data-rail-collapsed="true"]) .nx-lsf-rail-scrim { display: block; }
+
+  /* Toggle = a clearly tappable round FAB, always fully on-screen and above
+     the overlay so it can also close it. */
+  .nx-lsf-rail-toggle,
+  .nx-lsf[data-rail-collapsed="true"] .nx-lsf-rail-toggle {
+    top: auto;
+    bottom: calc(var(--nx-lsf-bottom-h) + 14px);
+    right: 14px;
+    left: auto;
+    transform: none;
+    width: 46px;
+    height: 46px;
+    border-radius: 999px;
+    z-index: 30;
+    background: var(--nx-accent);
+    color: #fff;
+    border-color: color-mix(in oklab, var(--nx-accent) 75%, black);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+  }
 }
 
 /* Live-frame variants of small atoms used inside the slots. */
