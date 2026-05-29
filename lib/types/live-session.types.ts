@@ -6,9 +6,10 @@
  *
  * Privacy invariant (wodooh-docs/CLAUDE.md):
  *   - Students appear only as `authorAnonymousCourseID` (course-stable
- *     pseudonym, used for authored content) or `anonymousSessionId` (ephemeral
- *     per-session pseudonym, used for mute / presence).
- *   - These two IDs are unlinked on the client. Never co-render either with a
+ *     pseudonym, used for authored content), `anonymousSessionId` (ephemeral
+ *     per-session pseudonym, used for presence), or `participantId` (the stable
+ *     per-session participant-doc id used to mute/unmute — FR-10).
+ *   - These ids are unlinked on the client. Never co-render any of them with a
  *     real `studentNumber`.
  */
 
@@ -70,6 +71,13 @@ export interface LiveQuestion {
   questionId: string;
   /** Course-stable pseudonym. Never paired with a real student number. */
   authorAnonymousCourseID: string;
+  /**
+   * The author's per-session participant id (`participants._id`) — a stable,
+   * anonymous, session-scoped handle the instructor uses to mute/unmute the
+   * author (FR-10). Absent on questions posted before joining and on
+   * pre-FR-10 rows. Never linkable to a real student on the client.
+   */
+  participantId?: string;
   text: string;
   postedAt: string;              // ISO
   fromPage: number;              // 1-based page the student was viewing
@@ -102,13 +110,6 @@ export interface LiveQuestionCluster {
   /** Mirrors "any member visible" — true once an instructor reveals the
    *  cluster via the bulk endpoint. Frozen against further joins thereafter. */
   visibilityStatus: "hidden" | "visible";
-}
-
-/** Per-session ephemeral pseudonym muted by the instructor. */
-export interface MutedParticipant {
-  anonymousSessionId: string;    // e.g. "sess-x4f2"
-  mutedAt: string;               // ISO
-  reason?: string;
 }
 
 export interface ReactionTally {
@@ -144,5 +145,9 @@ export interface LiveSessionSnapshot {
   /** Cluster index (instructor/admin view only — students get an empty array).
    *  Order is most-recently-modified first. */
   clusters: LiveQuestionCluster[];
-  muted: MutedParticipant[];
+  /** Participant ids (`participants._id`) currently muted by the instructor
+   *  (FR-10). Populated for the instructor/admin view; students receive an
+   *  empty list (they only learn their own mute state). Drives the per-question
+   *  Mute/Unmute toggle. */
+  mutedParticipantIds: string[];
 }

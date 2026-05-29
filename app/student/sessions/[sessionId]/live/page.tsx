@@ -35,6 +35,7 @@ import {
 
 import apiClient from "@/lib/api/client";
 import API_ENDPOINTS from "@/lib/api/endpoints";
+import { ApiErrorHandler } from "@/lib/api/error-handler";
 import { useLiveSession } from "@/lib/hooks/use-live-session";
 import { useSessionMaterials } from "@/lib/hooks/use-session-materials";
 import type {
@@ -59,14 +60,22 @@ export default function StudentLiveSessionPage({ params }: PageProps) {
   const { sessionId } = use(params);
   const router = useRouter();
 
+  // This viewer's own ephemeral anonymousSessionId (from /join). Handed to the
+  // live hook so it can self-match the realtime `participant.mute_changed`
+  // event even on a first join, where the hook's parallel GET /sessions/:id may
+  // have run before this participant row existed. FR-10.
+  const [myAnonSessionId, setMyAnonSessionId] = useState<string | null>(null);
+
   const {
     snapshot: liveSnapshot,
     ended,
     loading,
     error,
     prependQuestion,
+    viewerMuted,
+    reportViewerMuted,
     studentCount,
-  } = useLiveSession(sessionId, true);
+  } = useLiveSession(sessionId, true, myAnonSessionId);
 
   const { materials: sessionMaterials, getSignedUrl } = useSessionMaterials(sessionId);
   const [activeMaterial, setActiveMaterial] = useState<SessionMaterial | null>(null);
@@ -99,26 +108,28 @@ export default function StudentLiveSessionPage({ params }: PageProps) {
   }, [liveSnapshot]);
 
   const [myAnonCourseId, setMyAnonCourseId] = useState<string | null>(null);
-  const [myAnonSessionId, setMyAnonSessionId] = useState<string | null>(null);
   const joinAttemptedRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (joinAttemptedRef.current === sessionId) return;
     joinAttemptedRef.current = sessionId;
 
-    let cancelled = false;
+    // Note: deliberately no `cancelled` guard around the setter. Join is a
+    // one-shot, idempotent POST gated by `joinAttemptedRef`; under React strict
+    // mode the doomed first mount fires it while the second mount skips (ref
+    // already set), so the surviving mount must still accept the first mount's
+    // response to learn its anonymousSessionId. A post-unmount setState is a
+    // harmless no-op in React 18+.
     apiClient
       .post<{ participantId: string; anonymousSessionId: string; sessionId: string }>(
         API_ENDPOINTS.SESSION_JOIN(sessionId),
       )
       .then(res => {
-        if (cancelled) return;
         if (res.status === "success" && res.data) {
           setMyAnonSessionId(res.data.anonymousSessionId);
         }
       })
       .catch(() => { /* non-fatal */ });
-    return () => { cancelled = true; };
   }, [sessionId]);
 
   /* — Slide navigation: follow instructor or roam independently ── */
@@ -176,6 +187,7 @@ export default function StudentLiveSessionPage({ params }: PageProps) {
 
   const sendReaction = (kind: ReactionKind) => {
     if (reactState.lastSubmittedAt[kind]) return;
+    if (isMuted) return; // FR-10: muted participants can't react either
 
     const now = Date.now();
     setReactState(prev => ({
@@ -206,7 +218,12 @@ export default function StudentLiveSessionPage({ params }: PageProps) {
         type: kind,
         slidePage: effectivePage,
       })
-      .catch(() => { /* non-fatal — backend dedup is the source of truth */ });
+      .catch((err) => {
+        // A 403 here is the mute gate (FR-10) — flip the hook's muted truth so
+        // the banner + disabled controls appear even if the realtime event was
+        // missed. Any other error stays non-fatal (backend dedup is truth).
+        if (err instanceof ApiErrorHandler && err.status === 403) reportViewerMuted();
+      });
   };
 
   /* — Anonymous question composer + submission ────────────────────── */
@@ -215,9 +232,14 @@ export default function StudentLiveSessionPage({ params }: PageProps) {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [showRecentSubmit, setShowRecentSubmit] = useState(false);
 
+  // FR-10 mute. `viewerMuted` is the single source of truth, owned by the hook
+  // (seeded from hydration, flipped by the realtime mute/unmute event, and by
+  // `reportViewerMuted()` on a 403 fallback). No separate local flag — so a
+  // later unmute event reliably clears it.
+  const isMuted = viewerMuted;
+
   const trimmed = draft.trim();
   const charsLeft = QUESTION_MAX_LEN - draft.length;
-  const isMuted = false;
   const canSubmit = trimmed.length > 0 && trimmed.length <= QUESTION_MAX_LEN && !isMuted && !submitting;
 
   const submitQuestion = async () => {
@@ -261,7 +283,15 @@ export default function StudentLiveSessionPage({ params }: PageProps) {
       setShowRecentSubmit(true);
       window.setTimeout(() => setShowRecentSubmit(false), 2400);
     } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : "Failed to submit question");
+      // A 403 on POST /questions can only be the mute gate (no other 403 path
+      // exists here). Flip the hook's muted truth so the banner + disabled
+      // composer/reactions appear even if the realtime event was missed.
+      if (err instanceof ApiErrorHandler && err.status === 403) {
+        reportViewerMuted();
+        setSubmitError("You have been muted by the instructor.");
+      } else {
+        setSubmitError(err instanceof Error ? err.message : "Failed to submit question");
+      }
     } finally {
       setSubmitting(false);
     }
@@ -329,8 +359,8 @@ export default function StudentLiveSessionPage({ params }: PageProps) {
       )}
       {isMuted && (
         <div className="nx-student-banner is-warn" role="alert">
-          <b>You have been muted in this session.</b> You can still view the slides
-          and send reactions, but new questions are blocked until your instructor unmutes you.
+          <b>You have been muted by the instructor.</b> You can still view the slides,
+          but submitting questions and reactions is blocked until your instructor unmutes you.
         </div>
       )}
     </>
@@ -598,7 +628,7 @@ export default function StudentLiveSessionPage({ params }: PageProps) {
                         isCooling && "is-cooling",
                         isSent && "is-sent",
                       )}
-                      disabled={isCooling && !isSent}
+                      disabled={isMuted || (isCooling && !isSent)}
                       onClick={() => sendReaction(kind)}
                       aria-label={`${label} — ${hint.replace(/&rsquo;/g, "'")}`}
                       title={hint.replace(/&rsquo;/g, "'")}

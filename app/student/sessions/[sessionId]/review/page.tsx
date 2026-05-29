@@ -37,7 +37,7 @@ export default function StudentSessionReviewPage({ params }: PageProps) {
   const { sessionId } = use(params);
   const router = useRouter();
 
-  const { questions, session, sessionLoading, isLoading, error, updateStatus } =
+  const { questions, session, sessionLoading, isLoading, error, windowClosed, updateStatus } =
     useReviewQuestions(sessionId);
 
   const isLive = session?.status === "live";
@@ -86,6 +86,12 @@ export default function StudentSessionReviewPage({ params }: PageProps) {
       {isLive && (
         <div className="nx-student-banner is-warn" role="alert">
           <b>This session is still live.</b> You can review your questions after it ends.
+        </div>
+      )}
+
+      {windowClosed && (
+        <div className="nx-student-banner is-warn" role="alert">
+          <b>The 24-hour resolution window has closed.</b> Question statuses are now read-only.
         </div>
       )}
 
@@ -145,7 +151,7 @@ export default function StudentSessionReviewPage({ params }: PageProps) {
               <ReviewQuestionRow
                 key={q._id}
                 question={q}
-                disabled={sessionLoading || session == null || !!isLive}
+                disabled={sessionLoading || session == null || !!isLive || windowClosed}
                 onChange={status => updateStatus(q._id, status)}
               />
             ))}

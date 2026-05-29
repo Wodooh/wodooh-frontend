@@ -74,6 +74,13 @@ interface ApiSession {
   courseId: { _id: string; name: string; code: string };
   sectionId?: { _id: string; sectionId: number };
   instructorId: { _id: string; name: string; email: string };
+  /** FR-10: the caller's own participant state (any role), keyed by the
+   *  ephemeral `anonymousSessionId` (same handle the realtime mute event
+   *  carries). `null` when the caller hasn't joined (e.g. the instructor). */
+  viewerParticipant?: { anonymousSessionId: string; isMuted: boolean } | null;
+  /** FR-10: participant ids currently muted in this session. Present only for
+   *  the owner/admin (instructor) view; omitted for students. */
+  mutedParticipantIds?: string[];
 }
 
 interface ApiQuestion {
@@ -85,6 +92,7 @@ interface ApiQuestion {
   postSessionStatus: 'open' | 'resolved' | 'archived' | 'auto-resolved';
   fromPage: number;
   clusterId?: string;
+  participantId?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -120,6 +128,7 @@ interface QuestionCreatedPayload {
   postSessionStatus: 'open' | 'resolved' | 'archived' | 'auto-resolved';
   fromPage: number;
   clusterId?: string;
+  participantId?: string;
   createdAt: string;
 }
 
@@ -139,6 +148,16 @@ interface QuestionVisibilityChangedPayload {
   visibilityStatus: 'visible' | 'hidden';
 }
 
+/** FR-10 — `participant.mute_changed` on `session:{id}:state`. Keyed on the
+ *  ephemeral `anonymousSessionId` (not the question-linkable participantId), so
+ *  only the targeted student can self-match; other students can't correlate it
+ *  to a question author. */
+interface ParticipantMuteChangedPayload {
+  sessionId: string;
+  anonymousSessionId: string;
+  isMuted: boolean;
+}
+
 function deriveQuestionStatus(
   visibilityStatus: 'visible' | 'hidden',
   postSessionStatus: 'open' | 'resolved' | 'archived' | 'auto-resolved',
@@ -152,6 +171,7 @@ function mapQuestion(q: ApiQuestion | QuestionCreatedPayload): LiveQuestion {
   return {
     questionId: q._id.toString(),
     authorAnonymousCourseID: q.authorAnonymousCourseId,
+    participantId: q.participantId,
     text: q.content,
     postedAt: q.createdAt,
     fromPage: q.fromPage ?? 1,
@@ -223,6 +243,7 @@ function buildSnapshot(
   clusters: ApiCluster[],
   reactionTotals: Record<ReactionKind, number>,
   reactionRecentTimestamps: Record<ReactionKind, number[]>,
+  mutedParticipantIds: string[],
 ): LiveSessionSnapshot {
   return {
     meta: {
@@ -250,7 +271,7 @@ function buildSnapshot(
     reactions: buildReactions(reactionTotals, reactionRecentTimestamps),
     questions: questions.map(mapQuestion),
     clusters: clusters.map(mapCluster),
-    muted: [],
+    mutedParticipantIds,
   };
 }
 
@@ -263,6 +284,13 @@ export function useLiveSession(
    * session — they watch the count instead of contributing to it.
    */
   enterPresence = false,
+  /**
+   * FR-10: the attending viewer's own `anonymousSessionId` (from POST /join).
+   * Lets the hook self-match the realtime `participant.mute_changed` event on a
+   * first join, before the parallel session-hydration GET can report it. The
+   * instructor passes nothing (they have no participant row).
+   */
+  viewerAnonSessionId: string | null = null,
 ) {
   const [snapshot, setSnapshot] = useState<LiveSessionSnapshot | null>(null);
   const [connected, setConnected] = useState(false);
@@ -272,6 +300,21 @@ export function useLiveSession(
   const [tick, setTick] = useState(0);
   /** Live count of students currently in the session (instructor role only). */
   const [studentCount, setStudentCount] = useState(0);
+  /** FR-10: whether the CURRENT viewer (a student) is muted. Seeded from the
+   *  session hydration's `viewerParticipant`, flipped by the realtime
+   *  `participant.mute_changed` event when it targets this viewer. Always
+   *  false for the instructor (no participant row). */
+  const [viewerMuted, setViewerMuted] = useState(false);
+  // The viewer's own anonymousSessionId, used to self-match the realtime mute
+  // event. A ref so the realtime handler (registered once) reads the latest
+  // value the async fetch (or the join-supplied prop) wrote, without
+  // re-subscribing.
+  const viewerAnonSessionIdRef = useRef<string | null>(null);
+
+  // Seed the self-match id as soon as the attending page learns it from /join.
+  useEffect(() => {
+    if (viewerAnonSessionId) viewerAnonSessionIdRef.current = viewerAnonSessionId;
+  }, [viewerAnonSessionId]);
 
   // Rolling per-type timestamp buffer that powers the "N in last 60s" badge.
   // Seeded from the summary endpoint's `recent[]` on initial fetch, appended
@@ -347,10 +390,21 @@ export function useLiveSession(
           }
         }
 
+        // FR-10: seed the viewer's own mute state + self-match id, and the
+        // instructor's muted set, from the session hydration payload. Only trust
+        // the GET when it actually returns the viewer's row — on a first join
+        // the participant may not exist yet, in which case the join-fed
+        // `viewerAnonSessionId` prop is the authoritative source (don't clobber
+        // it with null, and leave `viewerMuted` at its current value).
+        const viewer = sessionRes.data.viewerParticipant ?? null;
+        if (viewer?.anonymousSessionId) viewerAnonSessionIdRef.current = viewer.anonymousSessionId;
+        if (!cancelled && viewer) setViewerMuted(viewer.isMuted);
+        const mutedParticipantIds = sessionRes.data.mutedParticipantIds ?? [];
+
         if (!cancelled) {
           setSnapshot(buildSnapshot(
             sessionRes.data, questionsRes.data, clusters, reactionTotals,
-            reactionTimestampsRef.current,
+            reactionTimestampsRef.current, mutedParticipantIds,
           ));
         }
       } catch (err) {
@@ -413,6 +467,30 @@ export function useLiveSession(
           if (!prev) return prev;
           return { ...prev, currentPage: data.page };
         });
+      })
+      .catch(swallowClosed);
+
+    // FR-10 mute/unmute. The payload is keyed on the ephemeral
+    // `anonymousSessionId` (not participantId), so the ONLY thing a client can
+    // do with it is recognise whether the event is about *itself*. The
+    // attending viewer flips its own banner on a match; everyone else ignores
+    // it (their ref doesn't match, and the event carries no question-linkable
+    // id). The instructor's per-question muted set is NOT driven from here — it
+    // is seeded by the owner-only hydration set and maintained optimistically
+    // in `setParticipantMute` — precisely so mute membership is never broadcast
+    // to students. Setting `viewerMuted` directly (rather than via a derived
+    // transition) means a dropped mute event followed by a received unmute
+    // still clears correctly.
+    stateChannel
+      .subscribe('participant.mute_changed', (msg: Ably.Message) => {
+        if (closed) return;
+        const data = msg.data as ParticipantMuteChangedPayload;
+        if (
+          viewerAnonSessionIdRef.current &&
+          data.anonymousSessionId === viewerAnonSessionIdRef.current
+        ) {
+          setViewerMuted(data.isMuted);
+        }
       })
       .catch(swallowClosed);
 
@@ -672,6 +750,13 @@ export function useLiveSession(
 
   const refetch = useCallback(() => setTick(t => t + 1), []);
 
+  // FR-10 fallback: an attending page calls this when a write is rejected with
+  // the muted 403 (in case the realtime event was missed). It flips the same
+  // `viewerMuted` source of truth, so a later `participant.mute_changed`
+  // unmute (or a hydration refresh) clears it reliably — no separate flag that
+  // can get stranded.
+  const reportViewerMuted = useCallback(() => setViewerMuted(true), []);
+
   const updateQuestion = useCallback(
     (questionId: string, patch: Partial<LiveQuestion>) => {
       setSnapshot(prev => {
@@ -813,6 +898,44 @@ export function useLiveSession(
     [],
   );
 
+  // Server-backed mute toggle (FR-10, instructor). Optimistically adds/removes
+  // the participant id from the muted set, calls PATCH .../mute, reverts on
+  // failure. The Ably `participant.mute_changed` echo reconciles afterwards.
+  const setParticipantMute = useCallback(
+    async (participantId: string, isMuted: boolean): Promise<void> => {
+      const apply = (next: boolean) =>
+        setSnapshot(prev => {
+          if (!prev) return prev;
+          const has = prev.mutedParticipantIds.includes(participantId);
+          if (next && !has) {
+            return { ...prev, mutedParticipantIds: [...prev.mutedParticipantIds, participantId] };
+          }
+          if (!next && has) {
+            return {
+              ...prev,
+              mutedParticipantIds: prev.mutedParticipantIds.filter(pid => pid !== participantId),
+            };
+          }
+          return prev;
+        });
+
+      apply(isMuted);
+      try {
+        const res = await apiClient.patch(
+          API_ENDPOINTS.SESSION_PARTICIPANT_MUTE(sessionId, participantId),
+          { isMuted },
+        );
+        if (res.status !== 'success') {
+          throw new Error(res.message || 'Failed to update mute state');
+        }
+      } catch (err) {
+        apply(!isMuted);
+        throw err;
+      }
+    },
+    [sessionId],
+  );
+
   return {
     snapshot,
     connected,
@@ -824,6 +947,9 @@ export function useLiveSession(
     prependQuestion,
     setQuestionVisibility,
     setClusterVisibility,
+    setParticipantMute,
+    viewerMuted,
+    reportViewerMuted,
     studentCount,
   };
 }

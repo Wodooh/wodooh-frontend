@@ -7,7 +7,7 @@
  *   - US-C1 (start live session) — entry point assumes the session is active
  *   - US-C2 (end session + post-session summary)
  *   - US-C3 (upload materials) — the material here is the lecture file
- *   - US-C5 (mute student) — by ephemeral `anonymousSessionId`
+ *   - US-C5 / FR-10 (mute student) — by stable, anonymous per-session `participantId`
  *   - US-D4 (open question), US-D6 (report abuse), US-D7 (real-time dashboard)
  *   - US-D8 (semantically grouped questions, cluster heads carry size)
  *   - US-E1 (post-session engagement report — rendered inside the End modal)
@@ -77,6 +77,7 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
     loading,
     error,
     setClusterVisibility,
+    setParticipantMute,
     studentCount,
   } = useLiveSession(sessionId);
 
@@ -249,6 +250,18 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
       setUploadProgress(0);
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
+  };
+
+  // FR-10: participant ids currently muted, for the per-question toggle.
+  const mutedSet = useMemo(
+    () => new Set(snapshot?.mutedParticipantIds ?? []),
+    [snapshot?.mutedParticipantIds],
+  );
+
+  const onToggleMute = (participantId: string, nextMuted: boolean) => {
+    setParticipantMute(participantId, nextMuted).catch(err =>
+      toast.error(err instanceof Error ? err.message : "Failed to update mute state"),
+    );
   };
 
   const onOpenCluster = (clusterId: string) => {
@@ -545,6 +558,8 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
                         .filter((q): q is LiveQuestion => Boolean(q))}
                       onOpen={() => onOpenCluster(c.clusterId)}
                       onJumpToSlide={page => goToPage(page)}
+                      mutedSet={mutedSet}
+                      onToggleMute={onToggleMute}
                     />
                   ))
                 )}
@@ -605,10 +620,12 @@ interface ClusterRowProps {
   members: LiveQuestion[];
   onOpen: () => void;
   onJumpToSlide: (page: number) => void;
+  mutedSet: Set<string>;
+  onToggleMute: (participantId: string, nextMuted: boolean) => void;
 }
 
 function ClusterRow({
-  cluster, head, members, onOpen, onJumpToSlide,
+  cluster, head, members, onOpen, onJumpToSlide, mutedSet, onToggleMute,
 }: ClusterRowProps) {
   const [isFresh, setIsFresh] = useState(true);
   useEffect(() => {
@@ -687,6 +704,12 @@ function ClusterRow({
         <StatusBadge status={status} />
         <span className="nx-qrow-actions-spacer" />
 
+        <MuteButton
+          participantId={head?.participantId}
+          muted={head?.participantId ? mutedSet.has(head.participantId) : false}
+          onToggleMute={onToggleMute}
+        />
+
         {isCluster && (
           <button
             className="nx-cluster-disclosure"
@@ -721,12 +744,52 @@ function ClusterRow({
                   slide {m.fromPage}
                 </button>
                 <span>{relativeTime(m.postedAt)}</span>
+                <span className="nx-qrow-actions-spacer" />
+                <MuteButton
+                  participantId={m.participantId}
+                  muted={m.participantId ? mutedSet.has(m.participantId) : false}
+                  onToggleMute={onToggleMute}
+                />
               </div>
             </li>
           ))}
         </ul>
       )}
     </div>
+  );
+}
+
+/** FR-10 — mute/unmute the author of a question by their anonymous, stable
+ *  per-session participant id. Hidden when the question carries no participant
+ *  id (posted before joining / pre-FR-10 row). Stops row-click propagation so
+ *  toggling mute never also opens the cluster. */
+function MuteButton({
+  participantId,
+  muted,
+  onToggleMute,
+}: {
+  participantId: string | undefined;
+  muted: boolean;
+  onToggleMute: (participantId: string, nextMuted: boolean) => void;
+}) {
+  if (!participantId) return null;
+  return (
+    <button
+      type="button"
+      className={cn("nx-btn nx-btn-ghost", muted && "nx-btn-danger")}
+      onClick={e => {
+        e.stopPropagation();
+        onToggleMute(participantId, !muted);
+      }}
+      aria-pressed={muted}
+      title={
+        muted
+          ? "Let this participant ask questions and react again"
+          : "Mute this participant for the rest of the session"
+      }
+    >
+      {muted ? "Unmute" : "Mute"}
+    </button>
   );
 }
 

@@ -124,16 +124,5 @@ export const LIVE_SESSION_MOCK: LiveSessionSnapshot = {
     },
   ],
   clusters: [],
-  muted: [
-    {
-      anonymousSessionId: "sess-x4f2",
-      mutedAt: new Date(Date.now() - 180_000).toISOString(),
-      reason: "spamming reactions",
-    },
-    {
-      anonymousSessionId: "sess-k8a9",
-      mutedAt: new Date(Date.now() - 480_000).toISOString(),
-      reason: "duplicate questions",
-    },
-  ],
+  mutedParticipantIds: [],
 };
