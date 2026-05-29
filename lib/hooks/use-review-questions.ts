@@ -159,12 +159,20 @@ export function useReviewQuestions(sessionId: string) {
     [],
   );
 
+  const TTL_MS = 24 * 60 * 60 * 1000;
+  const windowClosed =
+    session != null &&
+    session.status !== 'live' &&
+    session.endedAt != null &&
+    Date.now() - new Date(session.endedAt).getTime() > TTL_MS;
+
   return {
     questions,
     session,
     sessionLoading,
     isLoading: sessionLoading || questionsLoading || hasStaleSession,
     error: sessionError ?? questionsError,
+    windowClosed,
     refetch,
     updateStatus,
   };

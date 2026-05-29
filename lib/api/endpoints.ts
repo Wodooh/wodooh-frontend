@@ -75,6 +75,8 @@ export const API_ENDPOINTS = {
   SESSION_LEAVE: (sessionId: string) => `/sessions/${sessionId}/leave`,
   SESSION_REACTIONS: (sessionId: string) => `/sessions/${sessionId}/reactions`,
   SESSION_REACTIONS_SUMMARY: (sessionId: string) => `/sessions/${sessionId}/reactions/summary`,
+  SESSION_PARTICIPANT_MUTE: (sessionId: string, participantId: string) =>
+    `/sessions/${sessionId}/participants/${participantId}/mute`,
 
   // Questions
   QUESTIONS: '/questions',
