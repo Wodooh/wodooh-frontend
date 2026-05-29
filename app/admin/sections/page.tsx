@@ -28,9 +28,10 @@ export default function AdminSectionsPage() {
             <span className="nx-version-pill" style={{ marginLeft: 10 }}>Read-only</span>
           </p>
         </div>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
           <select
             className="nx-select"
+            style={{ flex: "1 1 180px", minWidth: 0 }}
             value={selectedCourseId}
             onChange={e => { setCourseId(e.target.value); }}
           >

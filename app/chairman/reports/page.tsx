@@ -17,7 +17,7 @@ export default function ChairmanReportsPage() {
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "minmax(260px, 1fr) 2fr", gap: 16, alignItems: "start" }}>
+      <div className="nx-split-2">
         <div className="nx-card">
           <div className="nx-card-head">
             <h3 className="nx-card-title">Sessions</h3>
