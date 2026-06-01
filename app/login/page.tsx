@@ -3,11 +3,13 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth/auth-provider";
+import apiClient from "@/lib/api/client";
+import API_ENDPOINTS from "@/lib/api/endpoints";
 import type { LoginCredentials } from "@/lib/types/auth.types";
 import "../nexus.css";
 import "./login.css";
 
-type View = "signin" | "forgot";
+type View = "signin" | "forgot" | "otp";
 
 function dashboardPathForRole(role: string | undefined): string {
   switch (role) {
@@ -102,9 +104,9 @@ const PersonIcon = () => (
 );
 
 function DevRoleButtons({
-  login,
+  loginWithToken,
 }: {
-  login: (creds: LoginCredentials) => Promise<void>;
+  loginWithToken: (token: string, user: { _id: string; email: string; name: string; role: import("@/lib/types/user.types").UserRole }) => void;
 }) {
   const router = useRouter();
   const [active, setActive] = useState<string | null>(null);
@@ -113,8 +115,14 @@ function DevRoleButtons({
     if (active) return;
     setActive(role);
     try {
-      await login({ email, password: "Password123" });
-      router.replace(dashboardPathForRole(role));
+      const res = await apiClient.post<{ token: string; user: { _id: string; email: string; name: string; role: import("@/lib/types/user.types").UserRole } }>(
+        API_ENDPOINTS.LOGIN,
+        { email, password: "Password123" },
+      );
+      if (res.data?.token && res.data?.user) {
+        loginWithToken(res.data.token, res.data.user);
+        router.replace(dashboardPathForRole(role));
+      }
     } catch { /* ignore */ } finally {
       setActive(null);
     }
@@ -146,9 +154,9 @@ function DevRoleButtons({
 
 // ── Sign in ─────────────────────────────────────────────
 
-function SignInForm({ onForgot }: { onForgot: () => void }) {
+function SignInForm({ onForgot, onOtp }: { onForgot: () => void; onOtp: (userId: string) => void }) {
   const router = useRouter();
-  const { login } = useAuth();
+  const { loginWithToken } = useAuth();
 
   const [email, setEmail] = useState("");
   const [pw, setPw] = useState("");
@@ -178,21 +186,23 @@ function SignInForm({ onForgot }: { onForgot: () => void }) {
 
     setLoading(true);
     try {
-      const credentials: LoginCredentials = {
-        email: email.trim().toLowerCase(),
-        password: pw,
-      };
-      await login(credentials);
+      const res = await apiClient.post<{ token?: string; user?: { _id: string; email: string; name: string; role: string }; userId?: string }>(
+        API_ENDPOINTS.LOGIN,
+        { email: email.trim().toLowerCase(), password: pw }
+      );
 
-      const token = localStorage.getItem("wodooh_auth_token");
-      let role: string | undefined;
-      if (token) {
-        try {
-          const payload = JSON.parse(atob(token.split(".")[1]));
-          role = payload.role;
-        } catch { /* fall through */ }
+      if ((res as { status?: string }).status === "otp_required" && res.data?.userId) {
+        onOtp(res.data.userId);
+        return;
       }
-      router.replace(dashboardPathForRole(role));
+
+      if (res.data?.token && res.data?.user) {
+        const { token, user } = res.data;
+        loginWithToken(token, user as { _id: string; email: string; name: string; role: import("@/lib/types/user.types").UserRole });
+        router.replace(dashboardPathForRole(user.role));
+      } else {
+        setError("Sign-in failed. Please try again.");
+      }
     } catch (err: unknown) {
       const e = err as { code?: string; message?: string; statusCode?: number };
       if (e?.statusCode === 401 || e?.code === "INVALID_CREDENTIALS") {
@@ -286,7 +296,7 @@ function SignInForm({ onForgot }: { onForgot: () => void }) {
         </button>
 
         {process.env.NODE_ENV === "development" && (
-          <DevRoleButtons login={login} />
+          <DevRoleButtons loginWithToken={loginWithToken} />
         )}
       </form>
     </div>
@@ -309,9 +319,14 @@ function ForgotForm({ onBack }: { onBack: () => void }) {
       return;
     }
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 600));
-    setLoading(false);
-    setSent(true);
+    try {
+      await apiClient.post(API_ENDPOINTS.FORGOT_PASSWORD, { email: email.trim().toLowerCase() });
+      setSent(true);
+    } catch {
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -332,8 +347,11 @@ function ForgotForm({ onBack }: { onBack: () => void }) {
             borderColor: "color-mix(in oklab, var(--nx-success) 35%, transparent)",
             background: "var(--nx-success-soft)",
             color: "var(--nx-success)",
+            display: "block",
           }}>
-            If an account exists for <strong>{email}</strong>, a password-reset link has been sent.
+            A reset link has been sent to{" "}
+            <strong style={{ wordBreak: "break-all" }}>{email}</strong>.{" "}
+            Check your inbox.
           </div>
           <button
             type="button"
@@ -386,6 +404,93 @@ function ForgotForm({ onBack }: { onBack: () => void }) {
   );
 }
 
+// ── OTP verification ────────────────────────────────────
+
+function OtpForm({ userId, onBack }: { userId: string; onBack: () => void }) {
+  const router = useRouter();
+  const { loginWithToken } = useAuth();
+  const [otp, setOtp] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => { inputRef.current?.focus(); }, []);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (otp.length !== 6) { setError("Enter the 6-digit code."); return; }
+    setError(null);
+    setLoading(true);
+    try {
+      const res = await apiClient.post<{ token: string; user: { _id: string; email: string; name: string; role: string } }>(
+        API_ENDPOINTS.VERIFY_OTP,
+        { userId, otp }
+      );
+      if (res.data?.token && res.data?.user) {
+        const { token, user } = res.data;
+        loginWithToken(token, user as { _id: string; email: string; name: string; role: import("@/lib/types/user.types").UserRole });
+        router.replace(dashboardPathForRole(user.role));
+      }
+    } catch (err: unknown) {
+      const e = err as { statusCode?: number; message?: string };
+      if (e?.statusCode === 410) setError("This code has expired. Please sign in again.");
+      else setError("Invalid code. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="nx-login-card">
+      <div className="nx-login-head">
+        <div className="nx-login-logo">W</div>
+        <h1 className="nx-login-title">Check your email</h1>
+        <p className="nx-login-sub">We sent a 6-digit code to your email. Enter it below to sign in.</p>
+      </div>
+
+      <form className="nx-login-form" onSubmit={submit} noValidate>
+        {error && <div className="nx-login-error" role="alert" style={{ display: "block" }}>{error}</div>}
+
+        <div className="nx-login-field">
+          <label className="nx-field-label" htmlFor="otp-code">Verification code</label>
+          <div className="nx-login-input-wrap">
+            <input
+              id="otp-code"
+              ref={inputRef}
+              className="nx-login-input"
+              type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              placeholder="000000"
+              maxLength={6}
+              value={otp}
+              onChange={e => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+              style={{ letterSpacing: "0.25em", fontWeight: 600, fontSize: 20 }}
+            />
+          </div>
+        </div>
+
+        <button
+          type="submit"
+          className="nx-btn nx-btn-primary nx-login-submit"
+          disabled={loading || otp.length !== 6}
+        >
+          {loading ? <><span className="nx-spin" /> Verifying…</> : "Verify code"}
+        </button>
+
+        <button
+          type="button"
+          className="nx-login-link"
+          onClick={onBack}
+          style={{ alignSelf: "center", display: "inline-flex", alignItems: "center", gap: 6, marginTop: 4 }}
+        >
+          <ArrowLeft /> Back to sign in
+        </button>
+      </form>
+    </div>
+  );
+}
+
 // ── Page ───────────────────────────────────────────────
 
 export default function LoginPage() {
@@ -393,6 +498,7 @@ export default function LoginPage() {
   const { isAuthenticated, user, loading: authLoading } = useAuth();
   const { theme, setTheme } = useTheme();
   const [view, setView] = useState<View>("signin");
+  const [otpUserId, setOtpUserId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
@@ -425,9 +531,16 @@ export default function LoginPage() {
       </div>
 
       <div className="nx-login-main">
-        {view === "signin"
-          ? <SignInForm onForgot={() => setView("forgot")} />
-          : <ForgotForm onBack={() => setView("signin")} />}
+        {view === "signin" && (
+          <SignInForm
+            onForgot={() => setView("forgot")}
+            onOtp={(userId) => { setOtpUserId(userId); setView("otp"); }}
+          />
+        )}
+        {view === "forgot" && <ForgotForm onBack={() => setView("signin")} />}
+        {view === "otp" && otpUserId && (
+          <OtpForm userId={otpUserId} onBack={() => setView("signin")} />
+        )}
 
         {view === "signin" && (
           <p className="nx-login-meta">
