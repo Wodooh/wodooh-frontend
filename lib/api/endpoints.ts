@@ -45,6 +45,7 @@ export const API_ENDPOINTS = {
   ADMIN_SYNC: '/admin/sync',
   ADMIN_SYNC_URL: '/admin/system/sync-url',
   ADMIN_SYSTEM_GENERAL: '/admin/system/general',
+  ADMIN_SYSTEM_SECURITY: '/admin/settings',
 
   // Admin - Audit Log
   AUDIT_LOG: '/admin/audit-log',
@@ -121,6 +122,7 @@ export const API_ENDPOINTS = {
   VERIFY_EMAIL: '/auth/verify-email',
   FORGOT_PASSWORD: '/auth/forgot-password',
   RESET_PASSWORD: '/auth/reset-password',
+  VERIFY_OTP: '/auth/verify-otp',
   CHANGE_PASSWORD: '/auth/change-password',
 
   // User Profile - Future

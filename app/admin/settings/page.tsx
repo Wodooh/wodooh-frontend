@@ -55,6 +55,35 @@ function SettingRow({ label, desc, control }: { label: string; desc?: string; co
   );
 }
 
+function Toggle({ on, onChange, disabled }: { on: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      disabled={disabled}
+      onClick={() => onChange(!on)}
+      style={{
+        position: "relative", width: 32, height: 18, flexShrink: 0,
+        background: on ? "var(--nx-accent)" : "var(--nx-bg-active)",
+        border: `1px solid ${on ? "var(--nx-accent)" : "var(--nx-border)"}`,
+        borderRadius: 999, cursor: "pointer", transition: "background 120ms",
+        opacity: disabled ? 0.5 : 1,
+      }}
+    >
+      <span style={{
+        position: "absolute", left: 2, top: 1,
+        width: 14, height: 14,
+        background: "white",
+        borderRadius: "50%",
+        transition: "transform 120ms, background 120ms",
+        transform: on ? "translateX(13px)" : "translateX(0)",
+        boxShadow: "0 1px 2px rgba(0,0,0,0.15)",
+      }} />
+    </button>
+  );
+}
+
 function TextField({ value, onChange, minWidth = 240 }: { value: string; onChange: (v: string) => void; minWidth?: number }) {
   return (
     <input
@@ -114,23 +143,34 @@ function General({ onSave }: { onSave: (msg: string, kind?: "success" | "info" |
   const [name, setName] = useState("WODOOH University");
   const [tz, setTz] = useState("Asia/Riyadh");
   const [year, setYear] = useState("2025-26");
-  const [domain, setDomain] = useState("uni.edu");
+  const [domain, setDomain] = useState("");
+  const [domainEnabled, setDomainEnabled] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    apiClient.get<{ universityName: string; timezone: string; academicYear: string; emailDomain: string }>(
-      API_ENDPOINTS.ADMIN_SYSTEM_GENERAL
-    )
-      .then(res => {
-        if (cancelled || !res.data) return;
-        const d = res.data;
-        setName(d.universityName);
-        setTz(d.timezone);
-        setYear(d.academicYear);
-        setDomain(d.emailDomain);
+    Promise.all([
+      apiClient.get<{ universityName: string; timezone: string; academicYear: string; emailDomain: string }>(
+        API_ENDPOINTS.ADMIN_SYSTEM_GENERAL
+      ),
+      apiClient.get<{ otpEnabled: boolean; domainRestrictionEnabled: boolean; allowedDomains: string; sessionLifetimeHours: number }>(
+        API_ENDPOINTS.ADMIN_SYSTEM_SECURITY
+      ),
+    ])
+      .then(([generalRes, securityRes]) => {
+        if (cancelled) return;
+        if (generalRes.data) {
+          const d = generalRes.data;
+          setName(d.universityName);
+          setTz(d.timezone);
+          setYear(d.academicYear);
+        }
+        if (securityRes.data) {
+          setDomainEnabled(securityRes.data.domainRestrictionEnabled);
+          setDomain(securityRes.data.allowedDomains);
+        }
       })
       .catch(() => {})
       .finally(() => { if (!cancelled) setLoading(false); });
@@ -142,12 +182,17 @@ function General({ onSave }: { onSave: (msg: string, kind?: "success" | "info" |
   const handleSave = async () => {
     setSaving(true);
     try {
-      await apiClient.patch(API_ENDPOINTS.ADMIN_SYSTEM_GENERAL, {
-        universityName: name,
-        timezone: tz,
-        academicYear: year,
-        emailDomain: domain,
-      });
+      await Promise.all([
+        apiClient.patch(API_ENDPOINTS.ADMIN_SYSTEM_GENERAL, {
+          universityName: name,
+          timezone: tz,
+          academicYear: year,
+        }),
+        apiClient.patch(API_ENDPOINTS.ADMIN_SYSTEM_SECURITY, {
+          domainRestrictionEnabled: domainEnabled,
+          allowedDomains: domain,
+        }),
+      ]);
       setDirty(false);
       onSave("Settings saved.", "success");
     } catch {
@@ -193,10 +238,17 @@ function General({ onSave }: { onSave: (msg: string, kind?: "success" | "info" |
             }
           />
           <SettingRow
-            label="Email domain"
-            desc="Restrict signup to this domain (used for university-issued accounts)."
-            control={<TextField value={loading ? "" : domain} onChange={(v) => mark(() => setDomain(v))} />}
+            label="Restrict email domain"
+            desc="Only allow signups from a specific domain (e.g. university-issued accounts)."
+            control={<Toggle on={domainEnabled} onChange={(v) => mark(() => setDomainEnabled(v))} disabled={loading} />}
           />
+          {domainEnabled && (
+            <SettingRow
+              label="Allowed domain"
+              desc="Signups using any other domain will be rejected."
+              control={<TextField value={domain} onChange={(v) => mark(() => setDomain(v))} />}
+            />
+          )}
         </div>
       </div>
 
@@ -362,59 +414,83 @@ function Integrations({ onToast }: { onToast: (msg: string, kind?: "success" | "
 
 // ── Security ───────────────────────────────────────
 function Security({ onSave }: { onSave: (msg: string) => void }) {
-  const [sessionDays, setSessionDays] = useState("14");
-  const [mfa, setMfa] = useState(true);
+  const [sessionDays, setSessionDays] = useState("1");
+  const [otp, setOtp] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [dirty, setDirty] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    apiClient.get<{ otpEnabled: boolean; domainRestrictionEnabled: boolean; allowedDomains: string; sessionLifetimeHours: number }>(
+      API_ENDPOINTS.ADMIN_SYSTEM_SECURITY
+    )
+      .then(res => {
+        if (cancelled || !res.data) return;
+        const d = res.data;
+        setOtp(d.otpEnabled);
+        const hours = d.sessionLifetimeHours;
+        const validHours = ["1", "8", "24", "336"];
+        setSessionDays(validHours.includes(String(hours)) ? String(hours) : "1");
+      })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
+
+  const mark = (fn: () => void) => { fn(); setDirty(true); };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await apiClient.patch(API_ENDPOINTS.ADMIN_SYSTEM_SECURITY, {
+        sessionLifetimeHours: Number(sessionDays),
+        otpEnabled: otp,
+      });
+      setDirty(false);
+      onSave("Security settings saved.");
+    } catch {
+      onSave("Failed to save security settings.");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
-    <div className="nx-card">
-      <div style={{ padding: "4px 20px" }}>
-        <SettingRow
-          label="Session lifetime"
-          desc="How long users stay signed in across devices. Backend currently uses a 1-hour JWT — this is a placeholder."
-          control={
-            <select className="nx-select" value={sessionDays} onChange={e => { setSessionDays(e.target.value); onSave("Saved (demo)."); }}>
-              <option value="1">1 day</option>
-              <option value="7">7 days</option>
-              <option value="14">14 days</option>
-              <option value="30">30 days</option>
-            </select>
-          }
-        />
-        <SettingRow
-          label="Require MFA for admins"
-          desc="Force second-factor verification for any user with the admin role."
-          control={
-            <button
-              type="button"
-              role="switch"
-              aria-checked={mfa}
-              onClick={() => { setMfa(v => !v); onSave("Saved (demo)."); }}
-              style={{
-                position: "relative", width: 32, height: 18,
-                background: mfa ? "var(--nx-fg)" : "var(--nx-bg-active)",
-                border: `1px solid ${mfa ? "var(--nx-fg)" : "var(--nx-border)"}`,
-                borderRadius: 999, cursor: "pointer", transition: "background 120ms",
-              }}
-            >
-              <span style={{
-                position: "absolute", left: 2, top: 1,
-                width: 14, height: 14,
-                background: "white",
-                borderRadius: "50%",
-                transition: "transform 120ms",
-                transform: mfa ? "translateX(13px)" : "translateX(0)",
-                boxShadow: "0 1px 2px rgba(0,0,0,0.15)",
-              }} />
-            </button>
-          }
-        />
-        <SettingRow
-          label="Allowed IP ranges"
-          desc="Restrict admin sign-ins to specific networks."
-          control={<button className="nx-btn nx-btn-ghost" onClick={() => onSave("IP ranges feature is not yet implemented.")}>Configure</button>}
-        />
+    <>
+      <div className="nx-card">
+        <div style={{ padding: "4px 20px" }}>
+          <SettingRow
+            label="Session lifetime"
+            desc="How long a login session lasts before the user must sign in again."
+            control={
+              <select className="nx-select" value={sessionDays} onChange={e => mark(() => setSessionDays(e.target.value))} disabled={loading}>
+                <option value="1">1 hour</option>
+                <option value="8">8 hours</option>
+                <option value="24">1 day</option>
+                <option value="336">14 days</option>
+              </select>
+            }
+          />
+          <SettingRow
+            label="Require OTP login for admins"
+            desc="Send a one-time code to the admin's email after password verification."
+            control={<Toggle on={otp} onChange={(v) => mark(() => setOtp(v))} disabled={loading} />}
+          />
+        </div>
       </div>
-    </div>
+
+      <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 16 }}>
+        <button className="nx-btn nx-btn-ghost" disabled={!dirty || saving} onClick={() => setDirty(false)}>Discard</button>
+        <button
+          className="nx-btn nx-btn-primary"
+          disabled={!dirty || saving || loading}
+          onClick={handleSave}
+        >
+          {saving ? "Saving…" : "Save changes"}
+        </button>
+      </div>
+    </>
   );
 }
 

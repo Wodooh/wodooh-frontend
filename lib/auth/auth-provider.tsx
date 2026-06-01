@@ -19,6 +19,7 @@ import API_ENDPOINTS from '../api/endpoints';
  */
 interface AuthContextType extends AuthState {
   login: (credentials: LoginCredentials) => Promise<void>;
+  loginWithToken: (token: string, user: { _id: string; email: string; name: string; role: UserRole }) => void;
   signup: (data: SignupData) => Promise<void>;
   logout: () => void;
   refreshToken: () => Promise<void>;
@@ -272,9 +273,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return state.user.role === role;
   }, [state.user]);
 
+  const loginWithToken = useCallback((token: string, user: { _id: string; email: string; name: string; role: UserRole }) => {
+    setToken(token);
+    apiClient.setToken(token);
+    setState({
+      user: { _id: user._id, email: user.email, name: user.name, role: user.role },
+      token,
+      isAuthenticated: true,
+      loading: false,
+    });
+  }, []);
+
   const value: AuthContextType = {
     ...state,
     login,
+    loginWithToken,
     signup,
     logout,
     refreshToken,
