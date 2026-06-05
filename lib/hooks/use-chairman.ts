@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import apiClient from '../api/client';
 import API_ENDPOINTS from '../api/endpoints';
+import type { ApiResponse, PaginationMeta } from '../types/api.types';
 import type {
   ChairmanMe,
   ChairmanCourseRow,
@@ -11,40 +12,40 @@ import type {
   ChairmanStudentsByCourse,
   ChairmanSession,
   SessionReport,
+  CourseCorrelation,
   Alert,
   AuditLogEntry,
   DeanonymizeRequest,
   DeanonymizeResponse,
 } from '../types/chairman.types';
 
-interface Pagination {
-  currentPage: number;
-  totalPages: number;
-  totalUsers: number;
-  limit: number;
-  hasNextPage: boolean;
-  hasPrevPage: boolean;
-}
+type FetchState<T> = {
+  data: T | null;
+  loading: boolean;
+  error: string | null;
+  refetch: () => void;
+};
 
-function makeGetHook<T>(buildUrl: (deps: any) => string) {
-  return function useFetch(deps: any = undefined): {
-    data: T | null;
-    loading: boolean;
-    error: string | null;
-    refetch: () => void;
-  } {
+function makeGetHook<T>(buildUrl: () => string): () => FetchState<T>;
+function makeGetHook<T, D>(buildUrl: (deps: D) => string): (deps: D) => FetchState<T>;
+function makeGetHook<T, D>(buildUrl: ((deps: D) => string) | (() => string)) {
+  return function useFetch(deps?: D): FetchState<T> {
     const [data, setData] = useState<T | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [tick, setTick] = useState(0);
+    const requestUrl = (buildUrl as (deps: D) => string)(deps as D);
 
     useEffect(() => {
       let cancelled = false;
-      setLoading(true);
-      setError(null);
+      queueMicrotask(() => {
+        if (cancelled) return;
+        setLoading(true);
+        setError(null);
+      });
 
-      apiClient.get<T>(buildUrl(deps))
-        .then(res => {
+      apiClient.get<T>(requestUrl)
+        .then((res: ApiResponse<T>) => {
           if (cancelled) return;
           if (res.status === 'success') {
             setData((res.data ?? null) as T);
@@ -52,9 +53,9 @@ function makeGetHook<T>(buildUrl: (deps: any) => string) {
             throw new Error(res.message || 'Failed to fetch');
           }
         })
-        .catch(err => {
+        .catch((err: unknown) => {
           if (cancelled) return;
-          setError(err?.message || 'Failed to fetch');
+          setError(err instanceof Error ? err.message : 'Failed to fetch');
           setData(null);
         })
         .finally(() => {
@@ -62,7 +63,7 @@ function makeGetHook<T>(buildUrl: (deps: any) => string) {
         });
 
       return () => { cancelled = true; };
-    }, [JSON.stringify(deps), tick]);
+    }, [requestUrl, tick]);
 
     const refetch = useCallback(() => setTick(t => t + 1), []);
 
@@ -72,7 +73,7 @@ function makeGetHook<T>(buildUrl: (deps: any) => string) {
 
 export const useChairmanMe = makeGetHook<ChairmanMe>(() => API_ENDPOINTS.CHAIRMAN_ME);
 export const useChairmanCourses = makeGetHook<ChairmanCourseRow[]>(() => API_ENDPOINTS.CHAIRMAN_COURSES);
-export const useChairmanCourse = makeGetHook<ChairmanCourseDetail>(
+export const useChairmanCourse = makeGetHook<ChairmanCourseDetail, string>(
   (id: string) => API_ENDPOINTS.CHAIRMAN_COURSE(id)
 );
 export const useChairmanInstructors = makeGetHook<ChairmanInstructor[]>(() => API_ENDPOINTS.CHAIRMAN_INSTRUCTORS);
@@ -87,11 +88,14 @@ export function useChairmanStudents() {
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
-    setError(null);
+    queueMicrotask(() => {
+      if (cancelled) return;
+      setLoading(true);
+      setError(null);
+    });
 
     apiClient.get<ChairmanStudentsByCourse[]>(API_ENDPOINTS.CHAIRMAN_STUDENTS)
-      .then((res: any) => {
+      .then((res: ApiResponse<ChairmanStudentsByCourse[]>) => {
         if (cancelled) return;
         if (res.status === 'success') {
           setData(Array.isArray(res.data) ? res.data : []);
@@ -123,17 +127,17 @@ export function useChairmanSessionReport(sessionId: string | null) {
 
   useEffect(() => {
     if (!sessionId) {
-      setData(null);
-      setLoading(false);
-      setError(null);
       return;
     }
     let cancelled = false;
-    setLoading(true);
-    setError(null);
+    queueMicrotask(() => {
+      if (cancelled) return;
+      setLoading(true);
+      setError(null);
+    });
 
     apiClient.get<SessionReport>(API_ENDPOINTS.CHAIRMAN_SESSION_REPORT(sessionId))
-      .then(res => {
+      .then((res: ApiResponse<SessionReport>) => {
         if (cancelled) return;
         if (res.status === 'success' && res.data) {
           setData(res.data);
@@ -154,25 +158,80 @@ export function useChairmanSessionReport(sessionId: string | null) {
   }, [sessionId, tick]);
 
   const refetch = useCallback(() => setTick(t => t + 1), []);
-  return { data, loading, error, refetch };
+  return {
+    data: sessionId ? data : null,
+    loading: sessionId ? loading : false,
+    error: sessionId ? error : null,
+    refetch,
+  };
+}
+
+export function useChairmanCourseCorrelation(courseId: string | null) {
+  const [data, setData] = useState<CourseCorrelation | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [tick, setTick] = useState(0);
+
+  useEffect(() => {
+    if (!courseId) {
+      return;
+    }
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled) return;
+      setLoading(true);
+      setError(null);
+    });
+
+    apiClient.get<CourseCorrelation>(API_ENDPOINTS.CHAIRMAN_COURSE_CORRELATION(courseId))
+      .then((res: ApiResponse<CourseCorrelation>) => {
+        if (cancelled) return;
+        if (res.status === 'success' && res.data) {
+          setData(res.data);
+        } else {
+          throw new Error(res.message || 'Failed to fetch correlation');
+        }
+      })
+      .catch(err => {
+        if (cancelled) return;
+        setError(err?.message || 'Failed to fetch correlation');
+        setData(null);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => { cancelled = true; };
+  }, [courseId, tick]);
+
+  const refetch = useCallback(() => setTick(t => t + 1), []);
+  return {
+    data: courseId ? data : null,
+    loading: courseId ? loading : false,
+    error: courseId ? error : null,
+    refetch,
+  };
 }
 
 export function useChairmanAuditLog(params: { page?: number; limit?: number } = {}) {
   const { page = 1, limit = 20 } = params;
   const [data, setData] = useState<AuditLogEntry[]>([]);
-  const [pagination, setPagination] = useState<Pagination | null>(null);
+  const [pagination, setPagination] = useState<PaginationMeta | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
-    setError(null);
+    queueMicrotask(() => {
+      if (cancelled) return;
+      setLoading(true);
+      setError(null);
+    });
 
     const qs = new URLSearchParams({ page: String(page), limit: String(limit) });
     apiClient.get<AuditLogEntry[]>(`${API_ENDPOINTS.CHAIRMAN_AUDIT_LOG}?${qs}`)
-      .then((res: any) => {
+      .then((res: ApiResponse<AuditLogEntry[]>) => {
         if (cancelled) return;
         if (res.status === 'success') {
           setData(Array.isArray(res.data) ? res.data : []);
@@ -181,9 +240,8 @@ export function useChairmanAuditLog(params: { page?: number; limit?: number } = 
           throw new Error(res.message || 'Failed to fetch audit log');
         }
       })
-      .catch(err => {
-        if (cancelled) return;
-        setError(err?.message || 'Failed to fetch audit log');
+      .catch((err: unknown) => {
+        setError(err instanceof Error ? err.message : 'Failed to fetch audit log');
         setData([]);
       })
       .finally(() => {
@@ -213,8 +271,8 @@ export function useDeanonymize() {
       }
       setData(res.data);
       return res.data;
-    } catch (err: any) {
-      setError(err?.message || 'Failed to de-anonymize');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to de-anonymize');
       throw err;
     } finally {
       setLoading(false);
@@ -242,8 +300,8 @@ export function useAssignChairman() {
         { chairmanUserId }
       );
       if (res.status !== 'success') throw new Error(res.message || 'Failed to assign chairman');
-    } catch (err: any) {
-      setError(err?.message || 'Failed to assign chairman');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to assign chairman');
       throw err;
     } finally {
       setLoading(false);

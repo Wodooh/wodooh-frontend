@@ -190,6 +190,36 @@ export function usePatchAdminUser() {
   return { patch, loading, error };
 }
 
+/**
+ * Manual GPA entry for a student. Sets gpaSource='manual' on the backend so a
+ * later SIS sync won't clobber it. Returns the refreshed user (with gpa).
+ */
+export function useSetUserGpa() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const setGpa = useCallback(async (uid: string, gpa: number) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await apiClient.patch<AdminUserResponse>(
+        API_ENDPOINTS.USER_GPA(uid),
+        { gpa }
+      );
+      if (res.status !== "success" || !res.data) {
+        throw new Error(res.message || "GPA update failed");
+      }
+      return res.data;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "GPA update failed";
+      setError(msg);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+  return { setGpa, loading, error };
+}
+
 export function useSoftDeleteAdminUser() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

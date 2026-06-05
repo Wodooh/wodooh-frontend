@@ -97,6 +97,10 @@ lib/
 | GET | `/auth/me` | `useAuthMe()` — also called by `AuthProvider` on app init to refresh the role from the server (closes the stale-role-after-demotion gap) |
 | GET | `/admin/users` | `useUsers()` |
 | PATCH | `/admin/users/:userId/role` | `useUpdateRole()` |
+| PATCH | `/admin/users/:userId/gpa` | `useSetUserGpa()` — student-only manual GPA entry (sets `gpaSource='manual'`); surfaced on the user-detail page |
+| GET | `/admin/users/:userId/absences` | `useAdminUserAbsences()` — student's per-course absence records (course code/name joined) |
+| POST | `/admin/users/:userId/absences` | `useUpsertAbsence()` — student-only manual absence entry (upsert by student+course, sets `source='manual'`); surfaced on the user-detail page. Feeds the chairman Attendance × Engagement × GPA report |
+| DELETE | `/admin/users/:userId/absences/:courseId` | `useDeleteAbsence()` — remove a student's absence record for a course |
 | GET | `/admin/colleges` | `useColleges()` |
 | POST | `/admin/colleges` | `useColleges().createCollege()` |
 | PATCH | `/admin/colleges/:id` | `useColleges().updateCollege()` |

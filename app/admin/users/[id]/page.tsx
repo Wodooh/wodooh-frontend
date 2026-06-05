@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import * as React from "react";
 import { useForm } from "react-hook-form";
@@ -16,9 +17,16 @@ import {
   useHardDeleteAdminUser,
   usePasswordReset,
   usePatchAdminUser,
+  useSetUserGpa,
   useSoftDeleteAdminUser,
 } from "@/lib/hooks/use-admin-users";
 import { USER_ROLES, type UserRole } from "@/lib/types/user-doc.types";
+import {
+  useAdminUserAbsences,
+  useDeleteAbsence,
+  useUpsertAbsence,
+} from "@/lib/hooks/use-admin-absences";
+import { useCourses } from "@/lib/hooks/use-courses";
 
 // -------------------------------------------------------------------------
 // Bauhaus design tokens. Role badge colors per spec.
@@ -38,8 +46,6 @@ const BH_PRIMARY_BTN = "nx-btn nx-btn-primary";
 const BH_OUTLINE_BTN = "nx-btn nx-btn-ghost";
 
 const BH_DESTRUCTIVE_BTN = "nx-btn nx-btn-danger";
-
-const BH_GHOST_TAB = "nx-tab";
 
 function formatTimestamp(ts: string | null | undefined): string {
   if (!ts) return "—";
@@ -69,9 +75,19 @@ export default function UserDetailPage() {
 
   const { user, loading, error, refetch } = useAdminUser(uid);
   const { patch, loading: saving } = usePatchAdminUser();
+  const { setGpa, loading: savingGpa } = useSetUserGpa();
   const { softDelete, loading: deleting } = useSoftDeleteAdminUser();
   const { hardDelete, loading: hardDeleting } = useHardDeleteAdminUser();
   const { resetPassword } = usePasswordReset();
+
+  // GPA lives on the Student role doc behind a dedicated endpoint, so it's a
+  // separate controlled input rather than part of the react-hook-form patch.
+  const [gpaInput, setGpaInput] = React.useState("");
+  React.useEffect(() => {
+    if (user?.role === "student") {
+      setGpaInput(user.gpa != null ? String(user.gpa) : "");
+    }
+  }, [user?.role, user?.gpa]);
 
   const form = useForm<PatchUserFormValues>({
     resolver: zodResolver(patchUserFormSchema),
@@ -169,6 +185,22 @@ export default function UserDetailPage() {
     }
   };
 
+  const handleSaveGpa = async () => {
+    if (!uid) return;
+    const value = Number(gpaInput);
+    if (gpaInput.trim() === "" || !Number.isFinite(value) || value < 0 || value > 5) {
+      toast.error("Enter a GPA between 0 and 5.");
+      return;
+    }
+    try {
+      await setGpa(uid, value);
+      toast.success("GPA updated");
+      refetch();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "GPA update failed");
+    }
+  };
+
   const handleSoftDelete = async () => {
     try {
       await softDelete(uid);
@@ -228,21 +260,21 @@ export default function UserDetailPage() {
       <nav aria-label="Breadcrumb" className="mb-6">
         <ol className="flex flex-wrap items-center gap-2 uppercase  text-xs font-bold text-[var(--nx-fg-muted)]">
           <li>
-            <a
+            <Link
               href="/admin"
               className="hover:text-[var(--nx-fg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nx-fg)] focus-visible:ring-offset-2"
             >
               Admin
-            </a>
+            </Link>
           </li>
           <li aria-hidden="true">&gt;</li>
           <li>
-            <a
+            <Link
               href="/admin/users"
               className="hover:text-[var(--nx-fg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nx-fg)] focus-visible:ring-offset-2"
             >
               Users
-            </a>
+            </Link>
           </li>
           <li aria-hidden="true">&gt;</li>
           <li className="text-[var(--nx-fg)] break-all" aria-current="page">
@@ -550,6 +582,61 @@ export default function UserDetailPage() {
               </div>
             </form>
 
+            {/* Cumulative GPA — students only. Separate endpoint, not the patch form. */}
+            {user.role === "student" && (
+              <div className="border-t border-[var(--nx-border)] pt-6 flex flex-col gap-4">
+                <h3 className="text-lg lg:text-xl font-semibold uppercase  text-[var(--nx-fg)]">
+                  Cumulative GPA
+                </h3>
+                <p className="text-xs font-semibold text-[var(--nx-fg-muted)] leading-relaxed max-w-md">
+                  5.0 scale. Saving marks the value as manually entered, which
+                  overrides any future SIS sync.
+                  {user.gpa != null && (
+                    <>
+                      {" "}
+                      Current:{" "}
+                      <span className="font-mono">{user.gpa.toFixed(2)}</span>
+                      {user.gpaSource ? ` (${user.gpaSource})` : ""}.
+                    </>
+                  )}
+                </p>
+                <div className="flex items-end gap-3">
+                  <div className="flex flex-col gap-1">
+                    <label
+                      htmlFor="user-gpa"
+                      className="uppercase  text-[10px] font-bold text-[var(--nx-fg-muted)]"
+                    >
+                      GPA (0–5)
+                    </label>
+                    <input
+                      id="user-gpa"
+                      type="number"
+                      min={0}
+                      max={5}
+                      step={0.01}
+                      inputMode="decimal"
+                      value={gpaInput}
+                      onChange={(e) => setGpaInput(e.target.value)}
+                      className={BH_INPUT_CLASS}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    disabled={savingGpa}
+                    onClick={handleSaveGpa}
+                    className={BH_PRIMARY_BTN}
+                  >
+                    {savingGpa ? "Saving…" : "Save GPA"}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Absences — students only. Feeds the chairman's Attendance ×
+                Engagement × GPA report. Separate endpoint, manual entries
+                override SIS sync. */}
+            {user.role === "student" && <AbsencesSection userId={uid} />}
+
             {/* Account actions */}
             <div className="border-t border-[var(--nx-border)] pt-6 flex flex-col gap-4">
               <h3 className="text-lg lg:text-xl font-semibold uppercase  text-[var(--nx-fg)]">
@@ -652,6 +739,215 @@ export default function UserDetailPage() {
         onConfirm={handleHardDelete}
       />
     </section>
+  );
+}
+
+function AbsencesSection({ userId }: { userId: string }) {
+  const { data: absences, loading, error, refetch } = useAdminUserAbsences(userId);
+  const { upsert, loading: saving } = useUpsertAbsence();
+  const { remove, loading: deleting } = useDeleteAbsence();
+  // The course picker needs the full catalog; the demo has a handful of
+  // courses, so a generous page size keeps it to one request.
+  const { courses } = useCourses({ limit: 200 });
+
+  const [courseId, setCourseId] = React.useState("");
+  const [excused, setExcused] = React.useState("0");
+  const [unexcused, setUnexcused] = React.useState("0");
+
+  // Picking a course that already has a record prefills the form so the admin
+  // is editing the existing value rather than blindly overwriting it.
+  const onPickCourse = (id: string) => {
+    setCourseId(id);
+    const existing = absences.find((a) => a.courseId === id);
+    setExcused(existing ? String(existing.excused) : "0");
+    setUnexcused(existing ? String(existing.unexcused) : "0");
+  };
+
+  const handleSave = async () => {
+    if (!courseId) {
+      toast.error("Select a course.");
+      return;
+    }
+    const ex = Number(excused);
+    const un = Number(unexcused);
+    if (![ex, un].every((n) => Number.isInteger(n) && n >= 0)) {
+      toast.error("Excused and unexcused must be whole numbers ≥ 0.");
+      return;
+    }
+    try {
+      await upsert(userId, { courseId, excused: ex, unexcused: un });
+      toast.success("Absence recorded");
+      setCourseId("");
+      setExcused("0");
+      setUnexcused("0");
+      refetch();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to record absence");
+    }
+  };
+
+  const handleDelete = async (cid: string) => {
+    try {
+      await remove(userId, cid);
+      toast.success("Absence removed");
+      refetch();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to remove absence");
+    }
+  };
+
+  return (
+    <div className="border-t border-[var(--nx-border)] pt-6 flex flex-col gap-4">
+      <h3 className="text-lg lg:text-xl font-semibold uppercase  text-[var(--nx-fg)]">
+        Absences
+      </h3>
+      <p className="text-xs font-semibold text-[var(--nx-fg-muted)] leading-relaxed max-w-md">
+        Per-course absence counts feed the chairman&apos;s Attendance ×
+        Engagement × GPA report. Saving marks the record as manually entered,
+        which overrides any future SIS sync.
+      </p>
+
+      {error && (
+        <p role="alert" className="text-xs font-semibold text-[var(--nx-danger)]">
+          {error}
+        </p>
+      )}
+
+      {/* Existing records */}
+      {loading ? (
+        <p className="text-xs font-semibold text-[var(--nx-fg-muted)]">Loading…</p>
+      ) : absences.length === 0 ? (
+        <p className="text-xs font-semibold text-[var(--nx-fg-muted)]">
+          No absence records yet.
+        </p>
+      ) : (
+        <table className="w-full text-sm border border-[var(--nx-border)]">
+          <thead>
+            <tr className="bg-[var(--nx-bg-sub)] text-left">
+              <th className="px-3 py-2 uppercase  text-[10px] font-bold text-[var(--nx-fg-muted)]">
+                Course
+              </th>
+              <th className="px-3 py-2 uppercase  text-[10px] font-bold text-[var(--nx-fg-muted)]">
+                Excused
+              </th>
+              <th className="px-3 py-2 uppercase  text-[10px] font-bold text-[var(--nx-fg-muted)]">
+                Unexcused
+              </th>
+              <th className="px-3 py-2 uppercase  text-[10px] font-bold text-[var(--nx-fg-muted)]">
+                Total
+              </th>
+              <th className="px-3 py-2 uppercase  text-[10px] font-bold text-[var(--nx-fg-muted)]">
+                Source
+              </th>
+              <th className="px-3 py-2" aria-label="Actions" />
+            </tr>
+          </thead>
+          <tbody>
+            {absences.map((a) => (
+              <tr key={a._id} className="border-t border-[var(--nx-border)]">
+                <td className="px-3 py-2 font-semibold text-[var(--nx-fg)]">
+                  <button
+                    type="button"
+                    className="underline decoration-dotted hover:text-[var(--nx-accent)]"
+                    onClick={() => onPickCourse(a.courseId)}
+                    title="Edit this record"
+                  >
+                    {a.courseCode}
+                  </button>
+                </td>
+                <td className="px-3 py-2 font-mono text-[var(--nx-fg)]">{a.excused}</td>
+                <td className="px-3 py-2 font-mono text-[var(--nx-fg)]">{a.unexcused}</td>
+                <td className="px-3 py-2 font-mono text-[var(--nx-fg)]">{a.total}</td>
+                <td className="px-3 py-2">
+                  <span className="uppercase  text-[10px] font-bold text-[var(--nx-fg-muted)]">
+                    {a.source ?? "—"}
+                  </span>
+                </td>
+                <td className="px-3 py-2 text-right">
+                  <button
+                    type="button"
+                    disabled={deleting}
+                    onClick={() => handleDelete(a.courseId)}
+                    className="uppercase  text-[10px] font-bold text-[var(--nx-danger)] hover:underline disabled:opacity-50"
+                  >
+                    Remove
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      {/* Add / edit form */}
+      <div className="flex flex-wrap items-end gap-3 border-t border-[var(--nx-border)] pt-4">
+        <div className="flex flex-col gap-1 min-w-[10rem]">
+          <label
+            htmlFor="absence-course"
+            className="uppercase  text-[10px] font-bold text-[var(--nx-fg-muted)]"
+          >
+            Course
+          </label>
+          <select
+            id="absence-course"
+            value={courseId}
+            onChange={(e) => onPickCourse(e.target.value)}
+            className="border border-[var(--nx-border-strong)] bg-[var(--nx-bg-elev)] text-[var(--nx-fg)] px-3 py-2 text-sm rounded-md focus-visible:outline-none focus-visible:border-[var(--nx-accent)]"
+          >
+            <option value="">Select course…</option>
+            {courses.map((c) => (
+              <option key={c._id} value={c._id}>
+                {c.code} — {c.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="flex flex-col gap-1 w-24">
+          <label
+            htmlFor="absence-excused"
+            className="uppercase  text-[10px] font-bold text-[var(--nx-fg-muted)]"
+          >
+            Excused
+          </label>
+          <input
+            id="absence-excused"
+            type="number"
+            min={0}
+            step={1}
+            inputMode="numeric"
+            value={excused}
+            onChange={(e) => setExcused(e.target.value)}
+            className={BH_INPUT_CLASS}
+          />
+        </div>
+        <div className="flex flex-col gap-1 w-24">
+          <label
+            htmlFor="absence-unexcused"
+            className="uppercase  text-[10px] font-bold text-[var(--nx-fg-muted)]"
+          >
+            Unexcused
+          </label>
+          <input
+            id="absence-unexcused"
+            type="number"
+            min={0}
+            step={1}
+            inputMode="numeric"
+            value={unexcused}
+            onChange={(e) => setUnexcused(e.target.value)}
+            className={BH_INPUT_CLASS}
+          />
+        </div>
+        <button
+          type="button"
+          disabled={saving}
+          onClick={handleSave}
+          className={BH_PRIMARY_BTN}
+        >
+          {saving ? "Saving…" : "Save Absence"}
+        </button>
+      </div>
+    </div>
   );
 }
 

@@ -103,6 +103,36 @@ export interface SessionReport {
   participantCount: number;
 }
 
+export interface CourseCorrelationRow {
+  /** Opaque per-course pseudonym — no real identity. */
+  anonymousCourseId: string;
+  /** Fraction in [0,1], or null when no sessions have been held. */
+  attendancePct: number | null;
+  /** Questions + reactions contributed across the course's held sessions. */
+  engagementCount: number;
+  /** Cumulative GPA on the 5.0 scale, or null when none is on record. */
+  gpa: number | null;
+  attendedSessions: number;
+  absentSessions: number;
+  excusedAbsences: number;
+  unexcusedAbsences: number;
+}
+
+export interface CourseCorrelation {
+  courseId: string;
+  totalSessions: number;
+  studentCount: number;
+  /** Students with a GPA on record — denominator for the GPA-pair coefficients. */
+  gpaStudentCount: number;
+  /** Attendance × engagement Pearson coefficient in [-1,1], or null (insufficient data / zero variance). */
+  coefficient: number | null;
+  /** Attendance × GPA Pearson coefficient, computed only over rows that have a GPA. */
+  coefficientAttendanceGpa: number | null;
+  /** Engagement × GPA Pearson coefficient, computed only over rows that have a GPA. */
+  coefficientEngagementGpa: number | null;
+  rows: CourseCorrelationRow[];
+}
+
 export interface Alert {
   _id: string;
   type: "ABSENCE_25" | "HIGH_ACTIVITY";
