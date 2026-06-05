@@ -11,11 +11,15 @@ import "./landing.css";
 // already-authenticated visitor who lands on `/` is sent to their portal.
 function dashboardPathForRole(role: string | undefined): string {
   switch (role) {
-    case "admin":      return "/admin/dashboard";
-    case "instructor": return "/instructor/dashboard";
-    case "chairman":   return "/chairman/dashboard";
+    case "admin":
+      return "/admin/dashboard";
+    case "instructor":
+      return "/instructor/dashboard";
+    case "chairman":
+      return "/chairman/dashboard";
     case "student":
-    default:           return "/student/dashboard";
+    default:
+      return "/student/dashboard";
   }
 }
 
@@ -23,45 +27,86 @@ function dashboardPathForRole(role: string | undefined): string {
 const delay = (ms: number): CSSProperties => ({ ["--d" as string]: `${ms}ms` });
 
 // ── Icons (stroke, currentColor — matches the login page convention) ──
-const Icon = ({ size = 20, children }: { size?: number; children: React.ReactNode }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-    strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+const Icon = ({
+  size = 20,
+  children,
+}: {
+  size?: number;
+  children: React.ReactNode;
+}) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.7"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
     {children}
   </svg>
 );
 
 const ArrowRight = ({ size = 16 }: { size?: number }) => (
-  <Icon size={size}><path d="M5 12h14M13 5l7 7-7 7" /></Icon>
+  <Icon size={size}>
+    <path d="M5 12h14M13 5l7 7-7 7" />
+  </Icon>
 );
 const ShieldCheck = ({ size = 20 }: { size?: number }) => (
-  <Icon size={size}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" /><path d="m9 12 2 2 4-4" /></Icon>
+  <Icon size={size}>
+    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" />
+    <path d="m9 12 2 2 4-4" />
+  </Icon>
 );
 const Bolt = ({ size = 20 }: { size?: number }) => (
-  <Icon size={size}><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z" /></Icon>
+  <Icon size={size}>
+    <path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z" />
+  </Icon>
 );
 const Sliders = ({ size = 20 }: { size?: number }) => (
-  <Icon size={size}><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6" /></Icon>
+  <Icon size={size}>
+    <path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6" />
+  </Icon>
 );
 const Hash = ({ size = 20 }: { size?: number }) => (
-  <Icon size={size}><path d="M4 9h16M4 15h16M10 3 8 21M16 3l-2 18" /></Icon>
+  <Icon size={size}>
+    <path d="M4 9h16M4 15h16M10 3 8 21M16 3l-2 18" />
+  </Icon>
 );
 const Play = ({ size = 18 }: { size?: number }) => (
-  <Icon size={size}><path d="M6 4v16l13-8-13-8Z" /></Icon>
+  <Icon size={size}>
+    <path d="M6 4v16l13-8-13-8Z" />
+  </Icon>
 );
 const Users = ({ size = 18 }: { size?: number }) => (
-  <Icon size={size}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" /></Icon>
+  <Icon size={size}>
+    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+    <circle cx="9" cy="7" r="4" />
+    <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+  </Icon>
 );
 const Pulse = ({ size = 18 }: { size?: number }) => (
-  <Icon size={size}><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></Icon>
+  <Icon size={size}>
+    <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+  </Icon>
 );
 const Check = ({ size = 14 }: { size?: number }) => (
-  <Icon size={size}><path d="M20 6 9 17l-5-5" /></Icon>
+  <Icon size={size}>
+    <path d="M20 6 9 17l-5-5" />
+  </Icon>
 );
 const Sun = ({ size = 16 }: { size?: number }) => (
-  <Icon size={size}><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" /></Icon>
+  <Icon size={size}>
+    <circle cx="12" cy="12" r="4" />
+    <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+  </Icon>
 );
 const Moon = ({ size = 16 }: { size?: number }) => (
-  <Icon size={size}><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z" /></Icon>
+  <Icon size={size}>
+    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z" />
+  </Icon>
 );
 
 // ── Theme (same persistence contract as login / splash) ──
@@ -76,7 +121,9 @@ function useTheme() {
       return stored;
     }
 
-    return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    return window.matchMedia("(prefers-color-scheme: dark)").matches
+      ? "dark"
+      : "light";
   });
 
   useEffect(() => {
@@ -165,7 +212,10 @@ export default function Home() {
 
   if (authLoading) {
     return (
-      <main className="wd-landing" style={{ display: "grid", placeItems: "center" }}>
+      <main
+        className="wd-landing"
+        style={{ display: "grid", placeItems: "center" }}
+      >
         <span className="nx-spin" />
       </main>
     );
@@ -182,17 +232,27 @@ export default function Home() {
             <span className="wd-brand-text">WODOOH</span>
           </Link>
           <div className="wd-nav-actions">
-            <Link href="/login" className="wd-nav-link">Sign in</Link>
+            <Link href="/login" className="wd-nav-link">
+              Sign in
+            </Link>
             <button
               type="button"
               className="wd-theme-btn"
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
+              aria-label={
+                theme === "dark"
+                  ? "Switch to light theme"
+                  : "Switch to dark theme"
+              }
               title="Toggle theme"
             >
               {theme === "dark" ? <Sun /> : <Moon />}
             </button>
-            <Link href="/onboarding" className="nx-btn nx-btn-primary" style={{ height: 34 }}>
+            <Link
+              href="/onboarding"
+              className="nx-btn nx-btn-primary"
+              style={{ height: 34 }}
+            >
               Register
             </Link>
           </div>
@@ -209,41 +269,59 @@ export default function Home() {
               </span>
               <span className="wd-headline wd-reveal" style={delay(130)}>
                 Anonymous, real-time classroom engagement.{" "}
-                <span className="wd-ink-accent">Clarity, the moment it&apos;s needed.</span>
+                <span className="wd-ink-accent">
+                  Clarity, the moment it&apos;s needed.
+                </span>
               </span>
             </h1>
 
             <p className="wd-lede wd-reveal" style={delay(200)}>
-              WODOOH is a live engagement overlay for the lecture hall. Students ask questions and
-              react without fear of judgment; instructors moderate the conversation as it unfolds.
+              WODOOH is a live engagement overlay for the lecture hall. Students
+              ask questions and react without fear of judgment; instructors
+              moderate the conversation as it unfolds.
             </p>
 
             <div className="wd-cta-row wd-reveal" style={delay(270)}>
               <Link href="/login" className="nx-btn nx-btn-primary wd-btn-xl">
-                Get started <span className="wd-btn-arrow"><ArrowRight /></span>
+                Get started{" "}
+                <span className="wd-btn-arrow">
+                  <ArrowRight />
+                </span>
               </Link>
-              <Link href="/onboarding" className="nx-btn nx-btn-ghost wd-btn-xl">
+              <Link
+                href="/onboarding"
+                className="nx-btn nx-btn-ghost wd-btn-xl"
+              >
                 Create an account
               </Link>
             </div>
 
             <p className="wd-trust wd-reveal" style={delay(340)}>
-              <Check /> Anonymous by design: a student&apos;s name never travels with their question.
+              <Check /> Anonymous by design: a student&apos;s name never travels
+              with their question.
             </p>
           </div>
         </section>
 
         {/* ── How it works ── */}
-        <section className="wd-section wd-section-sub" aria-labelledby="wd-how-title">
+        <section
+          className="wd-section wd-section-sub"
+          aria-labelledby="wd-how-title"
+        >
           <div className="wd-section-head">
-            <h2 className="wd-section-title" id="wd-how-title">From silence to signal in three steps</h2>
+            <h2 className="wd-section-title" id="wd-how-title">
+              From silence to signal in three steps
+            </h2>
             <p className="wd-section-lede">
-              No friction at the door. Students already enrolled in a section open its live session,
-              and the room starts talking.
+              No friction at the door. Students already enrolled in a section
+              open its live session, and the room starts talking.
             </p>
           </div>
 
-          <ol className="wd-steps" style={{ listStyle: "none", margin: 0, padding: 0 }}>
+          <ol
+            className="wd-steps"
+            style={{ listStyle: "none", margin: 0, padding: 0 }}
+          >
             {STEPS.map((s) => (
               <li className="wd-step" key={s.n}>
                 <span className="wd-step-num">{s.n}</span>
@@ -256,18 +334,27 @@ export default function Home() {
         </section>
 
         {/* ── Why it matters / features ── */}
-        <section className="wd-section wd-section-sub" aria-labelledby="wd-why-title">
+        <section
+          className="wd-section wd-section-sub"
+          aria-labelledby="wd-why-title"
+        >
           <div className="wd-section-head">
-            <h2 className="wd-section-title" id="wd-why-title">Built around the question students won&apos;t ask</h2>
+            <h2 className="wd-section-title" id="wd-why-title">
+              Built around the question students won&apos;t ask
+            </h2>
             <p className="wd-section-lede">
-              The best question in the room is the one nobody dares to raise. WODOOH removes the cost
-              of asking, and gives instructors the signal to respond.
+              The best question in the room is the one nobody dares to raise.
+              WODOOH removes the cost of asking, and gives instructors the
+              signal to respond.
             </p>
           </div>
 
           <div className="wd-features">
             {FEATURES.map((f) => (
-              <article className={`wd-feat${f.lead ? " wd-feat-lead" : ""}`} key={f.title}>
+              <article
+                className={`wd-feat${f.lead ? " wd-feat-lead" : ""}`}
+                key={f.title}
+              >
                 <span className="wd-feat-ico">{f.icon}</span>
                 <div className="wd-feat-body">
                   <h3 className="wd-feat-title">{f.title}</h3>
@@ -281,15 +368,24 @@ export default function Home() {
         {/* ── Closing CTA ── */}
         <section className="wd-section">
           <div className="wd-closer">
-            <h2 className="wd-closer-title">Bring clarity to your next lecture</h2>
+            <h2 className="wd-closer-title">
+              Bring clarity to your next lecture
+            </h2>
             <p className="wd-closer-lede">
-              Sign in to start a live session, or create an account to join your section.
+              Sign in to start a live session, or create an account to join your
+              section.
             </p>
             <div className="wd-cta-row">
               <Link href="/login" className="nx-btn nx-btn-primary wd-btn-xl">
-                Get started <span className="wd-btn-arrow"><ArrowRight /></span>
+                Get started{" "}
+                <span className="wd-btn-arrow">
+                  <ArrowRight />
+                </span>
               </Link>
-              <Link href="/onboarding" className="nx-btn nx-btn-ghost wd-btn-xl">
+              <Link
+                href="/onboarding"
+                className="nx-btn nx-btn-ghost wd-btn-xl"
+              >
                 Create an account
               </Link>
             </div>

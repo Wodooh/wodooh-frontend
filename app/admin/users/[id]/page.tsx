@@ -32,10 +32,10 @@ import { useCourses } from "@/lib/hooks/use-courses";
 // Bauhaus design tokens. Role badge colors per spec.
 // -------------------------------------------------------------------------
 const ROLE_BADGE_CLASS: Record<UserRole, string> = {
-  admin:      "nx-badge nx-role-admin",
+  admin: "nx-badge nx-role-admin",
   instructor: "nx-badge nx-role-instructor",
-  student:    "nx-badge nx-role-student",
-  chairman:   "nx-badge nx-role-chairman",
+  student: "nx-badge nx-role-student",
+  chairman: "nx-badge nx-role-chairman",
 };
 
 const BH_INPUT_CLASS =
@@ -136,7 +136,9 @@ export default function UserDetailPage() {
           <p className="text-4xl font-semibold uppercase  text-[var(--nx-danger)] mb-3">
             Load Failed.
           </p>
-          <p className="text-sm font-semibold text-[var(--nx-danger)]">{error}</p>
+          <p className="text-sm font-semibold text-[var(--nx-danger)]">
+            {error}
+          </p>
         </div>
       </section>
     );
@@ -188,7 +190,12 @@ export default function UserDetailPage() {
   const handleSaveGpa = async () => {
     if (!uid) return;
     const value = Number(gpaInput);
-    if (gpaInput.trim() === "" || !Number.isFinite(value) || value < 0 || value > 5) {
+    if (
+      gpaInput.trim() === "" ||
+      !Number.isFinite(value) ||
+      value < 0 ||
+      value > 5
+    ) {
       toast.error("Enter a GPA between 0 and 5.");
       return;
     }
@@ -238,7 +245,7 @@ export default function UserDetailPage() {
         }
         toast.warning(
           "No email transport configured — link copied to clipboard.",
-          { duration: 8000 }
+          { duration: 8000 },
         );
       }
     } catch (e) {
@@ -288,7 +295,9 @@ export default function UserDetailPage() {
         <h1 className="text-5xl font-semibold uppercase  text-[var(--nx-fg)]">
           {user.displayName}
         </h1>
-        <p className="text-sm font-semibold text-[var(--nx-fg)]">{user.email}</p>
+        <p className="text-sm font-semibold text-[var(--nx-fg)]">
+          {user.email}
+        </p>
         <div className="flex flex-wrap items-center gap-3">
           <span className={ROLE_BADGE_CLASS[user.role]}>{user.role}</span>
           {user.active ? (
@@ -418,7 +427,9 @@ export default function UserDetailPage() {
               <FieldRow
                 label="Section IDs"
                 value={
-                  user.sectionIds.length === 0 ? "—" : user.sectionIds.join(", ")
+                  user.sectionIds.length === 0
+                    ? "—"
+                    : user.sectionIds.join(", ")
                 }
                 mono
               />
@@ -457,10 +468,12 @@ export default function UserDetailPage() {
                 <input
                   id="user-email"
                   type="email"
-                  style={{ }}
+                  style={{}}
                   className={BH_INPUT_CLASS}
                   aria-invalid={!!errors.email}
-                  aria-describedby={errors.email ? "user-email-error" : undefined}
+                  aria-describedby={
+                    errors.email ? "user-email-error" : undefined
+                  }
                   {...form.register("email")}
                 />
                 {errors.email && (
@@ -484,7 +497,7 @@ export default function UserDetailPage() {
                 <input
                   id="user-displayName"
                   type="text"
-                  style={{ }}
+                  style={{}}
                   className={BH_INPUT_CLASS}
                   aria-invalid={!!errors.displayName}
                   aria-describedby={
@@ -513,10 +526,12 @@ export default function UserDetailPage() {
                 <div className="relative">
                   <select
                     id="user-role"
-                    style={{ }}
+                    style={{}}
                     className="border border-[var(--nx-border-strong)] bg-[var(--nx-bg-sub)] focus:border-[var(--nx-border)] uppercase font-bold appearance-none cursor-pointer pr-8 px-3 py-2 text-sm w-full focus-visible:outline-none min-h-[44px] transition-colors duration-200"
                     aria-invalid={!!errors.role}
-                    aria-describedby={errors.role ? "user-role-error" : undefined}
+                    aria-describedby={
+                      errors.role ? "user-role-error" : undefined
+                    }
                     {...form.register("role")}
                   >
                     {USER_ROLES.map((r) => (
@@ -560,7 +575,7 @@ export default function UserDetailPage() {
                   id="user-active"
                   type="checkbox"
                   className="w-6 h-6 accent-[var(--nx-fg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nx-fg)] focus-visible:ring-offset-2 min-h-[44px]"
-                  style={{ }}
+                  style={{}}
                   checked={!!fieldValues.active}
                   onChange={(e) =>
                     form.setValue("active", e.target.checked, {
@@ -574,7 +589,7 @@ export default function UserDetailPage() {
                 <button
                   type="submit"
                   disabled={saving}
-                  style={{ }}
+                  style={{}}
                   className={BH_PRIMARY_BTN}
                 >
                   {saving ? "Saving…" : "Save Changes"}
@@ -646,7 +661,7 @@ export default function UserDetailPage() {
                 <button
                   type="button"
                   onClick={handleResetPassword}
-                  style={{ }}
+                  style={{}}
                   className={BH_OUTLINE_BTN}
                 >
                   Send Password Reset
@@ -655,7 +670,7 @@ export default function UserDetailPage() {
                   <button
                     type="button"
                     onClick={() => setConfirmDelete(true)}
-                    style={{ }}
+                    style={{}}
                     className={BH_DESTRUCTIVE_BTN}
                     aria-haspopup="dialog"
                   >
@@ -668,7 +683,7 @@ export default function UserDetailPage() {
                   <button
                     type="button"
                     onClick={() => setConfirmPermanent(true)}
-                    style={{ }}
+                    style={{}}
                     className={BH_DESTRUCTIVE_BTN}
                     aria-haspopup="dialog"
                   >
@@ -702,7 +717,7 @@ export default function UserDetailPage() {
           <div>
             <button
               type="button"
-              style={{ }}
+              style={{}}
               className={BH_OUTLINE_BTN}
               onClick={() => {
                 navigator.clipboard.writeText(JSON.stringify(user, null, 2));
@@ -743,7 +758,12 @@ export default function UserDetailPage() {
 }
 
 function AbsencesSection({ userId }: { userId: string }) {
-  const { data: absences, loading, error, refetch } = useAdminUserAbsences(userId);
+  const {
+    data: absences,
+    loading,
+    error,
+    refetch,
+  } = useAdminUserAbsences(userId);
   const { upsert, loading: saving } = useUpsertAbsence();
   const { remove, loading: deleting } = useDeleteAbsence();
   // The course picker needs the full catalog; the demo has a handful of
@@ -808,14 +828,19 @@ function AbsencesSection({ userId }: { userId: string }) {
       </p>
 
       {error && (
-        <p role="alert" className="text-xs font-semibold text-[var(--nx-danger)]">
+        <p
+          role="alert"
+          className="text-xs font-semibold text-[var(--nx-danger)]"
+        >
           {error}
         </p>
       )}
 
       {/* Existing records */}
       {loading ? (
-        <p className="text-xs font-semibold text-[var(--nx-fg-muted)]">Loading…</p>
+        <p className="text-xs font-semibold text-[var(--nx-fg-muted)]">
+          Loading…
+        </p>
       ) : absences.length === 0 ? (
         <p className="text-xs font-semibold text-[var(--nx-fg-muted)]">
           No absence records yet.
@@ -855,9 +880,15 @@ function AbsencesSection({ userId }: { userId: string }) {
                     {a.courseCode}
                   </button>
                 </td>
-                <td className="px-3 py-2 font-mono text-[var(--nx-fg)]">{a.excused}</td>
-                <td className="px-3 py-2 font-mono text-[var(--nx-fg)]">{a.unexcused}</td>
-                <td className="px-3 py-2 font-mono text-[var(--nx-fg)]">{a.total}</td>
+                <td className="px-3 py-2 font-mono text-[var(--nx-fg)]">
+                  {a.excused}
+                </td>
+                <td className="px-3 py-2 font-mono text-[var(--nx-fg)]">
+                  {a.unexcused}
+                </td>
+                <td className="px-3 py-2 font-mono text-[var(--nx-fg)]">
+                  {a.total}
+                </td>
                 <td className="px-3 py-2">
                   <span className="uppercase  text-[10px] font-bold text-[var(--nx-fg-muted)]">
                     {a.source ?? "—"}

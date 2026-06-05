@@ -3,7 +3,10 @@
 import { useCallback, useEffect, useState } from "react";
 import apiClient from "../api/client";
 import API_ENDPOINTS from "../api/endpoints";
-import type { AbsenceRecord, UpsertAbsenceRequest } from "../types/absence.types";
+import type {
+  AbsenceRecord,
+  UpsertAbsenceRequest,
+} from "../types/absence.types";
 
 /**
  * Read a student's manual/synced absence records. Follows the project hook
@@ -37,7 +40,9 @@ export function useAdminUserAbsences(userId: string | null) {
       })
       .catch((err) => {
         if (cancelled) return;
-        setError(err instanceof Error ? err.message : "Failed to load absences");
+        setError(
+          err instanceof Error ? err.message : "Failed to load absences",
+        );
         setData([]);
       })
       .finally(() => {
@@ -72,21 +77,22 @@ export function useUpsertAbsence() {
       try {
         const res = await apiClient.post<AbsenceRecord[]>(
           API_ENDPOINTS.USER_ABSENCES(userId),
-          body
+          body,
         );
         if (res.status !== "success" || !res.data) {
           throw new Error(res.message || "Failed to record absence");
         }
         return res.data;
       } catch (err) {
-        const msg = err instanceof Error ? err.message : "Failed to record absence";
+        const msg =
+          err instanceof Error ? err.message : "Failed to record absence";
         setError(msg);
         throw err;
       } finally {
         setLoading(false);
       }
     },
-    []
+    [],
   );
   return { upsert, loading, error };
 }
@@ -99,14 +105,15 @@ export function useDeleteAbsence() {
     setError(null);
     try {
       const res = await apiClient.delete<AbsenceRecord[]>(
-        API_ENDPOINTS.USER_ABSENCE(userId, courseId)
+        API_ENDPOINTS.USER_ABSENCE(userId, courseId),
       );
       if (res.status !== "success" || !res.data) {
         throw new Error(res.message || "Failed to remove absence");
       }
       return res.data;
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Failed to remove absence";
+      const msg =
+        err instanceof Error ? err.message : "Failed to remove absence";
       setError(msg);
       throw err;
     } finally {
