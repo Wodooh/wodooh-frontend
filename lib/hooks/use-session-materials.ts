@@ -34,7 +34,7 @@ export function uploadFileToSession(
     formData.append('material', file);
 
     const xhr = new XMLHttpRequest();
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5001';
+    const baseUrl = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5001').replace(/\/$/, '');
 
     if (onProgress) {
       xhr.upload.addEventListener('progress', (e) => {
@@ -129,7 +129,7 @@ export function useSessionMaterials(sessionId: string | undefined) {
         formData.append('material', file);
 
         const xhr = new XMLHttpRequest();
-        const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5001';
+        const baseUrl = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5001').replace(/\/$/, '');
 
         xhr.upload.addEventListener('progress', (e) => {
           if (e.lengthComputable && onProgress) {
