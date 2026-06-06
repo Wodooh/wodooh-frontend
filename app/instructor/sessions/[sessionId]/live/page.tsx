@@ -149,19 +149,26 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
   }, [liveSnapshot?.meta.startedAt]);
 
   /* — Auto-close: 10 min with no students ──────────────────────────── */
+  const AUTO_CLOSE_NO_STUDENTS_MS = 10 * 60 * 1000; // 10 minutes
   const [autoCloseWarning, setAutoCloseWarning]         = useState(false);
   const [autoCloseSuppressed, setAutoCloseSuppressed]   = useState(false);
   const [autoCloseCountdown, setAutoCloseCountdown]     = useState(60);
+  // Timestamp (ms) when student count first dropped to 0; null while students are present.
+  const noStudentsSinceRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!connected) return;
     if (studentCount > 0) {
+      noStudentsSinceRef.current = null;
       setAutoCloseWarning(false);
       setAutoCloseSuppressed(false);
       setAutoCloseCountdown(60);
       return;
     }
-    if (elapsedSec >= 600 && !autoCloseSuppressed) {
+    if (noStudentsSinceRef.current === null) {
+      noStudentsSinceRef.current = Date.now();
+    }
+    if (!autoCloseSuppressed && Date.now() - noStudentsSinceRef.current >= AUTO_CLOSE_NO_STUDENTS_MS) {
       setAutoCloseWarning(true);
     }
   }, [elapsedSec, studentCount, connected, autoCloseSuppressed]);
@@ -242,7 +249,14 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
     setUploading(true);
     setUploadProgress(0);
     try {
-      await uploadMaterial(file, setUploadProgress);
+      const newMaterial = await uploadMaterial(file, setUploadProgress);
+      setActiveMaterial(newMaterial);
+      setCurrentPage(1);
+      if (newMaterial._id) {
+        getSignedUrl(newMaterial._id)
+          .then(setPdfSignedUrl)
+          .catch(() => { /* non-fatal — placeholder shown */ });
+      }
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Upload failed');
     } finally {
@@ -461,7 +475,7 @@ export default function InstructorLiveSessionPage({ params }: PageProps) {
               <input
                 ref={fileInputRef}
                 type="file"
-                accept=".pdf,.pptx"
+                accept=".pdf"
                 style={{ display: 'none' }}
                 onChange={handleFileChange}
               />

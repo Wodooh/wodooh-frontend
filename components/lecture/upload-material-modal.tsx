@@ -124,12 +124,12 @@ export function UploadMaterialModal({ sessionId, sectionId, courseId, onSuccess,
     return libraryMaterials.filter(m => m.originalName.toLowerCase().includes(q));
   }, [libSearch, libraryMaterials]);
 
-  const accept = '.pdf,.pptx,application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation';
+  const accept = '.pdf,application/pdf';
 
   const handleFile = useCallback((f: File) => {
     setError(null);
     const ext = f.name.split('.').pop()?.toLowerCase();
-    if (ext !== 'pdf' && ext !== 'pptx') { setError('Only PDF and PPTX files are allowed.'); return; }
+    if (ext !== 'pdf') { setError('Only PDF files are allowed.'); return; }
     if (f.size > 50 * 1024 * 1024) { setError('File exceeds the 50 MB limit.'); return; }
     setFile(f);
     setProgress(0);
@@ -359,7 +359,7 @@ export function UploadMaterialModal({ sessionId, sectionId, courseId, onSuccess,
                 </div>
 
                 <div style={{ marginTop: 10, fontSize: 11.5, color: 'var(--nx-fg-muted)', textAlign: 'center' }}>
-                  <b style={{ fontWeight: 500, color: 'var(--nx-fg)' }}>PDF</b> (recommended) or <b style={{ fontWeight: 500, color: 'var(--nx-fg)' }}>PPTX</b> · up to 50 MB
+                  <b style={{ fontWeight: 500, color: 'var(--nx-fg)' }}>PDF</b> · up to 50 MB
                 </div>
 
                 {/* Selected file pill */}
