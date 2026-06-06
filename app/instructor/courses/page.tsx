@@ -15,6 +15,9 @@ import { useSessions } from "@/lib/hooks/use-sessions";
 import { UploadMaterialModal } from "@/components/lecture/upload-material-modal";
 import { MaterialsModal } from "@/components/lecture/materials-modal";
 import { uploadFileToSession, attachLibraryMaterialToSession, type LibraryMaterial } from "@/lib/hooks/use-session-materials";
+import apiClient from "@/lib/api/client";
+import API_ENDPOINTS from "@/lib/api/endpoints";
+import { ApiErrorHandler } from "@/lib/api/error-handler";
 import type { SessionPopulated } from "@/lib/types/session.types";
 
 function sectionIdFromSession(s: SessionPopulated): string | null {
@@ -58,14 +61,31 @@ export default function InstructorCoursesPage() {
     setProgress: (p: number) => void,
   ) => {
     if (!uploadState) return;
-    const created = await startSession({ courseId: uploadState.courseId, sectionId: uploadState.sectionId });
+
+    let sessionId: string;
+    try {
+      const created = await startSession({ courseId: uploadState.courseId, sectionId: uploadState.sectionId });
+      sessionId = created._id;
+    } catch (err) {
+      if (err instanceof ApiErrorHandler && err.status === 409 && uploadState.sectionId) {
+        const existing = await apiClient.get<{ _id: string }[]>(
+          `${API_ENDPOINTS.SESSIONS}?sectionId=${uploadState.sectionId}&status=live`,
+        );
+        const liveSession = existing.data?.[0];
+        if (!liveSession?._id) throw new Error("Could not find the existing live session");
+        sessionId = liveSession._id;
+      } else {
+        throw err;
+      }
+    }
+
     if (file) {
-      await uploadFileToSession(created._id, file, setProgress);
+      await uploadFileToSession(sessionId, file, setProgress);
     } else if (lib) {
-      await attachLibraryMaterialToSession(created._id, lib._id);
+      await attachLibraryMaterialToSession(sessionId, lib._id);
     }
     setUploadState(null);
-    router.push(`/instructor/sessions/${created._id}/live`);
+    router.push(`/instructor/sessions/${sessionId}/live`);
   };
 
   return (
