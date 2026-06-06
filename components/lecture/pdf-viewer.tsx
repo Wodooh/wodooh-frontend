@@ -2,8 +2,6 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
-import 'react-pdf/dist/Page/AnnotationLayer.css';
-import 'react-pdf/dist/Page/TextLayer.css';
 
 // Static worker in /public — avoids Turbopack version-mismatch errors
 pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';

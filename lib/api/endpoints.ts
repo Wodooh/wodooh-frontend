@@ -19,6 +19,10 @@ export const API_ENDPOINTS = {
   USERS: '/admin/users',
   USER_BY_ID: (userId: string) => `/admin/users/${userId}`,
   USER_ROLE: (userId: string) => `/admin/users/${userId}/role`,
+  USER_GPA: (userId: string) => `/admin/users/${userId}/gpa`,
+  USER_ABSENCES: (userId: string) => `/admin/users/${userId}/absences`,
+  USER_ABSENCE: (userId: string, courseId: string) =>
+    `/admin/users/${userId}/absences/${courseId}`,
   USER_PERMANENT: (userId: string) => `/admin/users/${userId}/permanent`,
   USER_PASSWORD_RESET: (userId: string) => `/admin/users/${userId}/password-reset`,
   USERS_BULK_DELETE: '/admin/users/bulk-delete',
@@ -97,6 +101,7 @@ export const API_ENDPOINTS = {
   CHAIRMAN_STUDENTS: '/chairman/students',
   CHAIRMAN_SESSIONS: '/chairman/sessions',
   CHAIRMAN_SESSION_REPORT: (sessionId: string) => `/chairman/reports/session/${sessionId}`,
+  CHAIRMAN_COURSE_CORRELATION: (courseId: string) => `/chairman/reports/course/${courseId}`,
   CHAIRMAN_ALERTS: '/chairman/alerts',
   CHAIRMAN_DEANONYMIZE: '/chairman/deanonymize',
   CHAIRMAN_AUDIT_LOG: '/chairman/audit-log',

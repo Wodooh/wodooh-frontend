@@ -54,4 +54,9 @@ export interface AdminUserResponse extends UserResponse {
   courseIds: string[];
   isSeed: boolean;
   searchTokens: string[];
+  /** Cumulative GPA on the 5.0 scale — present for students only; null until set. */
+  gpa?: number | null;
+  /** Provenance of the GPA: 'manual' (admin) wins over a later 'sync' import. */
+  gpaSource?: "manual" | "sync" | null;
+  gpaUpdatedAt?: string | null;
 }

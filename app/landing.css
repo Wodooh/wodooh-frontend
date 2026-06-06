@@ -1,0 +1,479 @@
+/* ─────────────────────────────────────────────────────────
+ * Landing — Nexus marketing surface (public, unauthenticated).
+ * Visual tokens come from app/nexus.css (--nx-*). This file only
+ * adds page-level layout, the hero composition, the staggered
+ * page-load reveal, and a few marketing-only atoms. It deliberately
+ * reuses the login auth-shell atmosphere (accent bloom + grain) so a
+ * visitor lands in the same world they sign in to.
+ * No mirror-token forks, no hex literals except white-on-accent.
+ * ──────────────────────────────────────────────────────── */
+
+.wd-landing {
+  min-height: 100vh;
+  background: var(--nx-bg);
+  color: var(--nx-fg);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-feature-settings: 'cv11', 'ss01';
+  -webkit-font-smoothing: antialiased;
+  position: relative;
+  isolation: isolate;
+  overflow-x: clip;
+}
+
+/* Atmospheric layer — two soft accent blooms anchored to opposite
+ * corners, mirroring the login shell. Gives depth without competing
+ * with the content. Amplified in dark mode (dark absorbs low-alpha). */
+.wd-landing::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background:
+    radial-gradient(circle 780px at 88% -6%,
+      color-mix(in oklab, var(--nx-accent) 15%, transparent),
+      transparent 70%),
+    radial-gradient(circle 680px at -6% 104%,
+      color-mix(in oklab, var(--nx-accent) 9%, transparent),
+      transparent 70%);
+}
+
+[data-nx-theme="dark"] .wd-landing::before {
+  background:
+    radial-gradient(circle 880px at 88% -6%,
+      color-mix(in oklab, var(--nx-accent) 26%, transparent),
+      transparent 70%),
+    radial-gradient(circle 760px at -6% 104%,
+      color-mix(in oklab, var(--nx-accent) 16%, transparent),
+      transparent 70%);
+}
+
+/* Fine fractal grain — breaks gradient banding, adds paper texture. */
+.wd-landing::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.6 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity: 0.05;
+  mix-blend-mode: multiply;
+}
+
+[data-nx-theme="dark"] .wd-landing::after {
+  opacity: 0.09;
+  mix-blend-mode: screen;
+}
+
+.wd-container {
+  width: 100%;
+  max-width: 1120px;
+  margin-inline: auto;
+  padding-inline: 24px;
+}
+
+/* ── Top nav ─────────────────────────────────────────────── */
+.wd-nav {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid transparent;
+  background: color-mix(in oklab, var(--nx-bg) 78%, transparent);
+  backdrop-filter: saturate(140%) blur(10px);
+  -webkit-backdrop-filter: saturate(140%) blur(10px);
+  transition: border-color 160ms;
+}
+.wd-nav[data-scrolled="true"] { border-bottom-color: var(--nx-border); }
+
+.wd-nav-inner {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.wd-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: var(--nx-fg);
+}
+
+.wd-logo {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--nx-accent), var(--nx-accent-hover));
+  color: #ffffff;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: -0.02em;
+  box-shadow: 0 2px 8px -2px color-mix(in oklab, var(--nx-accent) 55%, transparent);
+}
+
+.wd-brand-text {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+
+.wd-nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.wd-nav-link {
+  display: none;
+  align-items: center;
+  height: 34px;
+  padding-inline: 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--nx-fg-muted);
+  text-decoration: none;
+  transition: color 80ms, background 80ms;
+}
+.wd-nav-link:hover { color: var(--nx-fg); background: var(--nx-bg-hover); }
+@media (min-width: 640px) { .wd-nav-link { display: inline-flex; } }
+
+/* ── Hero ────────────────────────────────────────────────── */
+.wd-hero {
+  text-align: center;
+  padding-block: clamp(76px, 14vh, 160px) clamp(64px, 11vh, 124px);
+}
+
+.wd-hero-copy {
+  max-width: 860px;
+  margin-inline: auto;
+}
+.wd-hero-copy h1 { margin: 0; font: inherit; }
+
+.wd-wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+.wd-wordmark-en {
+  font-size: clamp(20px, 3vw, 26px);
+  font-weight: 700;
+  letter-spacing: 0.3em;
+  /* compensate the trailing tracking so the centered wordmark reads optically centered */
+  padding-inline-start: 0.3em;
+  color: var(--nx-accent);
+  line-height: 1;
+}
+
+.wd-headline {
+  display: block;
+  font-size: clamp(34px, 6.4vw, 64px);
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+  color: var(--nx-fg);
+  margin: 22px 0 0;
+}
+.wd-headline .wd-ink-accent {
+  color: var(--nx-accent);
+}
+
+.wd-lede {
+  font-size: clamp(16px, 1.9vw, 19px);
+  line-height: 1.6;
+  text-wrap: pretty;
+  color: var(--nx-fg-muted);
+  margin: 24px auto 0;
+  max-width: 58ch;
+}
+
+.wd-cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 34px;
+}
+
+/* Marketing-scale buttons, built on the Nexus .nx-btn primitive. */
+.wd-btn-xl {
+  height: 46px;
+  padding-inline: 22px;
+  font-size: 14.5px;
+  font-weight: 600;
+  border-radius: 8px;
+}
+.wd-btn-xl.nx-btn-primary {
+  box-shadow:
+    0 1px 0 rgba(0, 0, 0, 0.04),
+    0 12px 26px -10px color-mix(in oklab, var(--nx-accent) 60%, transparent);
+}
+.wd-btn-xl .wd-btn-arrow { transition: transform 140ms ease; }
+.wd-btn-xl:hover .wd-btn-arrow { transform: translateX(3px); }
+
+.wd-trust {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 24px;
+  font-size: 13px;
+  color: var(--nx-fg-muted);
+}
+.wd-trust svg { color: var(--nx-success); flex-shrink: 0; }
+
+/* ── Section scaffolding ─────────────────────────────────── */
+.wd-section { padding-block: 64px; }
+.wd-section-sub {
+  border-top: 1px solid var(--nx-border);
+}
+
+.wd-section-head { max-width: 620px; margin-bottom: 40px; }
+.wd-section-title {
+  font-size: clamp(23px, 3.4vw, 32px);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+  color: var(--nx-fg);
+  margin: 0;
+}
+.wd-section-lede {
+  font-size: 15.5px;
+  line-height: 1.6;
+  text-wrap: pretty;
+  color: var(--nx-fg-muted);
+  margin: 12px 0 0;
+  max-width: 60ch;
+}
+
+/* ── How it works: 3 steps ───────────────────────────────── */
+.wd-steps {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+@media (min-width: 760px) {
+  .wd-steps { grid-template-columns: repeat(3, 1fr); gap: 24px; }
+}
+
+.wd-step {
+  position: relative;
+  background: var(--nx-bg-elev);
+  border: 1px solid var(--nx-border);
+  border-radius: 12px;
+  padding: 22px 20px 24px;
+  box-shadow: var(--nx-shadow-sm);
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+}
+.wd-step:hover {
+  transform: translateY(-3px);
+  border-color: color-mix(in oklab, var(--nx-accent) 40%, var(--nx-border));
+  box-shadow: 0 14px 30px -16px color-mix(in oklab, var(--nx-accent) 38%, transparent);
+}
+.wd-step-num {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--nx-accent);
+  letter-spacing: 0.05em;
+}
+.wd-step-ico {
+  width: 38px; height: 38px;
+  margin: 14px 0 16px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  color: var(--nx-accent);
+  background: var(--nx-accent-soft);
+  border: 1px solid color-mix(in oklab, var(--nx-accent) 20%, transparent);
+}
+.wd-step-title {
+  font-size: 15.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+  color: var(--nx-fg);
+  margin: 0 0 6px;
+}
+.wd-step-desc {
+  font-size: 13.5px;
+  line-height: 1.55;
+  text-wrap: pretty;
+  color: var(--nx-fg-muted);
+  margin: 0;
+}
+
+/* ── Features ────────────────────────────────────────────── */
+.wd-features {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+@media (min-width: 720px) {
+  .wd-features { grid-template-columns: repeat(2, 1fr); gap: 18px; }
+}
+
+.wd-feat {
+  display: flex;
+  gap: 14px;
+  padding: 22px;
+  background: var(--nx-bg-elev);
+  border: 1px solid var(--nx-border);
+  border-radius: 12px;
+  box-shadow: var(--nx-shadow-sm);
+}
+/* Lead feature (privacy) spans full width and carries the accent tint. */
+.wd-feat-lead {
+  border-color: color-mix(in oklab, var(--nx-accent) 35%, transparent);
+  background:
+    linear-gradient(135deg,
+      color-mix(in oklab, var(--nx-accent) 7%, var(--nx-bg-elev)),
+      var(--nx-bg-elev) 60%);
+}
+@media (min-width: 720px) { .wd-feat-lead { grid-column: 1 / -1; } }
+
+.wd-feat-ico {
+  flex-shrink: 0;
+  width: 40px; height: 40px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  color: var(--nx-accent);
+  background: var(--nx-accent-soft);
+  border: 1px solid color-mix(in oklab, var(--nx-accent) 20%, transparent);
+}
+.wd-feat-body { min-width: 0; }
+.wd-feat-title {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--nx-fg);
+  margin: 2px 0 5px;
+}
+.wd-feat-desc {
+  font-size: 13.5px;
+  line-height: 1.55;
+  text-wrap: pretty;
+  color: var(--nx-fg-muted);
+  margin: 0;
+  max-width: 66ch;
+}
+
+/* ── Closing CTA band ────────────────────────────────────── */
+.wd-closer {
+  position: relative;
+  text-align: center;
+  padding: 56px 28px;
+  border-radius: 16px;
+  border: 1px solid color-mix(in oklab, var(--nx-accent) 28%, transparent);
+  background:
+    radial-gradient(circle 420px at 50% -40%,
+      color-mix(in oklab, var(--nx-accent) 16%, transparent), transparent 70%),
+    var(--nx-bg-elev);
+  overflow: hidden;
+}
+.wd-closer-title {
+  font-size: clamp(22px, 3.2vw, 30px);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+  margin: 0;
+}
+.wd-closer-lede {
+  font-size: 15px;
+  color: var(--nx-fg-muted);
+  margin: 10px auto 0;
+  max-width: 46ch;
+  line-height: 1.6;
+  text-wrap: pretty;
+}
+.wd-closer .wd-cta-row { justify-content: center; }
+
+/* ── Footer ──────────────────────────────────────────────── */
+.wd-footer {
+  border-top: 1px solid var(--nx-border);
+  padding-block: 32px 40px;
+}
+.wd-footer-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+@media (min-width: 720px) {
+  .wd-footer-inner { flex-direction: row; align-items: center; justify-content: space-between; }
+}
+.wd-footer-meta { display: flex; flex-direction: column; gap: 4px; }
+.wd-footer-project {
+  font-size: 12.5px;
+  color: var(--nx-fg-muted);
+}
+.wd-footer-credit {
+  font-size: 12.5px;
+  color: var(--nx-fg-muted);
+}
+.wd-footer-credit b { color: var(--nx-fg); font-weight: 600; }
+.wd-footer-links {
+  display: flex;
+  gap: 18px;
+  font-size: 12.5px;
+}
+.wd-footer-links a {
+  color: var(--nx-fg-muted);
+  text-decoration: none;
+  transition: color 80ms;
+}
+.wd-footer-links a:hover { color: var(--nx-fg); }
+
+/* ── Theme toggle (shared with nav) ──────────────────────── */
+.wd-theme-btn {
+  width: 34px; height: 34px;
+  display: grid; place-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: var(--nx-fg-muted);
+  cursor: pointer;
+  transition: background 80ms, color 80ms, border-color 80ms;
+}
+.wd-theme-btn:hover {
+  background: var(--nx-bg-hover);
+  color: var(--nx-fg);
+  border-color: var(--nx-border);
+}
+
+/* ── Focus visibility (keyboard) ─────────────────────────── */
+/* The Nexus .nx-btn primitives don't ship a focus-visible ring; give
+ * every interactive element on the landing a clear accent ring. */
+.wd-landing a:focus-visible,
+.wd-landing button:focus-visible {
+  outline: 2px solid var(--nx-accent);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+/* ── Staggered page-load reveal ──────────────────────────── */
+.wd-reveal {
+  opacity: 0;
+  transform: translateY(14px);
+  animation: wd-rise 0.62s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation-delay: var(--d, 0ms);
+}
+@keyframes wd-rise {
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wd-reveal {
+    opacity: 1;
+    transform: none;
+    animation: none;
+  }
+  .wd-step, .wd-btn-xl .wd-btn-arrow { transition: none; }
+}
