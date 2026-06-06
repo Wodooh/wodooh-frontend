@@ -148,11 +148,9 @@ export function useChairmanSessionReport(sessionId: string | null) {
       return;
     }
     let cancelled = false;
-    queueMicrotask(() => {
-      if (cancelled) return;
-      setLoading(true);
-      setError(null);
-    });
+    setLoading(true);
+    setError(null);
+    setData(null);
 
     apiClient
       .get<SessionReport>(API_ENDPOINTS.CHAIRMAN_SESSION_REPORT(sessionId))
