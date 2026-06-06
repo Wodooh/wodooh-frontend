@@ -3,17 +3,17 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import apiClient from "@/lib/api/client";
-import API_ENDPOINTS from "@/lib/api/endpoints";
 import { useAuth } from "@/lib/auth/auth-provider";
 import { useMyCourses } from "@/lib/hooks/use-my-courses";
 import { displayFirstName, timeGreeting } from "@/lib/utils";
-import type { SessionPopulated } from "@/lib/types/session.types";
+import API_ENDPOINTS from "@/lib/api/endpoints";
+import type { MySessionsResponse, MySession } from "@/lib/hooks/use-my-sessions";
 
 export default function StudentDashboardPage() {
   const { user } = useAuth();
   const { courses, loading, error } = useMyCourses();
   const router = useRouter();
-  const [liveSessions, setLiveSessions] = useState<SessionPopulated[]>([]);
+  const [liveSessions, setLiveSessions] = useState<MySession[]>([]);
   const [sessionsLoading, setSessionsLoading] = useState(true);
 
   const now = new Date();
@@ -33,11 +33,12 @@ export default function StudentDashboardPage() {
     // empty-state behavior anyway). No retry / no error card — absence is
     // silent. A persistent failure surfaces when the student opens the
     // sessions page.
-    apiClient.get<SessionPopulated[]>(`${API_ENDPOINTS.SESSIONS}?status=live`)
+    // Use /me/sessions — scoped to the student's enrolled sections server-side.
+    apiClient.get<MySessionsResponse>(API_ENDPOINTS.MY_SESSIONS("live"))
       .then(res => {
         if (cancelled) return;
         if (res.status === "success" && res.data) {
-          setLiveSessions(res.data);
+          setLiveSessions(res.data.sessions);
         }
       })
       .catch(() => {
@@ -77,9 +78,9 @@ export default function StudentDashboardPage() {
           </div>
           <ul className="nx-live-strip-list">
             {liveSessions.map(s => {
-              const course = s.courseId && typeof s.courseId === "object" ? s.courseId : null;
-              const section = s.sectionId && typeof s.sectionId === "object" ? s.sectionId : null;
-              const instr = s.instructorId && typeof s.instructorId === "object" ? s.instructorId : null;
+              const course = typeof s.courseId === "object" ? s.courseId : null;
+              const section = typeof s.sectionId === "object" ? s.sectionId : null;
+              const instr = typeof s.instructorId === "object" ? s.instructorId : null;
               return (
                 <li key={s._id} className="nx-live-strip-item">
                   <div className="nx-live-strip-item-meta">
