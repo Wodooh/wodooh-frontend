@@ -1810,6 +1810,20 @@
   font-family: 'JetBrains Mono', ui-monospace, monospace; font-weight: 600;
   font-size: 14px;
 }
+.nx-cluster-new-badge {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px; font-weight: 600;
+  color: var(--nx-success, #30a46c);
+  background: color-mix(in oklab, var(--nx-success, #30a46c) 15%, transparent);
+  border-radius: 999px;
+  padding: 1px 7px;
+  margin-left: 2px;
+  animation: nx-badge-pop 300ms cubic-bezier(0.16,1,0.3,1) both;
+}
+@keyframes nx-badge-pop {
+  0%   { opacity: 0; transform: scale(0.7); }
+  100% { opacity: 1; transform: scale(1); }
+}
 
 /* ── Cluster "see all" disclosure + nested-evidence member list ──── */
 /* Text-button form is intentional: a plain-language affordance reads as
@@ -1857,6 +1871,13 @@
   display: flex; align-items: center; gap: 8px;
   font-size: 12px;
   color: var(--nx-fg-subtle);
+}
+.nx-cluster-member.is-new-member {
+  background: color-mix(in oklab, var(--nx-accent, #6366f1) 5%, transparent);
+  border-left: 2px solid var(--nx-accent, #6366f1);
+  padding: 6px 8px 6px 12px;
+  margin: -6px -8px -6px -12px;
+  border-radius: 4px;
 }
 
 .nx-slide-tag {

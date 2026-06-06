@@ -635,6 +635,26 @@ function ClusterRow({
 
   const [expanded, setExpanded] = useState(false);
 
+  // Track when a new question joins this cluster — show a "+N new" badge
+  // that persists until the instructor opens the cluster.
+  const prevSizeRef = useRef(cluster.size);
+  const [newCount, setNewCount] = useState(0);
+  useEffect(() => {
+    const delta = cluster.size - prevSizeRef.current;
+    prevSizeRef.current = cluster.size;
+    if (delta > 0) {
+      setNewCount(prev => prev + delta);
+    }
+  }, [cluster.size]);
+
+  // Clear the badge when the instructor collapses the member list,
+  // marking that they have seen the newly added questions.
+  useEffect(() => {
+    if (!expanded) {
+      setNewCount(0);
+    }
+  }, [expanded]);
+
   const isHidden = cluster.visibilityStatus === "hidden";
   const isCluster = cluster.size > 1;
   const status: QuestionStatus = isHidden ? "new" : "opened";
@@ -679,6 +699,11 @@ function ClusterRow({
         {isCluster && (
           <span className="nx-cluster-pill">
             <span className="nx-cluster-pill-count">{cluster.size}</span> students asked this
+            {!expanded && !isHidden && newCount > 0 && (
+              <span className="nx-cluster-new-badge" key={cluster.size}>
+                +{newCount} new
+              </span>
+            )}
           </span>
         )}
         {head && (
@@ -718,7 +743,9 @@ function ClusterRow({
           >
             {expanded
               ? "Hide other questions"
-              : `See all ${cluster.size} questions`}
+              : newCount > 0 && !isHidden
+                ? `See all ${cluster.size} questions (${newCount} unopened)`
+                : `See all ${cluster.size} questions`}
           </button>
         )}
 
@@ -731,28 +758,41 @@ function ClusterRow({
 
       {isCluster && expanded && (
         <ul className="nx-cluster-members" role="list">
-          {members.map(m => (
-            <li key={m.questionId} className="nx-cluster-member">
-              <p className={cn("nx-cluster-member-text", isHidden && "nx-qrow-text--hidden")}>
-                {m.text}
-              </p>
-              <div className="nx-cluster-member-meta">
-                <button
-                  className="nx-slide-tag"
-                  onClick={stop(() => onJumpToSlide(m.fromPage))}
-                >
-                  slide {m.fromPage}
-                </button>
-                <span>{relativeTime(m.postedAt)}</span>
-                <span className="nx-qrow-actions-spacer" />
-                <MuteButton
-                  participantId={m.participantId}
-                  muted={m.participantId ? mutedSet.has(m.participantId) : false}
-                  onToggleMute={onToggleMute}
-                />
-              </div>
-            </li>
-          ))}
+          {members.map((m, idx) => {
+            // If the cluster is already visible but this member joined recently,
+            // we can identify it by checking if it's among the latest `newCount` members.
+            // (Assuming members are ordered chronologically; if not, we can just highlight
+            // based on the index relative to size - newCount).
+            const isNewMember = !isHidden && newCount > 0 && idx >= (members.length - newCount);
+            return (
+              <li key={m.questionId} className={cn("nx-cluster-member", isNewMember && "is-new-member")}>
+                <p className={cn("nx-cluster-member-text", isHidden && "nx-qrow-text--hidden")}>
+                  {m.text}
+                </p>
+                <div className="nx-cluster-member-meta">
+                  {isNewMember && (
+                    <span className="nx-badge nx-role-student" style={{ padding: "0 6px", fontSize: 10 }}>
+                      <span className="nx-badge-dot" />
+                      Unopened
+                    </span>
+                  )}
+                  <button
+                    className="nx-slide-tag"
+                    onClick={stop(() => onJumpToSlide(m.fromPage))}
+                  >
+                    slide {m.fromPage}
+                  </button>
+                  <span>{relativeTime(m.postedAt)}</span>
+                  <span className="nx-qrow-actions-spacer" />
+                  <MuteButton
+                    participantId={m.participantId}
+                    muted={m.participantId ? mutedSet.has(m.participantId) : false}
+                    onToggleMute={onToggleMute}
+                  />
+                </div>
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>
