@@ -196,11 +196,9 @@ export function useChairmanCourseCorrelation(courseId: string | null) {
       return;
     }
     let cancelled = false;
-    queueMicrotask(() => {
-      if (cancelled) return;
-      setLoading(true);
-      setError(null);
-    });
+    setLoading(true);
+    setError(null);
+    setData(null);
 
     apiClient
       .get<CourseCorrelation>(
