@@ -15,6 +15,11 @@ export interface MySession {
   instructorId: { _id: string; name: string; email: string };
 }
 
+export interface MySessionsResponse {
+  role: string;
+  sessions: MySession[];
+}
+
 export function useMySessions(status?: SessionStatus) {
   const [sessions, setSessions] = useState<MySession[]>([]);
   const [loading, setLoading] = useState(true);
