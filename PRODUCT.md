@@ -2,7 +2,6 @@
 
 ## Register
 
-brand
 
 > Scope note: this PRODUCT.md governs the **public, unauthenticated** surface
 > (the `/` landing page). The authenticated app (admin / instructor / student /
