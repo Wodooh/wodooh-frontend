@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import apiClient from "@/lib/api/client";
 import API_ENDPOINTS from "@/lib/api/endpoints";
+import { ApiErrorHandler } from "@/lib/api/error-handler";
 import { useAuth } from "@/lib/auth/auth-provider";
 import { useMyCourses, type MyCourseEntry } from "@/lib/hooks/use-my-courses";
 import { useMySessions } from "@/lib/hooks/use-my-sessions";
@@ -77,14 +78,30 @@ export default function InstructorDashboardPage() {
     setProgress: (p: number) => void,
   ) => {
     if (!pendingEntry?.course) return;
-    const res = await apiClient.post<{ _id: string }>(API_ENDPOINTS.SESSIONS, {
-      courseId: pendingEntry.course._id,
-      sectionId: pendingEntry.sectionDbId,
-    });
-    if (res.status !== "success" || !res.data?._id) {
-      throw new Error(res.message || "Failed to start session");
+
+    let sessionId: string;
+    try {
+      const res = await apiClient.post<{ _id: string }>(API_ENDPOINTS.SESSIONS, {
+        courseId: pendingEntry.course._id,
+        sectionId: pendingEntry.sectionDbId,
+      });
+      if (res.status !== "success" || !res.data?._id) {
+        throw new Error(res.message || "Failed to start session");
+      }
+      sessionId = res.data._id;
+    } catch (err) {
+      // A live session already exists for this section — reuse it.
+      if (err instanceof ApiErrorHandler && err.status === 409 && pendingEntry.sectionDbId) {
+        const existing = await apiClient.get<{ _id: string }[]>(
+          `${API_ENDPOINTS.SESSIONS}?sectionId=${pendingEntry.sectionDbId}&status=live`,
+        );
+        const liveSession = existing.data?.[0];
+        if (!liveSession?._id) throw new Error("Could not find the existing live session");
+        sessionId = liveSession._id;
+      } else {
+        throw err;
+      }
     }
-    const sessionId = res.data._id;
     if (file) {
       await uploadFileToSession(sessionId, file, setProgress);
     } else if (lib) {
